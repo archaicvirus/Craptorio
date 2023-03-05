@@ -15,3 +15,8 @@ Right now there is a test map setup for development.
 Belts are working, at a semi-final state. They need optimization for the item drawing routines,
 as 500 or so belts that are fully saturated, drag down TPS below 45.
 Belts need to support tier 1, 2 & 3 speeds.
+
+![belt_snapping](https://user-images.githubusercontent.com/25288625/222978303-0ff2decd-3981-4e2b-823a-a885bbd344d6.gif)
+
+![video1](https://user-images.githubusercontent.com/25288625/222978373-efa24fc3-2851-46a9-8c2d-35efd1f96f06.gif)
+
