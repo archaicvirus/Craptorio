@@ -1,7 +1,7 @@
 # Craptorio
 A de-make of Factorio for the Tic-80 fantasy computer. 
 
-**Note that at this time this project is an early WIP. Most scripts are either proof-of-concept or slightly beyond.
+**Note that at this time this project is an early WIP. Current scripts are in an unfinished state.
 
 Core idea for de-make:
 To cover the main factorio game loop, which is mining resources and using belts, 
