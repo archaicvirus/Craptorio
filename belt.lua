@@ -1,5 +1,5 @@
 BELT_ID_CURVED = 277
-BELT_ID_STRAIGHT = 326
+BELT_ID_STRAIGHT = 342
 
 local belt = {
   pos = {x = 0, y = 0},
