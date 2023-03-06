@@ -13,7 +13,7 @@ and I am putting as much time into this as I can for now.
 
 With that being said, not much is final ATM. Many game-mechanics will likey be left out due to the constraints
 imposed by the Tic-80 dev enviornment. This is the point obviously, (or perhaps not so obvious to some) however 
-I do intend to add as many features and mechanics from the original as possible.
+I do intend to add as many features and mechanics from the original as technically feasible.
 
 Right now there is a test map setup for development.
 Belts and inserters are implemented, as well as a placeholder item system (to test belt/inserter functionality), 
