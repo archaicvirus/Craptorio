@@ -6,14 +6,15 @@
 -- version: 0.3
 -- script:  lua
 
-local new_belt        = require('\\libs\\belt')
-local new_inserter    = require('\\libs\\inserter')
+local new_belt      = require('\\libs\\belt')
+local new_inserter  = require('\\libs\\inserter')
+local aspr          = require('\\libs\\affine_sprite')
 --------------------COUNTERS--------------------------
 TICK              = 0
 BELT_TICKRATE     = 5
 BELT_MAXTICK      = 3
 BELT_TICK         = 0
-INSERTER_TICKRATE = 5
+INSERTER_TICKRATE = 3
 
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 BELTS, INSERTERS = {}, {}
@@ -177,7 +178,7 @@ function sort_belt_update_order(self)
   end
 end
 
-local function add_belt(x, y, rotation)
+function add_belt(x, y, rotation)
   local key = tostring(x) .. '-' .. tostring(y)
   if not BELTS[key] then
     local belt = new_belt({x = x, y = y}, rotation)
@@ -189,42 +190,19 @@ local function add_belt(x, y, rotation)
     BELTS[key]:rotate(rotation)
     BELTS[key]:set_output()
   end
-  --BELTS[key]:set_curved()
-
   --check surrounding area for belts to update n,s,e,w
-  local tiles = {[1]={x=x,y=y-8,z=3},[2]={x=x+8,y=y,z=0},[3]={x=x,y=y+8,z=1},[4]={x=x-8,y=y,z=2}}
+  local tiles = {[1]={x=x,y=y-8},[2]={x=x+8,y=y},[3]={x=x,y=y+8},[4]={x=x-8,y=y}}
   for i = 1, 4 do
     local k = tostring(tiles[i].x) .. '-' .. tostring(tiles[i].y)
     if BELTS[k] then BELTS[k]:set_curved() end
-    -- if BELTS[k] and BELTS[k].rot == tiles[i].z then
-    --   BELTS[k]:set_curved()
-    -- end
+
   end
   --check if should be curved
   BELTS[key]:set_curved()
-
-
-  -- trace('checking if curved')
-  -- local x, y = BELTS[key].pos.x, BELTS[key].pos.y
-  -- local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[cursor.rotation])
-  -- local key1, key2, key3 = loc1.x + x .. '-' .. loc1.y + y, loc2.x + x .. '-' .. loc2.y + y, loc3.x + x .. '-' .. loc3.y + y
-  -- --local res
-  -- if not BELTS[key2] or not BELTS[key]:is_facing(BELTS[key2]) then
-  --   trace('not facing')
-  --   if BELTS[key1] and BELTS[key]:is_facing(BELTS[key1]) and (not BELTS[key3] or not BELTS[key]:is_facing(BELTS[key3])) then
-  --     trace('curved 1')
-  --     BELTS[key].id, BELTS[key].flip, BELTS[key].sprite_rot, BELTS[key].output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
-  --   elseif BELTS[key3] and BELTS[key]:is_facing(BELTS[key3]) and (not BELTS[key1] or not BELTS[key]:is_facing(BELTS[key1])) then
-  --     trace('curved 2')
-  --     BELTS[key].id, BELTS[key].flip, BELTS[key].sprite_rot, BELTS[key].output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
-  --   end
-  -- else
-  --   BELTS[key].output_item_key = BELTS[key].rot .. BELTS[key].rot
-  -- end
   --sort_belt_render_order()
 end
 
-local function remove_belt(x, y)
+function remove_belt(x, y)
   local key = tostring(x) .. '-' .. tostring(y)
   if BELTS[key] then
     for i = 1, #BELTS do
@@ -244,7 +222,7 @@ local function remove_belt(x, y)
   --sort_belt_render_order()
 end
 
-local function update_belts()
+function update_belts()
   for key, belt in pairs(BELTS) do
     --BELT table is double indexed with position, eg. BELTS[1] = BELTS['x-y']
     if key == (tostring(belt.pos.x .. '-' ..belt.pos.y)) then
@@ -253,7 +231,7 @@ local function update_belts()
   end
 end
 
-local function add_inserter(x, y, rotation)
+function add_inserter(x, y, rotation)
   local key = x .. '-' .. y
   if INSERTERS[key] then
     if INSERTERS[key].rot ~= rotation then
@@ -265,15 +243,24 @@ local function add_inserter(x, y, rotation)
     local index = #INSERTERS
     INSERTERS[key] = INSERTERS[index]
     INSERTERS[key].index = index
-    --trace('created new ins ->' .. #INSERTERS)
+    trace('created new ins ->' .. #INSERTERS)
   end
 end
 
-local function remove_inserter(x, y)
-
+function remove_inserter(x, y)
+  local key = tostring(x) .. '-' .. tostring(y)
+  if INSERTERS[key] then
+    for i = 1, #INSERTERS do
+      if INSERTERS[i] == INSERTERS[key] then
+        table.remove(INSERTERS, i)
+        INSERTERS[key] = nil
+        break
+      end
+    end
+  end
 end
 
-local function update_inserters()
+function update_inserters()
   for key, inserter in ipairs(INSERTERS) do
     inserter:update()
   end
@@ -283,7 +270,7 @@ function get_cell(x, y)
   return x - (x % 8), y - (y % 8)
 end
 
-local function get_flags(x, y, flags)
+function get_flags(x, y, flags)
   local cell_x, cell_y = get_cell(x, y)
   if type(flags) == 'table' then
     local flag = ''
@@ -381,15 +368,17 @@ function rotate_cursor()
 end
 
 function place_tile(x, y, rotation)
-  if cursor.item == 'belt' then
+  local key = tostring(x) .. '-' .. tostring(y)
+  if cursor.item == 'belt' and not INSERTERS[key] then
     add_belt(x, y, rotation)
-  elseif cursor.item == 'inserter' then
-    --add_inserter(x, y, rotation)
+  elseif cursor.item == 'inserter' and not BELTS[key] then
+    add_inserter(x, y, rotation)
   end
 end
 
 function remove_tile(x, y)
   remove_belt(x,y)
+  remove_inserter(x,y)
 end
 
 function TIC()
@@ -399,41 +388,37 @@ function TIC()
 
   cls(0)
   
-  map(0, 0, 30, 17, 0, 0, 00, 1)
+  --map(0, 0, 30, 17, 0, 0, 00, 1)
 
   local x, y, left, middle, right = mouse()
   ----------------UPDATE BELTS-----------------
-  --tick step
-  --if right and not cursor.last_right then 
   if TICK % BELT_TICKRATE == 0 then
-    --add_item()
     BELT_TICK = BELT_TICK + 1
     if BELT_TICK > BELT_MAXTICK then
       BELT_TICK = 0
     end
     update_belts()
-    --update_inserters()
   end
+
   for i = 1, #BELTS do
     BELTS[i].updated = false
     BELTS[i].drawn = false
     BELTS[i]:draw()
   end
+
   for i = 1, #BELTS do
     if not BELTS[i].drawn then
       BELTS[i]:draw_items()
     end
   end
 
-  -- if TICK % INSERTER_TICKRATE == 0 then
-  --   for k, v in ipairs(INSERTERS) do
-  --     --v:update()      
-  --   end
-  -- end
+  if TICK % INSERTER_TICKRATE == 0 then
+    update_inserters()
+  end
 
-  -- for k, v in ipairs(INSERTERS) do
-  --   v:draw()
-  -- end
+  for k, v in ipairs(INSERTERS) do
+    v:draw()
+  end
 
   draw_debug()
 
@@ -449,13 +434,15 @@ function TIC()
   ----------------DRAW-CURSOR------------------
   move_cursor('mouse', x, y)
   draw_cursor()
+
   if (left and not cursor.last_left) or left and (cursor.x ~= cursor.last_tile_x or cursor.y ~= cursor.last_tile_y) then
     place_tile(cursor.x, cursor.y, cursor.rotation)
   end
+
   if (right and not cursor.last_right) or right and (cursor.x ~= cursor.last_tile_x or cursor.y ~= cursor.last_tile_y) then
     remove_tile(cursor.x, cursor.y)
   end
-  --if right then TICK = TICK + 1 end
+
   cursor.last_tile_x, cursor.last_tile_y = get_cell(x, y)
   cursor.last_rotation = cursor.rotation
   cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = x, y, left, middle, right
@@ -466,7 +453,8 @@ end
 -- 002:ffffeeeefdefefdefedfedfeffffeeeeeeeeffffefdefdefedfefedfeeeeffff
 -- 003:2ddddddcddddddddddddddddddddddddddddddddddddddddddddddddaddddddb
 -- 017:fefefefeefefefeffefefefeefefefeffefefefeefefefeffefefefeefefefef
--- 018:0e0e8d8de0e0d8d80e0e8d8de0e0d8d88d8d0e0ed8d8e0e08d8d0e0ed8d8e0e0
+-- 019:0e0e8d8de0e0d8d80e0e8d8de0e0d8d88d8d0e0ed8d8e0e08d8d0e0ed8d8e0e0
+-- 034:0222222034444422222224433444222222244443342222222444444300022222
 -- </TILES>
 
 -- <SPRITES>
@@ -487,9 +475,9 @@ end
 -- 015:00dddd00020000d0d020000dd002000dd000200dd000020d0d00002000dddd00
 -- 016:00ffffff0fddeeedfdddeeedfdddeeedfeeedddefeeedddefeeedddefdddeeef
 -- 017:ffffffffddfeeefdddfeeefdddfeeefdeefdddfeeefdddfeeefdddfeffffffff
--- 018:4100001411100171f11111100f10010000100100011111101110f17141000f14
+-- 018:00000014000001710000111fc11111f0c1111100000011100000f17100000f14
 -- 019:0000000044000000004000000004444300f44434ff4000004400000000000000
--- 020:00004f000004f0000004f0000004f00400444440044400004340000034000000
+-- 020:0004000000004000f00040004fff400004444400000044400000043400000043
 -- 021:00ffffff0feeeeeefeed4fddfed4fdd4fed4fdd4fedd4fddfefddfdefe4ff4ef
 -- 022:00ffffff0feeeeeefeedddd4fefddf40fe4ff440fed44dd4fedddddefefddfef
 -- 023:00ffffff0feeeeeefeeddd4ffeddd4fdfefdd4fdfe4ff44ffed44ddefeddddef
@@ -532,6 +520,7 @@ end
 -- 073:ffffffffeeeeeeeed4fdd4fd4fdd4fdd4fdd4fddd4fdd4fdeeeeeeeeffffffff
 -- 074:00dddddd0deeeeeedeeeee4fdeeee4fedefefe4fde4f4eeedee4eeeedeeeeeed
 -- 080:6000000600000000000000000000000000000000000000000000000060000006
+-- 082:0222222034444422222224433444222222244443342222222444444300022222
 -- 090:00dddddd0deeeeeedeeee4fedeee4feedeeee4fedefefeeede4f4eeedee4eeed
 -- 096:5000000500000000000000000000000000000000000000000000000050000005
 -- 106:0000000000000000000000000000000000000022000000340000001200000000
@@ -577,7 +566,7 @@ end
 -- </TRACKS>
 
 -- <FLAGS>
--- 000:00100010000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 000:00100010000000000000000000000000001000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- </FLAGS>
 
 -- <PALETTE>
