@@ -14,7 +14,7 @@ TICK              = 0
 BELT_TICKRATE     = 5
 BELT_MAXTICK      = 3
 BELT_TICK         = 0
-INSERTER_TICKRATE = 3
+INSERTER_TICKRATE = 4
 
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 BELTS, INSERTERS = {}, {}
@@ -195,7 +195,7 @@ function add_belt(x, y, rotation)
   for i = 1, 4 do
     local k = tostring(tiles[i].x) .. '-' .. tostring(tiles[i].y)
     if BELTS[k] then BELTS[k]:set_curved() end
-
+    --if INSERTERS[k] then INSERTERS[k]:set_input() end
   end
   --check if should be curved
   BELTS[key]:set_curved()
@@ -207,8 +207,9 @@ function remove_belt(x, y)
   if BELTS[key] then
     for i = 1, #BELTS do
       if BELTS[i] == BELTS[key] then
-        table.remove(BELTS, i)
         BELTS[key] = nil
+        table.remove(BELTS, i)
+        --BELTS[i] = nil
         break
       end
     end
@@ -330,7 +331,7 @@ function draw_debug()
   end
   local info = 'nil'
   local key = cursor.x .. '-' .. cursor.y
-  if BELTS[key] ~= nil then info = tostring(BELTS[key].output_item_key) end
+  if INSERTERS[key] then info = tostring(INSERTERS[key].input_key) end
   local time = math.floor(TICK/(time()/1000))
   rectb(0, 115, 45, 21, 5)
   rect( 1, 116, 43, 19, 15)
@@ -478,10 +479,10 @@ end
 -- 018:00000014000001710000111fc11111f0c1111100000011100000f17100000f14
 -- 019:0000000044000000004000000004444300f44434ff4000004400000000000000
 -- 020:0004000000004000f00040004fff400004444400000044400000043400000043
--- 021:00ffffff0feeeeeefeed4fddfed4fdd4fed4fdd4fedd4fddfefddfdefe4ff4ef
--- 022:00ffffff0feeeeeefeedddd4fefddf40fe4ff440fed44dd4fedddddefefddfef
--- 023:00ffffff0feeeeeefeeddd4ffeddd4fdfefdd4fdfe4ff44ffed44ddefeddddef
--- 024:00ffffff0feeeeeefeedd4fdfedd4fddfedd4fddfefdf4fdfe4ff4defed44def
+-- 021:00ffffff0feeeeeefeed4fcdfed4fcd4fed4fcd4fecd4fcdfefccfdefe4ff4ef
+-- 022:00ffffff0feeeeeefecddcd4fefccf40fe4ff440fed44dd4fecddcdefefccfef
+-- 023:00ffffff0feeeeeefeeddd4ffecdd4fcfefcc4fcfe4ff44ffed44ddefeddddef
+-- 024:00ffffff0feeeeeefeedd4fcfedd4fcdfecd4fcdfefcf4fcfe4ff4defed44def
 -- 025:0000000004300de003240efd003300ed00000000003300ed03240efe04300dd0
 -- 026:000000000e0d00000eff00000de0000000000000000000000000000000000000
 -- 027:0000e00d0000e0de0000ede00000de000000e00d0000e0de0000ede00000de00
@@ -521,13 +522,15 @@ end
 -- 074:00dddddd0deeeeeedeeeee4fdeeee4fedefefe4fde4f4eeedee4eeeedeeeeeed
 -- 080:6000000600000000000000000000000000000000000000000000000060000006
 -- 082:0222222034444422222224433444222222244443342222222444444300022222
+-- 086:ffffffffeeeeeeee4fcd4fcdfcd4fcd4fcd4fcd44fcd4fcdeeeeeeeeffffffff
+-- 087:ffffffffeeeeeeeefcd4fcd4cd4fcd4fcd4fcd4ffcd4fcd4eeeeeeeeffffffff
+-- 088:ffffffffeeeeeeeecd4fcd4fd4fcd4fcd4fcd4fccd4fcd4feeeeeeeeffffffff
+-- 089:ffffffffeeeeeeeed4fcd4fc4fcd4fcd4fcd4fcdd4fcd4fceeeeeeeeffffffff
 -- 090:00dddddd0deeeeeedeeee4fedeee4feedeeee4fedefefeeede4f4eeedee4eeed
 -- 096:5000000500000000000000000000000000000000000000000000000050000005
 -- 106:0000000000000000000000000000000000000022000000340000001200000000
 -- 107:0000000000000000000000000000000011100000222000004440000000000000
--- 120:fed44deffeddddeffefddfeffe4ff4effed44deffeddddeffefddfeffe4ff4ef
 -- 129:000000000000000000000000000000000000000004f0004004f00040004f0400
--- 136:ffffffffeeeeeeeeddf4ddf44ddf4ddf4ddf4ddfddf4ddf4eeeeeeeeffffffff
 -- 145:41044014f11441110f14411000134100001431000111111011100f11410000f4
 -- </SPRITES>
 
@@ -570,6 +573,6 @@ end
 -- </FLAGS>
 
 -- <PALETTE>
--- 000:1a1c2c5d2728b13e53ef7d57ffcd75a7f07038b764c25d0029366f3b5dc941a6f673eff791919194b0c2656c79333434
+-- 000:1a1c2c5d2424b13e53ef7d57ffcd75a7f07038b764c25d0029366f3b5dc941a6f673eff7919191aeaaae656c79333434
 -- </PALETTE>
 
