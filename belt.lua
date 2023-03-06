@@ -17,27 +17,25 @@ local belt = {
   exit = {x = -8, y = 0},
 }
 
--- LUT to shift items from one belt lane, to a lane on another belt, dependent on both belts rotation, and relative to belt's position
 BELT_OUTPUT_MAP = {
   ['00'] = {[1] = {a = 1, b = 8}, [2] = {a = 2, b = 8}},
-  ['01'] = {[1] = {a = 2, b = 1}, [2] = {a = 2, b = 4}},
+  ['01'] = {[1] = {a = 1, b = 4}, [2] = {a = 1, b = 6}},
   ['02'] = nil,
-  ['03'] = {[1] = {a = 2, b = 8}, [2] = {a = 2, b = 4}},
+  ['03'] = {[1] = {a = 2, b = 6}, [2] = {a = 2, b = 4}},
   ['10'] = {[1] = {a = 2, b = 1}, [2] = {a = 2, b = 4}},
   ['11'] = {[1] = {a = 1, b = 8}, [2] = {a = 2, b = 8}},
-  ['12'] = {[1] = {a = 2, b = 8}, [2] = {a = 2, b = 4}},
+  ['12'] = {[1] = {a = 1, b = 5}, [2] = {a = 1, b = 3}},
   ['13'] = nil,
   ['20'] = nil,
-  ['21'] = {[1] = {a = 1, b = 1}, [2] = {a = 1, b = 4}},
+  ['21'] = {[1] = {a = 2, b = 4}, [2] = {a = 2, b = 6}},
   ['22'] = {[1] = {a = 1, b = 8}, [2] = {a = 2, b = 8}},
-  ['23'] = {[1] = {a = 2, b = 6}, [2] = {a = 2, b = 2}},
+  ['23'] = {[1] = {a = 1, b = 4}, [2] = {a = 1, b = 6}},
   ['30'] = {[1] = {a = 1, b = 1}, [2] = {a = 1, b = 4}},
   ['31'] = nil,
-  ['32'] = {[1] = {a = 1, b = 6}, [2] = {a = 1, b = 2}},
+  ['32'] = {[1] = {a = 2, b = 6}, [2] = {a = 2, b = 4}},
   ['33'] = {[1] = {a = 1, b = 8}, [2] = {a = 2, b = 8}}
 }
 
---LUT for item positioning on belt lanes, includes straight and curved belts, and relative to belt's position
 BELT_CURVED_ITEM_MAP = {
   ['01'] = {
     [1] = {[1] = {x =  5, y =  0}, [2] = {x =  1, y =  0}},
@@ -161,7 +159,6 @@ BELT_CURVED_ITEM_MAP = {
   },
 }
 
---LUT for adjacent tile that a belt is facing, relative to it's position
 BELT_ROTATION_MAP = {
   [0] = {x = -8, y =  0},
   [1] = {x =  0, y = -8},
@@ -169,28 +166,30 @@ BELT_ROTATION_MAP = {
   [3] = {x =  0, y =  8},
 }
  
---LUT of tiles that surround a belt, based on belt's rotation, and relative to it's position
---tile locations are
 BELT_CURVE_MAP = {
   [0] = {
-    [1] = {x = 0, y = -8, flip = 2, rot = 1, key = '30'},
-    [2] = {x = 8, y =  0},
-    [3] = {x = 0, y =  8, flip = 0, rot = 1, key = '10'},
+    --down left  
+    [1] = {x = 0, y = -8, flip = 2, rot = 1, key = '30'},--↓ ←
+    [2] = {x = 8, y =  0}, --only set curved if not this one
+    [3] = {x = 0, y =  8, flip = 0, rot = 1, key = '10'},--↑ ←
   },
   [1] = {
-    [1] = {x = -8, y =  0, flip = 0, rot = 2, key = '21'},
-    [2] = {x =  0, y =  8},
-    [3] = {x =  8, y =  0, flip = 1, rot = 2, key = '01'},
+    --right up
+    [1] = {x = -8, y =  0, flip = 0, rot = 2, key = '21'},--only if not 3
+    [2] = {x =  0, y =  8},--only set curved if not this one
+    [3] = {x =  8, y =  0, flip = 1, rot = 2, key = '01'},--only if not 1
   },
   [2] = {
-    [1] = {x =  0, y = -8, flip = 0, rot = 3, key = '32'},
-    [2] = {x = -8, y =  0},
-    [3] = {x =  0, y =  8, flip = 2, rot = 3, key = '12'},
+    --right up
+    [1] = {x =  0, y = -8, flip = 0, rot = 3, key = '32'},--only if not 3
+    [2] = {x = -8, y =  0},--only set curved if not this one
+    [3] = {x =  0, y =  8, flip = 2, rot = 3, key = '12'},--only if not 1
   },
   [3] = {
-    [1] = {x = -8, y =  0, flip = 1, rot = 0, key = '23'},
-    [2] = {x =  0, y = -8},
-    [3] = {x =  8, y =  0, flip = 0, rot = 0, key = '03'},
+    --right up
+    [1] = {x = -8, y =  0, flip = 1, rot = 0, key = '23'},--only if not 3
+    [2] = {x =  0, y = -8},--only set curved if not this one
+    [3] = {x =  8, y =  0, flip = 0, rot = 0, key = '03'},--only if not 1
   }
 }
 
@@ -212,8 +211,9 @@ function belt.set_output(self)
   local key = tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y)
   if BELTS[key] then
     self.output_key = key
-    local index = tostring(BELTS[key].rot) .. tostring(self.rot)
-    self.output = BELT_OUTPUT_MAP[index]     
+    local index = self.rot .. BELTS[key].rot
+    self.output = BELT_OUTPUT_MAP[index]
+    --self.output_item_key = self.rot .. BELTS[key].rot
   else
     self.output = nil
     self.output_key = nil
@@ -225,7 +225,7 @@ end
 
 function belt.set_curved(self)
   --checks left, right, and rear tiles (relative to belts rotation) for other belts
-  --belts only curve if loc2 (rear input) is not facing me, eg. curve to loc1 XOR loc3, else belt is straight
+  --belts only curve if loc2 (rear input) is not facing me, loc1 XOR loc3, else belt is straight
   --loc1 = left input
   --loc2 = rear input
   --loc3 = right input
@@ -236,17 +236,18 @@ function belt.set_curved(self)
   if not BELTS[key2] or (BELTS[key2] and not BELTS[key2]:is_facing(self)) then
     --no input belt facing same direction eg. <-<- or ->->
     if BELTS[key1] and BELTS[key1]:is_facing(self) and (not BELTS[key3] or not BELTS[key3]:is_facing(self)) then
-      --found a belt to the left, and it's is facing me, and no other belts are facing me
+      --found a belt to the left, and belt is facing me, and no other belts are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
     elseif BELTS[key3] and BELTS[key3]:is_facing(self) and (not BELTS[key1] or not BELTS[key1]:is_facing(self)) then
-      --found a belt to the right, and it's is facing me, and no other belts are facing me
+      --found a belt to the right, and belt is facing me, and no other belts are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
     elseif (BELTS[key3] and BELTS[key3]:is_facing(self) and BELTS[key1] and BELTS[key1]:is_facing(self)) or (not BELTS[key1] and not BELTS[key3]) then
-      --there are NO belts to either the left or right that are facing me, or both left and right belts ARE facing me, so make a straight belt
+      --trace('no curve setting straight  246')
       self.id = BELT_ID_STRAIGHT
       self.output_item_key = self.rot .. self.rot
     end 
   else
+    --trace('no curve setting straight  252')
     self.id = BELT_ID_STRAIGHT
     self.output_item_key = self.rot .. self.rot
   end
@@ -261,8 +262,11 @@ function belt.update(self)
       for j = 1, 8 do
         --check each lane's slots for an item (0 means no item, else number is an ITEM id)
         local id = self.lanes[i][j]
+        --initially skip the first slot (j = 1), check that slot later...
+
+        --come back to check 1st slot
         if j == 1 and id ~= 0 then
-          --if we are the 1st slot (closest to output), check next tile for a belt with an open slot
+          --if we are the 1st slot (closest to output), check next tile for a belt to output to
           local key = tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y)
           if not BELTS[key] then self.output = nil end
           if self.output ~= nil and BELTS[key] then
@@ -278,6 +282,8 @@ function belt.update(self)
               BELTS[self.output_key].lanes[self.output[i].a][self.output[i].b] = id
               self.lanes[i][j] = 0
             end
+            
+            
           end
         elseif id ~= 0 and j > 1 and j < 9 and self.lanes[i][j-1] == 0 then
           --shift item up 1-index if next slot is empty -> (== 0)
@@ -290,6 +296,7 @@ function belt.update(self)
     --set flag so we don't update twice in certain cases
     self.updated = true
   end
+  --return true
 end
 
 function belt.draw(self)
@@ -310,6 +317,31 @@ function belt.draw_items(self)
   end
 end
 
+-- function belt.draw_items2(self)
+--   --if self.output ~= nil then
+--     local key = (tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y))
+--     --if BELTS[key] and BELTS[key].drawn == false then BELTS[key]:draw_items() end
+--     --end
+--     local from, to, dir = 1, 8, 1
+--     if self.rot == 0 then from, to, dir = 1, 8,  1 end
+--     if self.rot == 1 then from, to, dir = 1, 8,  1 end
+--     if self.rot == 2 then from, to, dir = 8, 1, -1 end
+--     if self.rot == 3 then from, to, dir = 8, 1, -1 end
+--     for i = 1, 2 do
+--       for j = from, to, dir do
+--         if self.lanes[i][j] ~= 0 then
+--           local pos = self.pos
+--           if self.id == BELT_ID_CURVED then
+
+--           end
+--           draw_belt_item(self.lanes[i][j], pos, self.rot, j, i - 1)
+--         end
+--       end
+--     end
+--   --end
+--   self.drawn = true
+-- end
+
 return function(pos, rotation, children)
   local new_belt = {pos = pos, rot = rotation or 0}
   new_belt.id = BELT_ID_STRAIGHT
@@ -326,5 +358,6 @@ return function(pos, rotation, children)
   end
   setmetatable(new_belt, {__index = belt})
   new_belt:rotate(rotation)
+  --new_belt:set_output()
   return new_belt
 end
