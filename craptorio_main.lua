@@ -9,6 +9,7 @@
 local new_belt      = require('\\libs\\belt')
 local new_inserter  = require('\\libs\\inserter')
 local aspr          = require('\\libs\\affine_sprite')
+local ITEMS         = require('\\libs\\item_definitions')
 --------------------COUNTERS--------------------------
 TICK              = 0
 BELT_TICKRATE     = 5
@@ -18,35 +19,6 @@ INSERTER_TICKRATE = 4
 
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 BELTS, INSERTERS = {}, {}
-ITEMS = {
-  [1] = {
-    name = 'red_circuit',
-    id = 1,
-    pixels = {
-      2,2,1,
-      3,4,2,
-      1,2,4,
-    }
-  },
-  [2] = {
-    name = 'green_circuit',
-    id = 2,
-    pixels = {
-      6,5,6,
-      3,4,5,
-      6,5,4,
-    }
-  },
-  [3] = {
-    name = 'iron_ore',
-    id = 3,
-    pixels = {
-      13,14,0,
-      14,15,13,
-      0,14,13,
-    }
-  }
-}
 
 cursor = {
   x = 8,
