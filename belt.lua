@@ -213,7 +213,6 @@ function belt.set_output(self)
     self.output_key = key
     local index = self.rot .. BELTS[key].rot
     self.output = BELT_OUTPUT_MAP[index]
-    --self.output_item_key = self.rot .. BELTS[key].rot
   else
     self.output = nil
     self.output_key = nil
@@ -257,6 +256,7 @@ end
 function belt.update(self)
   -- if we have NOT updated this frame, continue
   if self.updated == false then
+    self.updated = true
     for i = 1, 2 do
       --check each lane
       for j = 1, 8 do
@@ -270,7 +270,8 @@ function belt.update(self)
           local key = tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y)
           if not BELTS[key] then self.output = nil end
           if self.output ~= nil and BELTS[key] then
-            
+            --if i am facing another belt, update that belt first
+            if not BELTS[key].updated then BELTS[key]:update() end
             --if we find a belt, and the belts nearest slot is empty (equals 0) then
             --move item to that belt
             if BELTS[self.output_key].id == BELT_ID_CURVED and BELTS[self.output_key].lanes[i][8] == 0 then
@@ -306,6 +307,8 @@ function belt.draw(self)
 end
 
 function belt.draw_items(self)
+  self.drawn = true
+  if self.output_key ~= nil and not BELTS[self.output_key].drawn then BELTS[self.output_key]:draw_items() end
   local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
   for i = 1, 2 do
     for j = 1, 8 do
@@ -316,31 +319,6 @@ function belt.draw_items(self)
     end
   end
 end
-
--- function belt.draw_items2(self)
---   --if self.output ~= nil then
---     local key = (tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y))
---     --if BELTS[key] and BELTS[key].drawn == false then BELTS[key]:draw_items() end
---     --end
---     local from, to, dir = 1, 8, 1
---     if self.rot == 0 then from, to, dir = 1, 8,  1 end
---     if self.rot == 1 then from, to, dir = 1, 8,  1 end
---     if self.rot == 2 then from, to, dir = 8, 1, -1 end
---     if self.rot == 3 then from, to, dir = 8, 1, -1 end
---     for i = 1, 2 do
---       for j = from, to, dir do
---         if self.lanes[i][j] ~= 0 then
---           local pos = self.pos
---           if self.id == BELT_ID_CURVED then
-
---           end
---           draw_belt_item(self.lanes[i][j], pos, self.rot, j, i - 1)
---         end
---       end
---     end
---   --end
---   self.drawn = true
--- end
 
 return function(pos, rotation, children)
   local new_belt = {pos = pos, rot = rotation or 0}
