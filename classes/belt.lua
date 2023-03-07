@@ -168,28 +168,25 @@ BELT_ROTATION_MAP = {
  
 BELT_CURVE_MAP = {
   [0] = {
-    --down left  
-    [1] = {x = 0, y = -8, flip = 2, rot = 1, key = '30'},--↓ ←
-    [2] = {x = 8, y =  0}, --only set curved if not this one
-    [3] = {x = 0, y =  8, flip = 0, rot = 1, key = '10'},--↑ ←
+    [1] = {x = 0, y = -8, flip = 2, rot = 1, key = '30'},
+    [2] = {x = 8, y =  0},
+    [3] = {x = 0, y =  8, flip = 0, rot = 1, key = '10'},
   },
   [1] = {
-    --right up
-    [1] = {x = -8, y =  0, flip = 0, rot = 2, key = '21'},--only if not 3
-    [2] = {x =  0, y =  8},--only set curved if not this one
-    [3] = {x =  8, y =  0, flip = 1, rot = 2, key = '01'},--only if not 1
+    [1] = {x = -8, y =  0, flip = 0, rot = 2, key = '21'},
+    [2] = {x =  0, y =  8},
+    [3] = {x =  8, y =  0, flip = 1, rot = 2, key = '01'},
   },
   [2] = {
-    --right up
-    [1] = {x =  0, y = -8, flip = 0, rot = 3, key = '32'},--only if not 3
-    [2] = {x = -8, y =  0},--only set curved if not this one
-    [3] = {x =  0, y =  8, flip = 2, rot = 3, key = '12'},--only if not 1
+    [1] = {x =  0, y = -8, flip = 0, rot = 3, key = '32'},
+    [2] = {x = -8, y =  0},
+    [3] = {x =  0, y =  8, flip = 2, rot = 3, key = '12'},
   },
   [3] = {
     --right up
-    [1] = {x = -8, y =  0, flip = 1, rot = 0, key = '23'},--only if not 3
-    [2] = {x =  0, y = -8},--only set curved if not this one
-    [3] = {x =  8, y =  0, flip = 0, rot = 0, key = '03'},--only if not 1
+    [1] = {x = -8, y =  0, flip = 1, rot = 0, key = '23'},
+    [2] = {x =  0, y = -8},
+    [3] = {x =  8, y =  0, flip = 0, rot = 0, key = '03'},
   }
 }
 
@@ -241,12 +238,10 @@ function belt.set_curved(self)
       --found a belt to the right, and belt is facing me, and no other belts are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
     elseif (BELTS[key3] and BELTS[key3]:is_facing(self) and BELTS[key1] and BELTS[key1]:is_facing(self)) or (not BELTS[key1] and not BELTS[key3]) then
-      --trace('no curve setting straight  246')
       self.id = BELT_ID_STRAIGHT
       self.output_item_key = self.rot .. self.rot
     end 
   else
-    --trace('no curve setting straight  252')
     self.id = BELT_ID_STRAIGHT
     self.output_item_key = self.rot .. self.rot
   end
@@ -262,9 +257,6 @@ function belt.update(self)
       for j = 1, 8 do
         --check each lane's slots for an item (0 means no item, else number is an ITEM id)
         local id = self.lanes[i][j]
-        --initially skip the first slot (j = 1), check that slot later...
-
-        --come back to check 1st slot
         if j == 1 and id ~= 0 then
           --if we are the 1st slot (closest to output), check next tile for a belt to output to
           local key = tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y)
@@ -283,8 +275,6 @@ function belt.update(self)
               BELTS[self.output_key].lanes[self.output[i].a][self.output[i].b] = id
               self.lanes[i][j] = 0
             end
-            
-            
           end
         elseif id ~= 0 and j > 1 and j < 9 and self.lanes[i][j-1] == 0 then
           --shift item up 1-index if next slot is empty -> (== 0)
@@ -336,6 +326,5 @@ return function(pos, rotation, children)
   end
   setmetatable(new_belt, {__index = belt})
   new_belt:rotate(rotation)
-  --new_belt:set_output()
   return new_belt
 end
