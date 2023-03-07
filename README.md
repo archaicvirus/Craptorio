@@ -30,11 +30,11 @@ I will eventually create a list of proposed features, and try to order them by d
 ![video1](https://user-images.githubusercontent.com/25288625/222978373-efa24fc3-2851-46a9-8c2d-35efd1f96f06.gif)
 
 Belts:
-The idea here is to re-create belts VERY similar to factorio, however there are some small differences.
-The first difference is the belts in Craptorio are displayed as 8x8 pixel sprites, with 4 animation frames.
+The idea here is to re-create belts VERY similar to factorio, however there are some differences.
+The belts in Craptorio are displayed as 8x8 pixel sprites, with 4 animation frames.
 When watching the belt animation however, it appears as if the belt has 8 animation frames, which makes it seem like the belt is moving 1-pixel per frame. This is by design - due to making the texture x-tileable. Only 4 frames are needed before the texture 'loops'.
 
-The belts have 2 - lanes, just as in Factorio's belts. Each lane is represented as a table with 8 indices. Each index corresponds to an item id, which itself is a key/index to a table of actual item definitions. When the belt updates each cycle, (not every tick), all lane indices values are shifted to the left (towards 0). Index 1 represents the last item slot a belt has, before the item would output to whatever the belt is facing, with index 8 being the last slot to the right (given the belt is facing left). The items are rendered in order from index 1 to index 8, and the belt's themselves are rendered in order of parent->child. 
+The belts have 2 - lanes, just as in Factorio's belts. Each lane is represented as a table with 8 indices, so 1 item slot per belt pixel, 8 item slots per lane. This means that each belt, when fully compressed can hold 16 items. This is a few more total items per belt than Factorio belts allow (14 I believe), so further optimization will be necessary. Each index corresponds to an item id, which itself is a key/index to a look-up table of item definitions. When the belt updates each cycle, (not every tick), all lane indices values are shifted to the left (towards 0). Index 1 represents the last item slot a belt has, before the item would output to whatever the belt is facing, with index 8 being the last slot to the right (given the belt is facing left). The items are rendered in order from index 1 to index 8, and the belt's themselves are rendered in order of parent->child. 
 
 Items on belts are allowed to 'stack', which practically means that the items can overlap (by 2-pixels in my case). The items are displayed as 3x3 pixel 'sprites', which aren't actually sprites, but a table of 9 colorkey's {1,2,3,4,5,6,7,8,9} with each index representing a palette color. The item's x,y location is computed during rendering, as their 'positions' are relative to the owning belt, and not needing to be stored or known globally. This approach neglects needing another table to otherwise keep track of all items.
 
