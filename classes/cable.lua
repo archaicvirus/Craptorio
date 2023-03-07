@@ -24,6 +24,9 @@ return function (p1, p2, color)
   end
 end
 
+--Tested & verified working at 60TPS with one cable. 
+--Need to refactor to store vectors for later drawing, instead of computing each draw call.
+
 --Made using ChatGPT and with a little coercion
 --In the function I provided, we simulate the shape of the hanging cable by oscillating it up and down along a 
 --sine wave. We calculate the length of the cable and the midpoint between the start and end points, then use a 
