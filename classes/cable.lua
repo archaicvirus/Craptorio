@@ -23,3 +23,15 @@ return function (p1, p2, color)
     end
   end
 end
+
+--Made using ChatGPT and with a little coercion
+--In the function I provided, we simulate the shape of the hanging cable by oscillating it up and down along a 
+--sine wave. We calculate the length of the cable and the midpoint between the start and end points, then use a 
+--sine function to calculate the height of the cable at each point along its length. This creates a wave-like 
+--shape that approximates the curve of a hanging cable.
+--We use the math.sin() function to calculate the height of the cable at each point, based on its position along 
+--the length of the cable. We multiply the x position by math.pi and divide by the length of the cable to create 
+--a sine wave that oscillates between positive and negative values. We then multiply the sine wave by a constant 
+--value (sag_height) to control the amplitude of the wave, creating the sagging effect of the cable.
+--While this method is not as accurate as using the catenary equation, it is much simpler and more efficient 
+--to calculate, making it a good choice for applications where speed and efficiency are more important than precision.
