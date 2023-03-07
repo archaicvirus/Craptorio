@@ -1,6 +1,3 @@
---credit goes to https://cxong.github.io/tic-80-examples/
---only changes I made were converting to lua code
-
 return function(id,x,y,colorkey,sx,sy,flip,rotate,w,h,ox,oy,shx1,shy1,shx2,shy2)
   --aspr(338,8,8,-1,0.375,0.375,0,0,1,1,1,1,0,0,0,0)
   colorkey = colorkey or -1
