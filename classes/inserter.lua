@@ -43,6 +43,7 @@ local inserter = {
   state = 'wait',
   held_item_id = 0,
   rot = 0,
+  is_hovered = false,
 }
 
 function inserter.draw(self)
@@ -88,6 +89,17 @@ function inserter.update(self)
             break
           end
         end
+      else
+        if not GROUND_ITEMS[self.to_key] or GROUND_ITEMS[self.to_key][1] == 0 then
+          local to = INSERTER_GRAB_OFFSETS[self.rot].to
+          local gnd_item = {[1] = self.held_item_id, [2] = self.pos.x + to.x + 2, [3] = self.pos.y + to.y + 2}
+          table.insert(GROUND_ITEMS, gnd_item)
+          local index = #GROUND_ITEMS
+          GROUND_ITEMS[self.to_key] = GROUND_ITEMS[index]
+          self.held_item_id = 0
+          self.state = 'return'
+        --drop on ground
+        end
       end
       -- self.held_item_id = 0
       -- self.state = 'return'
@@ -116,6 +128,13 @@ function inserter.update(self)
           return
           --break
         end
+      end
+    else
+      if GROUND_ITEMS[self.from_key] and GROUND_ITEMS[self.from_key][1] ~= 0 then
+      --try to pick from ground
+        self.held_item_id = GROUND_ITEMS[self.from_key][1]
+        GROUND_ITEMS[self.from_key][1] = 0
+        self.state = 'send'
       end
     end
   end
