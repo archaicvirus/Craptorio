@@ -10,6 +10,9 @@ local new_belt      = require('\\libs\\belt')
 local new_inserter  = require('\\libs\\inserter')
 local aspr          = require('\\libs\\affine_sprite')
 local ITEMS         = require('\\libs\\item_definitions')
+local draw_cable    = require('\\libs\\cable')
+local new_pole      = require('\\libs\\power_pole')
+
 --------------------COUNTERS--------------------------
 TICK              = 0
 BELT_TICKRATE     = 5
@@ -18,12 +21,12 @@ BELT_TICK         = 0
 INSERTER_TICKRATE = 4
 
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
-BELTS, INSERTERS = {}, {}
-
+BELTS, INSERTERS, POLES = {}, {}, {}
+GROUND_ITEMS = {}
 cursor = {
   x = 8,
   y = 8,
-  id = 288,
+  id = 352,
   last_x = 8,
   last_y = 8,
   last_tile_x = 8,
@@ -36,22 +39,8 @@ cursor = {
   item = 'belt',
 }
 --------------------FUNCTIONS-------------------------
-
-function draw_belt_item(item_id, belt_position, belt_rotation, offset, slot)
-  local x, y = belt_position.x, belt_position.y
-  local dir = 0
-  if belt_rotation == 0 then
-    x,y = belt_position.x + offset - 1, belt_position.y + (slot*4)
-  elseif belt_rotation == 1 then
-    --slot = slot == 0 and 1 or 0
-    x,y = belt_position.x + (slot*4), belt_position.y + offset - 1
-  elseif belt_rotation == 2 then
-    --slot = slot == 0 and 1 or 0
-    x,y = (belt_position.x + 7) - offset + 1, belt_position.y + (slot*4)
-  elseif belt_rotation == 3 then
-    x,y = belt_position.x + (slot*4), (belt_position.y + 7) - offset + 1
-  end
-  draw_pixel_sprite(item_id, x, y)
+function get_key(x, y)
+  return tostring(x) .. '-' .. tostring(y)
 end
 
 function draw_pixel_sprite(item_id, x, y)
@@ -62,91 +51,6 @@ function draw_pixel_sprite(item_id, x, y)
         pix(x + j - 1, y + i - 1, ITEMS[item_id].pixels[index])
       end
     end
-  end
-end
-
-function sort_belt_render_order2()
-  local sort = function(a, b)
-    if not a.output_key then
-      return true
-    else
-      return (BELTS[a.output_key].rot == a.rot and BELTS[a.output_key].index < a.index) and false
-    end
-  end
-  table.sort(BELTS, sort)
-end
-
-function sort_belt_render_order()
-  local old_list, new_list = BELTS, {}
-  while #old_list > 0 do
-    for k, v in ipairs(old_list) do
-      --for each belt, check for a connected belt in front
-      --local input_key = tostring(v.pos.x + (v.exit.x * -1)) .. tostring(v.pos.y + (v.exit.y * -1))
-      local start_index, last_index = k, k
-      local block_keys = {{key = tostring(v.pos.x) .. '-' .. tostring(v.pos.y), index = k}}
-      local find_start_index, find_last_index = true, true
-      --first find the start index
-      trace('85')
-      while find_start_index == true do
-        trace('87')
-        if old_list[last_index] ~= nil then
-          local input_key = tostring(old_list[last_index].pos.x + (old_list[last_index].exit.x * -1)) .. '-' .. tostring(old_list[last_index].pos.y + (old_list[last_index].exit.y * -1))
-          --is there a belt behind us?
-          if old_list[input_key] and old_list[input_key] ~= nil and old_list[input_key].rot == old_list[last_index].rot then
-            --block_keys[#block_keys] = old_list[input_key].index
-            block_keys[#block_keys + 1] = {key = input_key, index = old_list[last_index].index}
-            last_index = input_key
-          else
-            last_index = start_index
-            find_start_index = false
-            --break
-          end          
-        else
-          last_index = start_index
-          find_start_index = false
-          --break
-        end
-      end
-      trace('96')
-      while find_last_index == true do
-        local key = old_list[last_index].output_key
-        if old_list[key] ~= nil and old_list[key].rot == old_list[last_index].rot then
-          table.insert(block_keys, 1, {key = key, index = old_list[key].index})
-          last_index = key
-        else
-          find_last_index = false
-        end
-      end
-      
-      --insert block of connected belts into new list
-      for k, v in ipairs(block_keys) do
-        table.insert(new_list, old_list[v.index])
-        --old_list[v.key] = nil
-        if old_list[v.index] then table.remove(old_list, v.index) end
-      end
-      if #block_keys > 1 then
-        break
-      end
-    end
-  end
-  
-  local i = 1
-  for k, v in ipairs(new_list) do
-    local key = tostring(v.pos.x) .. '-' .. tostring(v.pos.y)
-    new_list[key] = new_list[k]
-    new_list[key].index = i
-    i = i + 1
-  end
-  BELTS = new_list
-  trace('sorted')
-end
-
-function sort_belt_update_order(self)
-  local key = tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y)
-  if BELTS[key] and BELTS[key].updated == false then
-    return BELTS[key]
-  else
-    return self
   end
 end
 
@@ -239,6 +143,17 @@ function update_inserters()
   end
 end
 
+function add_pole(x, y)
+  local key = get_key(x,y)
+  if not POLES[key] then
+    local pole = new_pole({x = x, y = y})
+    table.insert(POLES, pole)
+    local index = #POLES
+    POLES[key] = POLES[index]
+    POLES[key].index = #POLES
+  end
+end
+
 function get_cell(x, y)
   return x - (x % 8), y - (y % 8)
 end
@@ -278,7 +193,11 @@ end
 function cycle_placeable()
   if cursor.item == 'belt' then
     cursor.item = 'inserter'
-  else
+  elseif cursor.item == 'inserter' then
+    cursor.item = 'pole'
+  elseif cursor.item == 'pole' then
+    cursor.item = 'pointer'
+  elseif cursor.item == 'pointer' then
     cursor.item = 'belt'
   end
 end
@@ -312,27 +231,47 @@ function draw_debug()
   print('TPS:'    .. time,   3, 129, 2, true, 1, true)
 end
 
+function draw_ground_items()
+  -- for k, v in ipairs(GROUND_ITEMS) do
+  --   trace('GI: ' .. #GROUND_ITEMS)
+  --   if v[1] > 0 then
+  --     trace('drawing_item ' .. v[1])
+  --     trace('x:' .. v[2])
+  --     trace('y:' .. v[3])
+  --     draw_pixel_sprite(ITEMS[tonumber(v[1])], v[2], v[3])
+  --   end
+  -- end
+  for i = 1, #GROUND_ITEMS do
+    if GROUND_ITEMS[i][1] > 0 then
+      draw_pixel_sprite(GROUND_ITEMS[i][1], GROUND_ITEMS[i][2], GROUND_ITEMS[i][3])
+    end
+  end
+end
+
 function draw_cursor()
   local key = cursor.x .. '-' .. cursor.y
   if not get_flags(cursor.x, cursor.y, 0) then spr(271, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1) return end
   if cursor.item == 'belt' then
     if not BELTS[key] or (BELTS[key] and BELTS[key].rot ~= cursor.rotation) then
       spr(BELT_ID_STRAIGHT + BELT_TICK, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
-      spr(cursor.id, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
+      spr(288, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
     end
-    spr(cursor.id, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
-    pix(cursor.last_x, cursor.last_y, 5)
+    spr(288, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
+    --pix(cursor.last_x, cursor.last_y, 5)
   elseif cursor.item == 'inserter' then
     if not INSERTERS[key] or (INSERTERS[key] and INSERTERS[key].rot ~= cursor.rotation) then
       local temp_inserter = new_inserter({x = cursor.x, y = cursor.y}, cursor.rotation)
       temp_inserter:draw()
     end
-    
+  elseif cursor.item == 'pole' then
+    local temp_pole = new_pole({x = cursor.x, y = cursor.y})
+    temp_pole:draw(true)
+    --check around cursor to attach temp cables to other poles
   else
-    spr(cursor.id, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
-    pix(cursor.last_x, cursor.last_y, 5)
+    spr(cursor.id, cursor.last_x, cursor.last_y, 00, 1, 0, 0, 1, 1)
+    spr(288, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
+    --pix(cursor.last_x, cursor.last_y, 5)
   end
-  
 end
 
 function rotate_cursor()
@@ -346,6 +285,8 @@ function place_tile(x, y, rotation)
     add_belt(x, y, rotation)
   elseif cursor.item == 'inserter' and not BELTS[key] then
     add_inserter(x, y, rotation)
+  elseif cursor.item == 'pole' then
+    add_pole(x, y)
   end
 end
 
@@ -393,7 +334,25 @@ function TIC()
     v:draw()
   end
 
-  draw_debug()
+  for k, v in ipairs(POLES) do
+    v:draw()
+    v.is_hovered = false
+  end
+  if POLES[1] and POLES[2] then
+    local offset  = POWER_POLE_ANCHOR_POINTS['power'][1]
+    local offset2 = POWER_POLE_ANCHOR_POINTS['red'][1]
+    local offset3 = POWER_POLE_ANCHOR_POINTS['green'][1]
+    local p1 = {x = POLES[1].pos.x + offset.x,  y = POLES[1].pos.y + offset.y  - 16}
+    local p2 = {x = POLES[2].pos.x + offset.x,  y = POLES[2].pos.y + offset.y  - 16}
+    local r1 = {x = POLES[1].pos.x + offset2.x, y = POLES[1].pos.y + offset2.y - 16}
+    local r2 = {x = POLES[2].pos.x + offset2.x, y = POLES[2].pos.y + offset2.y - 16}
+    local g1 = {x = POLES[1].pos.x + offset3.x, y = POLES[1].pos.y + offset3.y - 16}
+    local g2 = {x = POLES[2].pos.x + offset3.x, y = POLES[2].pos.y + offset3.y - 16}
+    draw_cable(p1, p2, 4)
+    draw_cable(r1, r2, 2)
+    draw_cable(g1, g2, 6)
+  end
+  --draw_debug()
 
   ------------------INPUT----------------------
   if btnp(0) then move_cursor('up')    end
@@ -416,9 +375,18 @@ function TIC()
     remove_tile(cursor.x, cursor.y)
   end
 
+  local cell_x, cell_y = get_cell(x, y)
+  local key = get_key(cell_x, cell_y)
+  if POLES[key] then POLES[key].is_hovered = true end
+  --if INSERTERS[key] then INSERTERS[key].is_hovered = true end
+  --if BELTS[key] then BELTS[key].is_hovered = true end
+  draw_ground_items()
   cursor.last_tile_x, cursor.last_tile_y = get_cell(x, y)
   cursor.last_rotation = cursor.rotation
   cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = x, y, left, middle, right
+  --spr(371, x, y)
+  --spr(370, 16, 70)
+  --draw_cable({x = 23, y = 70}, {x = x, y = y}, 14)
 end
 
 -- <TILES>
@@ -464,6 +432,7 @@ end
 -- 033:000000000000000000000000000000000000cdee0000dd000000ee000000e000
 -- 034:00000000000000000000000000000000eeeeeeee0000000000000000000d0000
 -- 035:00000000000000000000000000000000eedc000000dd000000ee0000000e0000
+-- 036:00000000d00cd00decccccce000dd000000ee000000110000001100000011000
 -- 037:ffffffffeeeeeeee4eee4eeefee4fee44eef4eeffeeefeeeeeeeeeeeffffffff
 -- 038:ffffffffeeeeeeeeeee4eee4ee4fee4feef4eef4eeefeeefeeeeeeeeffffffff
 -- 039:ffffffffeeeeeeeeee4eee4ee4fee4feef4eef4eeefeeefeeeeeeeeeffffffff
@@ -472,38 +441,46 @@ end
 -- 043:0000e0000000ee000000dd000000cdee00000000000000000000000000000000
 -- 044:000000000000000000000000eeeeeeee00000000000000000000000000000000
 -- 045:000e000000ee000000dd0000eedc000000000000000000000000000000000000
--- 048:3000000300000000000000000000000000000000000000000000000030000003
+-- 048:0000000006000060000000000000000000000000000000000600006000000000
 -- 049:0000e0000000ed000000dd000000ede00000edfe0000ede00000dd000000ed00
 -- 050:00fed0000effed00000d0000000d0000fefefefe000d0000000d00000fdefe00
 -- 051:000e000000ed000000ddd000edfff000fffff000edfff00000ddd00000ed0000
+-- 052:0001100000011000000110000001100000011000000110000001100000011000
 -- 054:ffffffffffeeffeeff4eff4ef4eff4eff4eff4efff4eff4effeeffeeffffffff
 -- 055:fffffffffeeffeeff4eff4ef4eff4eff4eff4efff4eff4effeeffeefffffffff
 -- 056:ffffffffeeffeeff4eff4effeff4eff4eff4eff44eff4effeeffeeffffffffff
 -- 057:ffffffffeffeeffeeff4eff4ff4eff4eff4eff4eeff4eff4effeeffeffffffff
 -- 058:00dddddd0deeeeeedeeeeee4defefe4fde4f4ee4dee4eeeedeeeeeeedefefeed
 -- 060:deffd000fdeff000ffdef000effde000deffd000fdeff0000fde000000f00000
--- 064:4000000400000000000000000000000000000000000000000000000040000004
+-- 064:3300003330000003000000000000000000000000000000003000000333000033
 -- 065:0000e0000000ee000000dd000000cdee00000000000000000000000000000000
 -- 066:00fde000000f000000000000eeeeeeee00000000000000000000000000000000
 -- 067:000e000000ee000000dd0000eedc000000000000000000000000000000000000
+-- 068:0001100000011000000cd000000dc000000ce000000cd0000000000000000000
 -- 069:7270065627200565727006562720000072720000272727270272727200272727
 -- 070:ffffffffeeeeeeee4fdd4fddfdd4fdd4fdd4fdd44fdd4fddeeeeeeeeffffffff
 -- 071:ffffffffeeeeeeeefdd4fdd4dd4fdd4fdd4fdd4ffdd4fdd4eeeeeeeeffffffff
 -- 072:ffffffffeeeeeeeedd4fdd4fd4fdd4fdd4fdd4fddd4fdd4feeeeeeeeffffffff
 -- 073:ffffffffeeeeeeeed4fdd4fd4fdd4fdd4fdd4fddd4fdd4fdeeeeeeeeffffffff
 -- 074:00dddddd0deeeeeedeeeee4fdeeee4fedefefe4fde4f4eeedee4eeeedeeeeeed
--- 080:6000000600000000000000000000000000000000000000000000000060000006
+-- 080:6500000050000000000000000000000000000000000000000000000000000000
 -- 082:0222222034444422222224433444222222244443342222222444444300022222
 -- 086:ffffffffeeeeeeee4fcd4fcdfcd4fcd4fcd4fcd44fcd4fcdeeeeeeeeffffffff
 -- 087:ffffffffeeeeeeeefcd4fcd4cd4fcd4fcd4fcd4ffcd4fcd4eeeeeeeeffffffff
 -- 088:ffffffffeeeeeeeecd4fcd4fd4fcd4fcd4fcd4fccd4fcd4feeeeeeeeffffffff
 -- 089:ffffffffeeeeeeeed4fcd4fc4fcd4fcd4fcd4fcdd4fcd4fceeeeeeeeffffffff
 -- 090:00dddddd0deeeeeedeeee4fedeee4feedeeee4fedefefeeede4f4eeedee4eeed
--- 096:5000000500000000000000000000000000000000000000000000000050000005
--- 106:0000000000000000000000000000000000000022000000340000001200000000
--- 107:0000000000000000000000000000000011100000222000004440000000000000
--- 129:000000000000000000000000000000000000000004f0004004f00040004f0400
--- 145:41044014f11441110f14411000134100001431000111111011100f11410000f4
+-- 096:dcc00000ce000000c0e00000000e000000000000000000000000000000000000
+-- 102:0000000000000000ffffffff4fcd4fcefcd4fcd44fcd4fceffffffff00000000
+-- 103:fffffffffcd4fce4cd4fcd4ffcd4fce4ffffffff000000000000000000000000
+-- 104:ffffffffcd4fce4fd4fcd4fccd4fce4fffffffff000000000000000000000000
+-- 105:ffffffffd4fce4fc4fcd4fcdd4fce4fcffffffff000000000000000000000000
+-- 114:0000002000000022000000000060000006600000006000000060000000600000
+-- 115:0200000022000000000000000066000006006000000600000060000006666000
+-- 118:ffffffff4fcd4fceffffffff0000000000000000000000000000000000000000
+-- 119:fffffffffcd4fce4ffffffff0000000000000000000000000000000000000000
+-- 120:ffffffffcd4fce4fffffffff0000000000000000000000000000000000000000
+-- 121:ffffffffd4fce4fcffffffff0000000000000000000000000000000000000000
 -- </SPRITES>
 
 -- <MAP>
@@ -527,13 +504,14 @@ end
 -- </MAP>
 
 -- <WAVES>
--- 000:00000000ffffffff00000000ffffffff
+-- 000:eeeeeeedcb9687777777778888888888
 -- 001:0123456789abcdeffedcba9876543210
--- 002:0123456789abcdef0123456789abcdef
+-- 002:06655554443333344556789989abcdef
 -- </WAVES>
 
 -- <SFX>
 -- 000:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000304000000000
+-- 001:8000d000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000723000000000
 -- </SFX>
 
 -- <TRACKS>
