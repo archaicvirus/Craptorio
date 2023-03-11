@@ -64,8 +64,10 @@ function add_belt(x, y, rotation)
     BELTS[key].index = index
   elseif BELTS[key] then
     BELTS[key]:rotate(rotation)
-    BELTS[key]:set_output()
+    --return
+    --BELTS[key]:set_curved()
   end
+  --BELTS[key]:set_output()
   --check surrounding area for belts to update n,s,e,w
   local tiles = {[1]={x=x,y=y-8},[2]={x=x+8,y=y},[3]={x=x,y=y+8},[4]={x=x-8,y=y}}
   for i = 1, 4 do
@@ -76,6 +78,10 @@ function add_belt(x, y, rotation)
   --check if should be curved
   BELTS[key]:set_curved()
   --sort_belt_render_order()
+  if GROUND_ITEMS[key] and GROUND_ITEMS[key][1] > 0 then
+    BELTS[key].lanes[2][4] = GROUND_ITEMS[key][1]
+    GROUND_ITEMS[key][1] = 0
+  end
 end
 
 function remove_belt(x, y)
@@ -212,6 +218,7 @@ function add_item(id)
 end
 
 function draw_debug()
+  --count belt items
   local n = 0
   for k, v in ipairs(BELTS) do
     for i = 1, 2 do
@@ -220,15 +227,30 @@ function draw_debug()
       end
     end
   end
-  local info = 'nil'
-  local key = cursor.x .. '-' .. cursor.y
-  if INSERTERS[key] then info = tostring(INSERTERS[key].input_key) end
-  local time = math.floor(TICK/(time()/1000))
-  rectb(0, 115, 45, 21, 5)
-  rect( 1, 116, 43, 19, 15)
-  print('BELT:' .. info, 3, 123, 2, true, 1, true)
-  print('ITEMS:' .. n,      3, 117, 2, true, 1, true)
-  print('TPS:'    .. time,   3, 129, 2, true, 1, true)
+
+  local info = false
+  local key = get_key(cursor.x, cursor.y)
+  local width, height = 60, 100
+  if BELTS[key] then info = BELTS[key]:get_info() end
+  --if INSERTERS[key] then info = INSERTERS[key]:get_info() end
+  --if POLES[key] then info = POLES[key]:get_info() end
+  --get TPS
+  if info ~= false then
+    height = (#info * 6) + 3
+    rectb(0, 0, width, height, 12)
+    rect(1, 1, width - 2, height - 2, 15)
+    for i = 1, #info do
+      print(info[i], 2, i*6 - 4, 2, true, 1, true)
+    end
+  end
+
+
+  -- local time = math.floor(TICK/(time()/1000))
+  -- rectb(0, 115, 45, 21, 5)
+  -- rect( 1, 116, 43, 19, 15)
+  -- print('BELT:' .. info, 3, 123, 2, true, 1, true)
+  -- print('ITEMS:' .. n,      3, 117, 2, true, 1, true)
+  -- print('TPS:'    .. time,   3, 129, 2, true, 1, true)
 end
 
 function draw_ground_items()
@@ -349,10 +371,10 @@ function TIC()
     local g1 = {x = POLES[1].pos.x + offset3.x, y = POLES[1].pos.y + offset3.y - 16}
     local g2 = {x = POLES[2].pos.x + offset3.x, y = POLES[2].pos.y + offset3.y - 16}
     draw_cable(p1, p2, 4)
-    draw_cable(r1, r2, 2)
-    draw_cable(g1, g2, 6)
+    --draw_cable(r1, r2, 2)
+    --draw_cable(g1, g2, 6)
   end
-  --draw_debug()
+  draw_debug()
 
   ------------------INPUT----------------------
   if btnp(0) then move_cursor('up')    end
@@ -464,23 +486,34 @@ end
 -- 073:ffffffffeeeeeeeed4fdd4fd4fdd4fdd4fdd4fddd4fdd4fdeeeeeeeeffffffff
 -- 074:00dddddd0deeeeeedeeeee4fdeeee4fedefefe4fde4f4eeedee4eeeedeeeeeed
 -- 080:6500000050000000000000000000000000000000000000000000000000000000
--- 082:0222222034444422222224433444222222244443342222222444444300022222
+-- 083:7270656027205656727065652720565672726565272727270272727200272727
 -- 086:ffffffffeeeeeeee4fcd4fcdfcd4fcd4fcd4fcd44fcd4fcdeeeeeeeeffffffff
 -- 087:ffffffffeeeeeeeefcd4fcd4cd4fcd4fcd4fcd4ffcd4fcd4eeeeeeeeffffffff
 -- 088:ffffffffeeeeeeeecd4fcd4fd4fcd4fcd4fcd4fccd4fcd4feeeeeeeeffffffff
 -- 089:ffffffffeeeeeeeed4fcd4fc4fcd4fcd4fcd4fcdd4fcd4fceeeeeeeeffffffff
 -- 090:00dddddd0deeeeeedeeee4fedeee4feedeeee4fedefefeeede4f4eeedee4eeed
--- 096:dcc00000ce000000c0e00000000e000000000000000000000000000000000000
--- 102:0000000000000000ffffffff4fcd4fcefcd4fcd44fcd4fceffffffff00000000
+-- 096:ddd00000de000000d0d00000000d000000000000000000000000000000000000
+-- 102:ffffffff4fcd4fcefcd4fcd44fcd4fceffffffff000000000000000000000000
 -- 103:fffffffffcd4fce4cd4fcd4ffcd4fce4ffffffff000000000000000000000000
 -- 104:ffffffffcd4fce4fd4fcd4fccd4fce4fffffffff000000000000000000000000
 -- 105:ffffffffd4fce4fc4fcd4fcdd4fce4fcffffffff000000000000000000000000
--- 114:0000002000000022000000000060000006600000006000000060000000600000
--- 115:0200000022000000000000000066000006006000000600000060000006666000
+-- 112:0222222034444422222224433444222222244443342222222444444300022222
 -- 118:ffffffff4fcd4fceffffffff0000000000000000000000000000000000000000
 -- 119:fffffffffcd4fce4ffffffff0000000000000000000000000000000000000000
 -- 120:ffffffffcd4fce4fffffffff0000000000000000000000000000000000000000
 -- 121:ffffffffd4fce4fcffffffff0000000000000000000000000000000000000000
+-- 149:000fffc0000cdfc0000cccd000c4ecd00c4edcd004eeecd00c4edcd000e4cec0
+-- 153:00ffffc000fddfc00d4decd0d4dedcd04deeecd0d4dedcd00d4decd000d4fec0
+-- 165:00e4cec00c4edcd004eeecd00c4edcd000c4ecd0000cccd0000cdfc0000fffc0
+-- 169:00d4fec00d4decd0d4dedcd04deeecd0d4dedcd00d4decd000fddfc000ffffc0
+-- 179:0000c0ef009cdcef09cdcddf9cdcecdf9dcececf09dcecdf009dcdef0000d0ef
+-- 180:0000c0ef002cdcef02cdcddf2cdcecdf2dcececf02dcecdf002dcdef0000d0ef
+-- 181:0000c0ef004cdcef04cdcddf4cdcecdf4dcececf04dcecdf004dcdef0000d0ef
+-- 183:00ecddcc004cddee04cdcdcc4cdcedee4dcecdcc04dcedee004dcdee0000cdee
+-- 195:009dcdef09dcecdf9dcececf9cdcecdf09cdcddf009cdcdf00f0c0df00ecddef
+-- 196:002dcdef02dcecdf2dcececf2cdcecdf02cdcddf002cdcdf00f0c0df00ecddef
+-- 197:004dcdef04dcecdf4dcececf4cdcecdf04cdcddf004cdcdf00f0c0df00ecddef
+-- 199:004dcdee04dcedee4dcecdcc4cdcedee04cdcddd004cddee00f0cdee00ecddee
 -- </SPRITES>
 
 -- <MAP>
