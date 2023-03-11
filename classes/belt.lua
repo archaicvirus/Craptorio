@@ -15,6 +15,7 @@ local belt = {
   output_item_key = nil,
   output = nil,
   exit = {x = -8, y = 0},
+  is_hovered = false,
 }
 
 BELT_OUTPUT_MAP = {
@@ -168,51 +169,78 @@ BELT_ROTATION_MAP = {
  
 BELT_CURVE_MAP = {
   [0] = {
-    [1] = {x = 0, y = -8, flip = 2, rot = 1, key = '30'},
-    [2] = {x = 8, y =  0},
-    [3] = {x = 0, y =  8, flip = 0, rot = 1, key = '10'},
+    [1] = {x =  0, y = -8, flip = 2, rot = 1, key = '30', other_rot = 3},
+    [2] = {x =  8, y =  0},
+    [3] = {x =  0, y =  8, flip = 0, rot = 1, key = '10', other_rot = 1},
   },
   [1] = {
-    [1] = {x = -8, y =  0, flip = 0, rot = 2, key = '21'},
+    [1] = {x = -8, y =  0, flip = 0, rot = 2, key = '21', other_rot = 2},
     [2] = {x =  0, y =  8},
-    [3] = {x =  8, y =  0, flip = 1, rot = 2, key = '01'},
+    [3] = {x =  8, y =  0, flip = 1, rot = 2, key = '01', other_rot = 0},
   },
   [2] = {
-    [1] = {x =  0, y = -8, flip = 0, rot = 3, key = '32'},
+    [1] = {x =  0, y = -8, flip = 0, rot = 3, key = '32', other_rot = 3},
     [2] = {x = -8, y =  0},
-    [3] = {x =  0, y =  8, flip = 2, rot = 3, key = '12'},
+    [3] = {x =  0, y =  8, flip = 2, rot = 3, key = '12', other_rot = 1},
   },
   [3] = {
-    --right up
-    [1] = {x = -8, y =  0, flip = 1, rot = 0, key = '23'},
+    [1] = {x = -8, y =  0, flip = 1, rot = 0, key = '23', other_rot = 2},
     [2] = {x =  0, y = -8},
-    [3] = {x =  8, y =  0, flip = 0, rot = 0, key = '03'},
+    [3] = {x =  8, y =  0, flip = 0, rot = 0, key = '03', other_rot = 0},
   }
 }
 
+function belt.get_info(self)
+  local info = {
+    [1] = 'ROT: ' .. self.rot,
+    [2] = 'SID: ' .. self.id,
+    [3] = 'OTK: ' .. self.output_key,
+    [4] = 'ITM: ',
+    [5] = 'NB1: ',
+    [6] = 'NB2: ',
+    [7] = 'NB3: ',
+  }
+  local item_count = 0
+  for i = 1, 2 do
+    for j = 1, 8 do
+      if self.lanes[i][j] > 0 then
+        item_count = item_count + 1
+      end
+    end
+  end
+  info[4] = info[4] .. item_count
+  local x, y = self.pos.x, self.pos.y
+  local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
+  local key1, key2, key3 = get_key(loc1.x + x, loc1.y + y), get_key(loc2.x + x, loc2.y + y), get_key(loc3.x + x, loc3.y + y)
+  if BELTS[key1] and BELTS[key1]:is_facing(self) then info[5] = info[5] .. 'true' else info[5] = info[5] .. 'false' end
+  if BELTS[key2] and BELTS[key2]:is_facing(self) then info[6] = info[6] .. 'true' else info[6] = info[6] .. 'false' end
+  if BELTS[key3] and BELTS[key3]:is_facing(self) then info[7] = info[7] .. 'true' else info[7] = info[7] .. 'false' end
+  return info
+end
+
 function belt.rotate(self, rotation)
-  self.exit = BELT_ROTATION_MAP[rotation]
+  --self.exit = BELT_ROTATION_MAP[rotation]
   self.rot = rotation
-  self:set_output()
+  --self:set_output()
+  self:set_curved()
 end
 
 function belt.is_facing(self, other)
-  if BELTS[self.output_key] ~= nil then
-    if BELTS[self.output_key] == other then return true end
-  end
-    return false
+  if BELTS[self.output_key] and BELTS[self.output_key] == other then return true end
+  local exit = BELT_ROTATION_MAP[other.rot]
+  local key = get_key(other.pos.x + exit.x, other.pos.y + exit.y)
+  if BELTS[key] and BELTS[key] == self then return true end
+  return false
 end
 
 function belt.set_output(self)
   self.exit = BELT_ROTATION_MAP[self.rot]
-  local key = tostring(self.pos.x + self.exit.x) .. '-' .. tostring(self.pos.y + self.exit.y)
-  if BELTS[key] then
-    self.output_key = key
-    local index = self.rot .. BELTS[key].rot
+  self.output_key = get_key(self.pos.x + self.exit.x, self.pos.y + self.exit.y)
+  if BELTS[self.output_key] then
+    local index = self.rot .. BELTS[self.output_key].rot
     self.output = BELT_OUTPUT_MAP[index]
   else
     self.output = nil
-    self.output_key = nil
   end
   if self.id == BELT_ID_STRAIGHT then
     self.output_item_key = self.rot .. self.rot
@@ -228,16 +256,18 @@ function belt.set_curved(self)
   local key = tostring(self.pos.x) .. '-' .. tostring(self.pos.y)
   local x, y = self.pos.x, self.pos.y
   local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
-  local key1, key2, key3 = loc1.x + x .. '-' .. loc1.y + y, loc2.x + x .. '-' .. loc2.y + y, loc3.x + x .. '-' .. loc3.y + y
+  local key1, key2, key3 = get_key(loc1.x + x, loc1.y + y), get_key(loc2.x + x, loc2.y + y), get_key(loc3.x + x, loc3.y + y)
   if not BELTS[key2] or (BELTS[key2] and not BELTS[key2]:is_facing(self)) then
     --no input belt facing same direction eg. <-<- or ->->
     if BELTS[key1] and BELTS[key1]:is_facing(self) and (not BELTS[key3] or not BELTS[key3]:is_facing(self)) then
       --found a belt to the left, and belt is facing me, and no other belts are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
-    elseif BELTS[key3] and BELTS[key3]:is_facing(self) and (not BELTS[key1] or not BELTS[key1]:is_facing(self)) then
+    elseif BELTS[key3] and BELTS[key3]:is_facing(self) == true and (not BELTS[key1] or BELTS[key1]:is_facing(self) == false) then
       --found a belt to the right, and belt is facing me, and no other belts are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
-    elseif (BELTS[key3] and BELTS[key3]:is_facing(self) and BELTS[key1] and BELTS[key1]:is_facing(self)) or (not BELTS[key1] and not BELTS[key3]) then
+    else
+      --if (BELTS[key3] and BELTS[key3]:is_facing(self)) or (BELTS[key1] and BELTS[key1]:is_facing(self)) 
+      --or (not BELTS[key1]) or (not BELTS[key3]) or (BELTS[key1]) then
       self.id = BELT_ID_STRAIGHT
       self.output_item_key = self.rot .. self.rot
     end 
@@ -292,13 +322,14 @@ end
 
 function belt.draw(self)
   local rot = self.rot
-  if self.id == BELT_ID_CURVED then rot = self.sprite_rot end
-  spr(self.id + BELT_TICK, self.pos.x, self.pos.y, 00, 1, self.flip, rot, 1, 1)
+  local flip = 0
+  if self.id == BELT_ID_CURVED then rot = self.sprite_rot flip = self.flip end
+  spr(self.id + BELT_TICK, self.pos.x, self.pos.y, 00, 1, flip, rot, 1, 1)
 end
 
 function belt.draw_items(self)
   self.drawn = true
-  if self.output_key ~= nil and not BELTS[self.output_key].drawn then BELTS[self.output_key]:draw_items() end
+  if BELTS[self.output_key] and not BELTS[self.output_key].drawn then BELTS[self.output_key]:draw_items() end
   local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
   for i = 1, 2 do
     for j = 1, 8 do
