@@ -1,4 +1,5 @@
-![craptorio-logo-largeV3](https://user-images.githubusercontent.com/25288625/224465068-6c74c851-8b5a-4caa-a284-4a44156e6156.jpg)
+![logo](https://user-images.githubusercontent.com/25288625/224469588-27f335bb-28e2-4beb-bf83-33e6c2ca1434.png)
+
 
 A de-make of Factorio for the Tic-80 fantasy computer. 
 
