@@ -46,6 +46,15 @@ local inserter = {
   is_hovered = false,
 }
 
+function inserter.get_info(self)
+  local info = {
+    [1] = 'POS: ' get_key(self.pos.x, self.pos.y),
+    [2] = 'ROT: ' .. self.rot,
+    [3] = 'OTK: ',
+  }
+  return info
+end
+
 function inserter.draw(self)
   local config = INSERTER_ARM_OFFSETS[INSERTER_ANIM_KEYS[self.rot][self.anim_frame]]
   local x, y = config.x + self.pos.x, config.y + self.pos.y
