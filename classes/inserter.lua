@@ -48,7 +48,7 @@ local inserter = {
 
 function inserter.get_info(self)
   local info = {
-    [1] = 'POS: ' get_key(self.pos.x, self.pos.y),
+    [1] = 'POS: ' .. get_key(self.pos.x, self.pos.y),
     [2] = 'ROT: ' .. self.rot,
     [3] = 'OTK: ',
   }
