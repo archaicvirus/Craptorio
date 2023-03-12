@@ -12,13 +12,8 @@ local aspr          = require('\\libs\\affine_sprite')
 local ITEMS         = require('\\libs\\item_definitions')
 local draw_cable    = require('\\libs\\cable')
 local new_pole      = require('\\libs\\power_pole')
-
 --------------------COUNTERS--------------------------
-TICK              = 0
-BELT_TICKRATE     = 5
-BELT_MAXTICK      = 3
-BELT_TICK         = 0
-INSERTER_TICKRATE = 4
+TICK = 0
 
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 BELTS, INSERTERS, POLES = {}, {}, {}
@@ -37,6 +32,9 @@ cursor = {
   rotation = 0,
   last_rotation = 0,
   item = 'belt',
+  drag = false,
+  drag_dir = 0,
+  drag_loc = 0,
 }
 --------------------FUNCTIONS-------------------------
 function get_key(x, y)
@@ -217,6 +215,16 @@ function add_item(id)
   end
 end
 
+function draw_debug2(data)
+  local width = 60
+  local height = (#data * 6) + 3
+  rectb(0, 0, width, height, 12)
+  rect(1, 1, width - 2, height - 2, 15)
+  for i = 1, #data do
+    print(data[i], 2, i*6 - 4, 2, true, 1, true)
+  end
+end
+
 function draw_debug()
   --count belt items
   local n = 0
@@ -271,14 +279,22 @@ function draw_ground_items()
 end
 
 function draw_cursor()
-  local key = cursor.x .. '-' .. cursor.y
+  local key = get_key(cursor.x, cursor.y)
   if not get_flags(cursor.x, cursor.y, 0) then spr(271, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1) return end
   if cursor.item == 'belt' then
-    if not BELTS[key] or (BELTS[key] and BELTS[key].rot ~= cursor.rotation) then
+    if cursor.drag then
+      if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
+        spr(288, cursor.x, cursor.drag_loc, 00, 1, 0, 0, 1, 1)
+      else
+        spr(288, cursor.drag_loc, cursor.y, 00, 1, 0, 0, 1, 1)
+      end
+      spr(270, cursor.x, cursor.y, 0, 1, 0, cursor.drag_dir, 1, 1)
+    elseif not BELTS[key] or (BELTS[key] and BELTS[key].rot ~= cursor.rotation) then
       spr(BELT_ID_STRAIGHT + BELT_TICK, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
       spr(288, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
     end
-    spr(288, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
+  
+    
     --pix(cursor.last_x, cursor.last_y, 5)
   elseif cursor.item == 'inserter' then
     if not INSERTERS[key] or (INSERTERS[key] and INSERTERS[key].rot ~= cursor.rotation) then
@@ -297,17 +313,19 @@ function draw_cursor()
 end
 
 function rotate_cursor()
-  cursor.rotation = cursor.rotation + 1
-  if cursor.rotation > 3 then cursor.rotation = 0 end
+  if not cursor.drag then
+    cursor.rotation = cursor.rotation + 1
+    if cursor.rotation > 3 then cursor.rotation = 0 end
+  end
 end
 
 function place_tile(x, y, rotation)
   local key = tostring(x) .. '-' .. tostring(y)
-  if cursor.item == 'belt' and not INSERTERS[key] then
+  if cursor.item == 'belt' and not INSERTERS[key] and not POLES[key] then
     add_belt(x, y, rotation)
-  elseif cursor.item == 'inserter' and not BELTS[key] then
+  elseif cursor.item == 'inserter' and not BELTS[key] and not POLES[key] then
     add_inserter(x, y, rotation)
-  elseif cursor.item == 'pole' then
+  elseif cursor.item == 'pole' and not INSERTERS[key] and not BELTS[key] then
     add_pole(x, y)
   end
 end
@@ -315,6 +333,47 @@ end
 function remove_tile(x, y)
   remove_belt(x,y)
   remove_inserter(x,y)
+end
+
+function mouse_input()
+  local x, y, left, middle, right = mouse()
+  if not left and cursor.last_left then cursor.drag = false trace('drag ended' .. time()) end
+  move_cursor('mouse', x, y)
+  local tile_x, tile_y = get_cell(x, y)
+  if cursor.item == 'belt' and not cursor.drag and left and cursor.last_left then
+    --drag started
+    trace('drag started' .. time())
+    cursor.drag = true
+    if cursor.rotation == 0 or cursor.rotation == 2 then
+      cursor.drag_loc = cursor.y
+    else
+      cursor.drag_loc = cursor.x
+    end
+    cursor.drag_dir = cursor.rotation
+  end    
+  if cursor.item == 'belt' and cursor.drag then
+    if cursor.drag_dir == 0 or cursor.drag_dir == 2 and tile_x ~= cursor.last_tile_x then
+      trace('placing tile @: ' .. get_key(tile_x, tile_y))
+      place_tile(cursor.x, cursor.drag_loc, cursor.drag_dir)
+    elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and tile_y ~= cursor.last_tile_y then
+      place_tile(cursor.drag_loc, cursor.y, cursor.drag_dir)
+    end
+  end
+
+  local info = {
+    [1] = 'Drag: ' .. tostring(cursor.drag),
+    [2] = 'DDir: ' .. cursor.drag_dir,
+    [3] = 'DLoc: ' .. cursor.drag_loc,
+    [4] = 'CRot: ' .. cursor.rotation
+  }
+
+  draw_debug2(info)
+
+  if left and not cursor.last_left then place_tile(tile_x, tile_y, cursor.rotation) end
+  if right then remove_tile(tile_x, tile_y) end
+  cursor.last_tile_x, cursor.last_tile_y = tile_x, tile_y
+  cursor.last_rotation = cursor.rotation
+  cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = x, y, left, middle, right
 end
 
 function TIC()
@@ -374,7 +433,8 @@ function TIC()
     --draw_cable(r1, r2, 2)
     --draw_cable(g1, g2, 6)
   end
-  draw_debug()
+  --draw_debug()
+  
 
   ------------------INPUT----------------------
   if btnp(0) then move_cursor('up')    end
@@ -386,12 +446,13 @@ function TIC()
   if btn(6)  then add_item(2)          end --a
   if btnp(7) then cycle_placeable()    end --s
   ----------------DRAW-CURSOR------------------
-  move_cursor('mouse', x, y)
+  --move_cursor('mouse', x, y)
+  mouse_input()
   draw_cursor()
 
-  if (left and not cursor.last_left) or left and (cursor.x ~= cursor.last_tile_x or cursor.y ~= cursor.last_tile_y) then
-    place_tile(cursor.x, cursor.y, cursor.rotation)
-  end
+  -- if (left and not cursor.last_left) or left and (cursor.x ~= cursor.last_tile_x or cursor.y ~= cursor.last_tile_y) then
+  --   place_tile(cursor.x, cursor.y, cursor.rotation)
+  -- end
 
   if (right and not cursor.last_right) or right and (cursor.x ~= cursor.last_tile_x or cursor.y ~= cursor.last_tile_y) then
     remove_tile(cursor.x, cursor.y)
@@ -403,6 +464,9 @@ function TIC()
   --if INSERTERS[key] then INSERTERS[key].is_hovered = true end
   --if BELTS[key] then BELTS[key].is_hovered = true end
   draw_ground_items()
+  if not cursor.drag then
+
+  end
   cursor.last_tile_x, cursor.last_tile_y = get_cell(x, y)
   cursor.last_rotation = cursor.rotation
   cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = x, y, left, middle, right
@@ -435,6 +499,7 @@ end
 -- 011:000000000000000000000000000000000000cdee0000dd000000ee000000e000
 -- 012:00000000000000000000000000000000eeeeeeee00000000000000000dddddd0
 -- 013:00000000000000000000000000000000eedc000000dd000000ee0000000e0000
+-- 014:00000000000f000000fc00000fcffff00cccccc000cf0000000c000000000000
 -- 015:00dddd00020000d0d020000dd002000dd000200dd000020d0d00002000dddd00
 -- 016:00ffffff0fddeeedfdddeeedfdddeeedfeeedddefeeedddefeeedddefdddeeef
 -- 017:ffffffffddfeeefdddfeeefdddfeeefdeefdddfeeefdddfeeefdddfeffffffff
@@ -466,7 +531,7 @@ end
 -- 048:0000000006000060000000000000000000000000000000000600006000000000
 -- 049:0000e0000000ed000000dd000000ede00000edfe0000ede00000dd000000ed00
 -- 050:00fed0000effed00000d0000000d0000fefefefe000d0000000d00000fdefe00
--- 051:000e000000ed000000ddd000edfff000fffff000edfff00000ddd00000ed0000
+-- 051:000e000000ed00000eddddddedfffe4fefffffe4edfffe4f0edddddd00ed0000
 -- 052:0001100000011000000110000001100000011000000110000001100000011000
 -- 054:ffffffffffeeffeeff4eff4ef4eff4eff4eff4efff4eff4effeeffeeffffffff
 -- 055:fffffffffeeffeeff4eff4ef4eff4eff4eff4efff4eff4effeeffeefffffffff
@@ -502,10 +567,14 @@ end
 -- 119:fffffffffcd4fce4ffffffff0000000000000000000000000000000000000000
 -- 120:ffffffffcd4fce4fffffffff0000000000000000000000000000000000000000
 -- 121:ffffffffd4fce4fcffffffff0000000000000000000000000000000000000000
+-- 134:000dddff00deedee0de4fdcdde4fedd4de4fedd4dee4fdcddeeddeeedddeffff
+-- 135:000dddff00deedee0de4fdd4de4fed4fde4fed4fdee4fdd4deeddeeedddeffff
+-- 136:000dddff00deedee0de4fd4fde4fedfcde4fedfcdee4fd4fdeeddeeedddeffff
+-- 137:000dddff00deedee0de4fdfcde4fedcdde4fedcddee4fdfcdeeddeeedddeffff
 -- 149:000fffc0000cdfc0000cccd000c4ecd00c4edcd004eeecd00c4edcd000e4cec0
--- 153:00ffffc000fddfc00d4decd0d4dedcd04deeecd0d4dedcd00d4decd000d4fec0
+-- 153:00feffc000d4dec00d4decd0d4dedcd04deeecd0d4dedcd00d4decd000d4fec0
 -- 165:00e4cec00c4edcd004eeecd00c4edcd000c4ecd0000cccd0000cdfc0000fffc0
--- 169:00d4fec00d4decd0d4dedcd04deeecd0d4dedcd00d4decd000fddfc000ffffc0
+-- 169:00d4fec00d4decd0d4dedcd04deeecd0d4dedcd00d4ddee000fefcc000fffcc0
 -- 179:0000c0ef009cdcef09cdcddf9cdcecdf9dcececf09dcecdf009dcdef0000d0ef
 -- 180:0000c0ef002cdcef02cdcddf2cdcecdf2dcececf02dcecdf002dcdef0000d0ef
 -- 181:0000c0ef004cdcef04cdcddf4cdcecdf4dcececf04dcecdf004dcdef0000d0ef
@@ -558,4 +627,3 @@ end
 -- <PALETTE>
 -- 000:1a1c2c5d2424b13e53ef7d57ffcd75a7f07038b764c25d0029366f3b5dc941a6f673eff7919191aeaaae656c79333434
 -- </PALETTE>
-
