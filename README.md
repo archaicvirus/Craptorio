@@ -45,7 +45,7 @@ Curved belts are also implemented, again as in the original game. The snapping b
 Inserters:
 Inserters are rendered using 2 8x8 sprites, 1 for base, and 1 for straight arm or angled arm.    
 
- ![inserter_new](https://user-images.githubusercontent.com/25288625/224526125-9b1cbde6-21ab-4686-a3ec-647e077d8bdd.PNG)
+ ![inserters_newest](https://user-images.githubusercontent.com/25288625/224526206-13c4cf53-72e3-4a7f-8751-882f974cc4ca.PNG)
 
 Rotation, flipping, and position offsets of the inserters arm sprite's are pre-calculated and indexed to a look-up table (based on inserters current rotation), to avoid having many if statements. This also avoids excessive table look-ups, as the inserter only has to access this LUT when the player manually rotates the inserter, or places a new one down. There may be other situations I haven't thought of, but for now this should do.   
 
