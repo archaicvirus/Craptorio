@@ -11,7 +11,7 @@ inserters, and machines to craft science-packs which are used to research new te
 
 I have more hours in Factorio that I want to admit. I absolutely love this game, 
 and it's the best 20-30$ I have ever spent on a video game. This is a passion project for me,
-and I am putting as much time into this as I can for now.
+and I am putting as much time into this as I can for now. That is between IRL work and life's distractions.
 
 With that being said, not much is final ATM. Many game-mechanics will likey be left out due to the constraints
 imposed by the Tic-80 dev enviornment. This is the point obviously, (or perhaps not so obvious to some) however 
