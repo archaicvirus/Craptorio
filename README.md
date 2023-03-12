@@ -17,10 +17,7 @@ With that being said, not much is final ATM. Many game-mechanics will likey be l
 imposed by the Tic-80 dev enviornment. This is the point obviously, (or perhaps not so obvious to some) however 
 I do intend to add as many features and mechanics from the original as technically feasible.
 
-Right now there is a test map setup for development.
-Belts and inserters are implemented, as well as a placeholder item system (to test belt/inserter functionality), 
-at a semi-final state. Belts need optimization for the item drawing routines, as testing has showed noticable TPS drop
-with high numbers of items and belts.
+**Update: Right now, the belt system is pretty far along. Most features/mechanics from the original are already implemented, excluding red and blue belts, (which are just faster belts). The 'drag locking' feature has just been implemented, which was an addition to the original from the devs at some point. Players love this feature beacause it locks belt-placing to either x or y, depending on the direction you drag your mouse while placing belts. Helps prevent unwanted belt placement.
 
 I plan on polishing the belt and inserter systems heavily before moving on to other entities/game mechanics.
 As Harkonnen said, 'belts are the very heartbeat of factorio'. So I want these systems to function
