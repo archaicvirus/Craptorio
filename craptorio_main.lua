@@ -21,6 +21,7 @@ TICK = 0
 BELTS, INSERTERS, POLES = {}, {}, {}
 GROUND_ITEMS = {}
 STATE = 'main'
+CURSOR_POINTER_ID = 352
 cursor = {
   x = 8,
   y = 8,
@@ -193,19 +194,19 @@ end
 
 function move_cursor(dir, x, y)
   if dir == 'up' then
-    if get_flags(cursor.x, cursor.y - 8, 0) then cursor.y = cursor.y - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tile_x, cursor.tile_y - 8, 0) then cursor.tile_y = cursor.tile_y - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
   elseif dir == 'down' then
-    if get_flags(cursor.x, cursor.y + 8, 0) then cursor.y = cursor.y + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tile_x, cursor.tile_y + 8, 0) then cursor.tile_y = cursor.tile_y + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
   elseif dir == 'left' then
-    if get_flags(cursor.x - 8, cursor.y, 0) then cursor.x = cursor.x - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tile_x - 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
   elseif dir == 'right' then
-    if get_flags(cursor.x + 8, cursor.y, 0) then cursor.x = cursor.x + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tile_x + 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
   end
   if dir == 'mouse' then
-    if not (cursor.last_x == x and cursor.last_y == y) then
+    if not (cursor.x == x and cursor.y == y) then
       local cell_x, cell_y = get_cell(x, y)
-      if not (cell_x == cursor.x and cell_y == cursor.y) then
-        cursor.x, cursor.y = cell_x, cell_y
+      if not (cell_x == cursor.tile_x and cell_y == cursor.tile_y) then
+        cursor.tile_x, cursor.tile_y = cell_x, cell_y
       end
     end
   end
@@ -224,7 +225,7 @@ function cycle_placeable()
 end
 
 function add_item(id)
-  local key = tostring(cursor.x) .. '-' .. tostring(cursor.y)
+  local key = tostring(cursor.tile_x) .. '-' .. tostring(cursor.tile_y)
   if BELTS[key] then
     BELTS[key].lanes[1][8] = id
     BELTS[key].lanes[2][8] = id
@@ -254,7 +255,7 @@ function draw_debug()
   end
 
   local info = false
-  local key = get_key(cursor.x, cursor.y)
+  local key = get_key(cursor.tile_x, cursor.tile_y)
   local width, height = 60, 100
   if BELTS[key] then info = BELTS[key]:get_info() end
   --if INSERTERS[key] then info = INSERTERS[key]:get_info() end
@@ -296,45 +297,56 @@ function draw_ground_items()
 end
 
 function draw_cursor()
-  local key = get_key(cursor.x, cursor.y)
-  if not get_flags(cursor.x, cursor.y, 0) then spr(271, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1) return end
-  if cursor.item == 'belt' then
+  local key = get_key(cursor.tile_x, cursor.tile_y)
+  if not get_flags(cursor.tile_x, cursor.tile_y, 0) then spr(271, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1) return end
+  if cursor.item == 'belt' and STATE == 'main' then
     if cursor.drag then
       if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-        spr(288, cursor.x, cursor.drag_loc, 00, 1, 0, 0, 1, 1)
+        spr(288, cursor.tile_x, cursor.drag_loc, 00, 1, 0, 0, 1, 1)
       else
-        spr(288, cursor.drag_loc, cursor.y, 00, 1, 0, 0, 1, 1)
+        spr(288, cursor.drag_loc, cursor.tile_y, 00, 1, 0, 0, 1, 1)
       end
-      spr(270, cursor.x, cursor.y, 0, 1, 0, cursor.drag_dir, 1, 1)
+      --arrow to indicate drag direction
+      --spr(270, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
     elseif not BELTS[key] or (BELTS[key] and BELTS[key].rot ~= cursor.rotation) then
-      spr(BELT_ID_STRAIGHT + BELT_TICK, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
-      spr(288, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
+      spr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
+      spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
     else
-      spr(288, cursor.x, cursor.y, 00, 1, 0, cursor.rotation, 1, 1)
+      spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
     end
-    --pix(cursor.last_x, cursor.last_y, 5)
+    --pix(cursor.x, cursor.y, 5)
   elseif cursor.item == 'inserter' then
     if not INSERTERS[key] or (INSERTERS[key] and INSERTERS[key].rot ~= cursor.rotation) then
-      local temp_inserter = new_inserter({x = cursor.x, y = cursor.y}, cursor.rotation)
+      local temp_inserter = new_inserter({x = cursor.tile_x, y = cursor.tile_y}, cursor.rotation)
       temp_inserter:draw()
     end
   elseif cursor.item == 'pole' then
-    local temp_pole = new_pole({x = cursor.x, y = cursor.y})
+    local temp_pole = new_pole({x = cursor.tile_x, y = cursor.tile_y})
     temp_pole:draw(true)
     --check around cursor to attach temp cables to other poles
-  elseif cursor.item == 'splitter' then
-
-  else
-    spr(cursor.id, cursor.last_x, cursor.last_y, 00, 1, 0, 0, 1, 1)
-    spr(288, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
-    pix(cursor.last_x, cursor.last_y, 5)
+  elseif cursor.item == 'pointer' then
+    if STATE == 'inventory' then
+      spr(CURSOR_POINTER_ID, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
+      pix(cursor.x, cursor.y, 5)
+      --if hovered over item slot
+      local slot, sx, sy, slot_index = inv:get_hovered_slot(cursor.x, cursor.y)
+      if slot then
+        spr(288, sx, sy, 00, 1, 0, 0, 1, 1)
+        local slot_data = {[1] = 'Slot:' .. tostring(slot_index), [2] = 'Items:' .. inv.slots[slot_index].item_id, [3] = 'Count:' .. inv.slots[slot_index].count}
+        draw_debug2(slot_data)
+      end
+    else
+      spr(CURSOR_POINTER_ID, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
+      spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1)
+      pix(cursor.x, cursor.y, 5)
+    end
   end
 end
 
 function rotate_cursor()
   if not cursor.drag then
-    local key = get_key(cursor.x, cursor.y)
-    local x, y = cursor.x, cursor.y
+    local key = get_key(cursor.tile_x, cursor.tile_y)
+    local x, y = cursor.tile_x, cursor.tile_y
     if BELTS[key] and cursor.item == 'pointer' then
       BELTS[key]:rotate(BELTS[key].rot + 1)
       local tiles = {[1]={x=x,y=y-8},[2]={x=x+8,y=y},[3]={x=x,y=y+8},[4]={x=x-8,y=y}}
@@ -370,7 +382,7 @@ end
 
 function pipette()
   if cursor.item == 'pointer' then
-    local key = get_key(cursor.x, cursor.y)
+    local key = get_key(cursor.tile_x, cursor.tile_y)
     if BELTS[key] then cursor.item = 'belt' cursor.rotation = BELTS[key].rot return
     elseif INSERTERS[key] then cursor.item = 'inserter' cursor.rotation = INSERTERS[key].rot return
     elseif POLES[key] then cursor.item = 'pole' end
@@ -384,11 +396,11 @@ function mouse_input()
   if not left and cursor.last_left and cursor.drag then
     cursor.drag = false
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
+      cursor.tile_y = cursor.drag_loc
       cursor.y = cursor.drag_loc
-      cursor.last_y = cursor.drag_loc
     else
+      cursor.tile_x = cursor.drag_loc
       cursor.x = cursor.drag_loc
-      cursor.last_x = cursor.drag_loc
     end
   end
   move_cursor('mouse', x, y)
@@ -397,41 +409,48 @@ function mouse_input()
     --drag locking/placing belts
     cursor.drag = true
     if cursor.rotation == 0 or cursor.rotation == 2 then
-      cursor.drag_loc = cursor.y
+      cursor.drag_loc = cursor.tile_y
     else
-      cursor.drag_loc = cursor.x
+      cursor.drag_loc = cursor.tile_x
     end
     cursor.drag_dir = cursor.rotation
   end    
   if cursor.item == 'belt' and cursor.drag then
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 and tile_x ~= cursor.last_tile_x then
-      place_tile(cursor.x, cursor.drag_loc, cursor.drag_dir)
+      place_tile(cursor.tile_x, cursor.drag_loc, cursor.drag_dir)
     elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and tile_y ~= cursor.last_tile_y then
-      place_tile(cursor.drag_loc, cursor.y, cursor.drag_dir)
+      place_tile(cursor.drag_loc, cursor.tile_y, cursor.drag_dir)
     end
   end
 
-  local info = {
-    [1] = 'Drag: ' .. tostring(cursor.drag),
-    [2] = 'DDir: ' .. cursor.drag_dir,
-    [3] = 'DLoc: ' .. cursor.drag_loc,
-    [4] = 'CRot: ' .. cursor.rotation
-  }
+  -- local info = {
+  --   [1] = 'Drag: ' .. tostring(cursor.drag),
+  --   [2] = 'DDir: ' .. cursor.drag_dir,
+  --   [3] = 'DLoc: ' .. cursor.drag_loc,
+  --   [4] = 'CRot: ' .. cursor.rotation
+  -- }
 
-  draw_debug2(info)
+  --draw_debug2(info)
 
   if left and not cursor.last_left then place_tile(tile_x, tile_y, cursor.rotation) end
   if right then remove_tile(tile_x, tile_y) end
   local cell_x, cell_y = get_cell(x, y)
   local key = get_key(cell_x, cell_y)
   if POLES[key] then POLES[key].is_hovered = true end
+  
   cursor.last_tile_x, cursor.last_tile_y = tile_x, tile_y
   cursor.last_rotation = cursor.rotation
-  cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = x, y, left, middle, right
+  cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, left, middle, right
+  cursor.x, cursor.y = x, y
 end
 
 function toggle_inventory()
-  if STATE == 'main' then STATE = 'inventory' else STATE = 'main' end
+  if STATE == 'main' then
+    STATE = 'inventory'
+    cursor.item = 'pointer'
+  else
+    STATE = 'main'
+  end
 end
 
 function draw_inventory()
@@ -514,12 +533,12 @@ function TIC()
   mouse_input()
   
 
-  -- if (left and not cursor.last_left) or left and (cursor.x ~= cursor.last_tile_x or cursor.y ~= cursor.last_tile_y) then
-  --   place_tile(cursor.x, cursor.y, cursor.rotation)
+  -- if (left and not cursor.last_left) or left and (cursor.tile_x ~= cursor.last_tile_x or cursor.tile_y ~= cursor.last_tile_y) then
+  --   place_tile(cursor.tile_x, cursor.tile_y, cursor.rotation)
   -- end
 
-  if (right and not cursor.last_right) or right and (cursor.x ~= cursor.last_tile_x or cursor.y ~= cursor.last_tile_y) then
-    remove_tile(cursor.x, cursor.y)
+  if (right and not cursor.last_right) or right and (cursor.tile_x ~= cursor.last_tile_x or cursor.tile_y ~= cursor.last_tile_y) then
+    remove_tile(cursor.tile_x, cursor.tile_y)
   end
 
   draw_ground_items()
