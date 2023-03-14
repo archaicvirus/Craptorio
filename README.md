@@ -1,7 +1,7 @@
 ![logo](https://user-images.githubusercontent.com/25288625/224469588-27f335bb-28e2-4beb-bf83-33e6c2ca1434.png)
 
 
-A de-make of Factorio for the Tic-80 fantasy computer. 
+A de-make of Factorio for the Tic-80 fantasy console. 
 
 **Note that at this time this project is an early WIP. Current scripts are in an unfinished state.
 
