@@ -58,8 +58,8 @@ Inserters are rendered using 2 8x8 sprites, 1 for base, and 1 for straight arm o
 - Uses open simplex noise to generate terrain and ore fields
 - Generates a large island for the game world
 - Generates separate fields for iron, copper, stone, etcetera.
-- Focusing on ore distrubution and implementing remaining ore types (stone, coal, uranium, oil)
-- (TODO) Need to implement same method to generate forests
+- Currently focused on ore distrubution and implementing remaining ore types (stone, coal, uranium, oil)
+- (TODO) Need to implement similar method above to generate forests
 - Still in heavy development
 
 ![simplex_ore_test](https://user-images.githubusercontent.com/25288625/227750297-cfbe41e4-0ff5-4e54-9685-22fbac108bc7.gif)
