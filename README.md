@@ -3,7 +3,7 @@
 
 A de-make of Factorio for the Tic-80 fantasy console. 
 
-**Note that at this time this project is an early WIP. Current scripts are in an unfinished state.
+**Note that at this time this project is a WIP.
 
 # Core idea for de-make
 - To cover the main factorio game loop, which is mining resources and using belts, 
