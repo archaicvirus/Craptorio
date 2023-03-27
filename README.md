@@ -1,4 +1,4 @@
-![logo](https://user-images.githubusercontent.com/25288625/224469588-27f335bb-28e2-4beb-bf83-33e6c2ca1434.png)
+![craptorio_intro_screen](https://user-images.githubusercontent.com/25288625/227828751-3b368b87-f0eb-49df-9d21-7928a78b0876.gif)
 
 
 A de-make of Factorio for the Tic-80 fantasy console. 
