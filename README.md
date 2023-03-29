@@ -63,4 +63,5 @@ Inserters are rendered using 2 8x8 sprites, 1 for base, and 1 for straight arm o
 - Still in heavy development
 
 ![simplex_ore_test](https://user-images.githubusercontent.com/25288625/227750297-cfbe41e4-0ff5-4e54-9685-22fbac108bc7.gif)
+![worldgen_collision_test](https://user-images.githubusercontent.com/25288625/228401155-64cea2ba-a3d4-49bd-a124-20e3677ce22e.gif)
 
