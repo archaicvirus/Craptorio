@@ -16,7 +16,7 @@ imposed by the Tic-80 dev enviornment. This is the point obviously, (or perhaps 
 I do intend to add as many features and mechanics from the original as technically feasible.
 
 **Update: Currently working on worldgen, and oregen systems
-# Belts
+# Transport Belt
 - The idea here is to re-create belts VERY similar to factorio, however there are some differences.
 - The belts in Craptorio are displayed as 8x8 pixel sprites, with 4 animation frames. 
 - When watching the belt animation however, it appears as if the belt has 8 animation frames, which makes it seem like the belt is moving 1-pixel per frame. This is by design - due to making the texture x-tileable. Only 4 frames are needed before the texture 'loops'.
