@@ -24,17 +24,31 @@ return function (p1, p2, color)
   end
 end
 
---Tested & verified working at 60TPS with one cable. 
---Need to refactor to store vectors for later drawing, instead of computing each draw call.
-
---Made using ChatGPT and with a little coercion
---In the function I provided, we simulate the shape of the hanging cable by oscillating it up and down along a 
---sine wave. We calculate the length of the cable and the midpoint between the start and end points, then use a 
---sine function to calculate the height of the cable at each point along its length. This creates a wave-like 
---shape that approximates the curve of a hanging cable.
---We use the math.sin() function to calculate the height of the cable at each point, based on its position along 
---the length of the cable. We multiply the x position by math.pi and divide by the length of the cable to create 
---a sine wave that oscillates between positive and negative values. We then multiply the sine wave by a constant 
---value (sag_height) to control the amplitude of the wave, creating the sagging effect of the cable.
---While this method is not as accurate as using the catenary equation, it is much simpler and more efficient 
---to calculate, making it a good choice for applications where speed and efficiency are more important than precision.
+-- return function (p1, p2, col)
+--   local dx = p2.x - p1.x
+--   local dy = p2.y - p1.y
+--   local dist = math.sqrt(dx*dx + dy*dy)
+--   --local sag = math.max(dist/8, 8)
+--   local segments = math.floor(dist)
+--   local sagAmount = sag or 0.2
+  
+--   -- calculate initial angle and velocity
+--   local angle = math.atan2(dy, dx)
+--   local velocity = dist / segments
+  
+--   -- draw cable segments
+--   local prevX, prevY = p1.x, p1.y
+--   for i=1,segments do
+--     -- calculate new position based on simplified catenary equation
+--     local x = p1.x + i * dx / segments
+--     local y = p1.y + sagAmount * math.cosh(i * angle / sagAmount)
+    
+--     -- draw segment
+--     line(prevX, prevY, x, y, col)
+    
+--     prevX, prevY = x, y
+--   end
+  
+--   -- draw final segment
+--   line(prevX, prevY, p2.x, p2.y, col)
+-- end

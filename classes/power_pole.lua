@@ -32,12 +32,14 @@ local pole = {
   range = 3,
   has_power = false,
   is_hovered = false,
+  type = 'power-pole',
 }
 
 function pole.draw(self, show_area)
-  spr(POWER_POLE_TOP_ID, self.pos.x, self.pos.y - 16, 0)
-  spr(POWER_POLE_MID_ID, self.pos.x, self.pos.y - 8 , 0)
-  spr(POWER_POLE_BTM_ID, self.pos.x, self.pos.y     , 0)
+  local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
+  spr(POWER_POLE_TOP_ID, loc_x, loc_y - 16, 0)
+  spr(POWER_POLE_MID_ID, loc_x, loc_y -  8, 0)
+  spr(POWER_POLE_BTM_ID, loc_x, loc_y     , 0)
   for k, v in ipairs(self.cables) do
     if #v > 0 then
       if k == 1 then col = 1
@@ -48,9 +50,9 @@ function pole.draw(self, show_area)
   end
   if show_area or self.is_hovered then
     for k, v in ipairs(POWER_AREA_MAP) do
-      spr(POWER_AREA_ID, self.pos.x + v.pos.x, self.pos.y + v.pos.y, 0, 1, 0, v.rot)
+      spr(POWER_AREA_ID, loc_x + v.pos.x, loc_y + v.pos.y, 0, 1, 0, v.rot)
     end
-    spr(POWER_CURSOR_ID, self.pos.x, self.pos.y, 0)
+    spr(POWER_CURSOR_ID, loc_x, loc_y, 0)
   end
 end
 

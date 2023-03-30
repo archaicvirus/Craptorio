@@ -1,7 +1,8 @@
-INSERTER_BASE_ID = 274
-INSERTER_ARM_ID = 275
-INSERTER_ARM_ANGLED_ID = 276
+INSERTER_BASE_ID       = 264
+INSERTER_ARM_ID        = 265
+INSERTER_ARM_ANGLED_ID = 266
 INSERTER_ANIM_TICKRATE = 4
+INSERTER_TICKRATE      = 4
 
 INSERTER_ARM_OFFSETS = {
   [0] = {id = INSERTER_ARM_ID,        x = -3, y =  0, rot = 0, item_offset = {x = -1, y =  2}},
@@ -15,10 +16,10 @@ INSERTER_ARM_OFFSETS = {
 }
 
 INSERTER_GRAB_OFFSETS = {
-  [0] = {from = {x =  8, y =  0}, to = {x = -8, y =  0}},
-  [1] = {from = {x =  0, y =  8}, to = {x =  0, y = -8}},
-  [2] = {from = {x = -8, y =  0}, to = {x =  8, y =  0}},
-  [3] = {from = {x =  0, y = -8}, to = {x =  0, y =  8}},
+  [0] = {from = {x =  1, y =  0}, to = {x = -1, y =  0}},
+  [1] = {from = {x =  0, y =  1}, to = {x =  0, y = -1}},
+  [2] = {from = {x = -1, y =  0}, to = {x =  1, y =  0}},
+  [3] = {from = {x =  0, y = -1}, to = {x =  0, y =  1}},
 }
 
 INSERTER_DEPOSIT_MAP = {
@@ -44,6 +45,7 @@ local inserter = {
   held_item_id = 0,
   rot = 0,
   is_hovered = false,
+  type = 'inserter',
 }
 
 function inserter.get_info(self)
@@ -57,10 +59,12 @@ end
 
 function inserter.draw(self)
   local config = INSERTER_ARM_OFFSETS[INSERTER_ANIM_KEYS[self.rot][self.anim_frame]]
-  local x, y = config.x + self.pos.x, config.y + self.pos.y
-  spr(INSERTER_BASE_ID, self.pos.x, self.pos.y, 00, 1, 0, self.rot, 1, 1)
+  local screen_pos = {x = cam.x - 120 + self.pos.x*8, y = cam.y - 64 + self.pos.y*8}
+  local x, y = config.x + screen_pos.x, config.y + screen_pos.y
+  spr(INSERTER_BASE_ID, screen_pos.x, screen_pos.y, 0, 1, 0, self.rot, 1, 1)
+  --spr(INSERTER_BASE_ID, self.pos.x, self.pos.y, 0, 1, 0, self.rot, 1, 1)
   --spr(INSERTER_ARM_ID, x, y, 00, 1, 0, 0, 1, 1)
-  spr(config.id, x, y, 00, 1, 0, config.rot, 1, 1)
+  spr(config.id, x, y, 0, 1, 0, config.rot, 1, 1)
   
   if self.held_item_id > 0 then
     draw_pixel_sprite(self.held_item_id, x + config.item_offset.x, y + config.item_offset.y)
@@ -74,7 +78,8 @@ end
 
 function inserter.rotate(self, rotation)
   self.rot = rotation
-  local from, to = INSERTER_GRAB_OFFSETS[rotation].from, INSERTER_GRAB_OFFSETS[rotation].to
+  if self.rot > 3 then self.rot = 0 end
+  local from, to = INSERTER_GRAB_OFFSETS[self.rot].from, INSERTER_GRAB_OFFSETS[self.rot].to
   self.from_key = self.pos.x + from.x .. '-' .. self.pos.y + from.y
   self.to_key = self.pos.x  + to.x .. '-' .. self.pos.y + to.y
 end
@@ -85,30 +90,31 @@ function inserter.update(self)
     if self.anim_frame <= 1 then
       self.anim_frame = 1
       --try to deposit item
-      trace('looking for output')
-      if BELTS[self.to_key] then
-        trace('FOUND belt')
+      --trace('looking for output')
+      if ENTS[self.to_key] and ENTS[self.to_key].type == 'transport-belt' then
+        --trace('FOUND belt')
         for i = 8, 1, -1 do
-          local index = BELTS[self.to_key].rot
+          local index = ENTS[self.to_key].rot
           local lane = INSERTER_DEPOSIT_MAP[self.rot][index]
-          if BELTS[self.to_key].lanes[lane][i] == 0 then
-            BELTS[self.to_key].lanes[lane][i] = self.held_item_id
+          if ENTS[self.to_key].lanes[lane][i] == 0 then
+            ENTS[self.to_key].lanes[lane][i] = self.held_item_id
             self.held_item_id = 0
             self.state = 'return'
             break
           end
         end
       else
-        if not GROUND_ITEMS[self.to_key] or GROUND_ITEMS[self.to_key][1] == 0 then
-          local to = INSERTER_GRAB_OFFSETS[self.rot].to
-          local gnd_item = {[1] = self.held_item_id, [2] = self.pos.x + to.x + 2, [3] = self.pos.y + to.y + 2}
-          table.insert(GROUND_ITEMS, gnd_item)
-          local index = #GROUND_ITEMS
-          GROUND_ITEMS[self.to_key] = GROUND_ITEMS[index]
-          self.held_item_id = 0
-          self.state = 'return'
-        --drop on ground
-        end
+        -- if not ENTS[self.to_key].type == 'ground-items' or (ENTS[self.to_key].type == 'ground-items' and ENTS[self.to_key][1] == 0) then
+        --   local to = INSERTER_GRAB_OFFSETS[self.rot].to
+        --   --create ground item entity with belt lanes
+        --   local gnd_item = {id = self.held_item_id, pos = {self.pos.x + to.x, self.pos.y + to.y}, type = 'gound-item'}
+        --   table.insert(GROUND_ITEMS, gnd_item)
+        --   local index = #GROUND_ITEMS
+        --   GROUND_ITEMS[self.to_key] = GROUND_ITEMS[index]
+        --   self.held_item_id = 0
+        --   self.state = 'return'
+        -- --drop on ground
+        -- end
       end
       -- self.held_item_id = 0
       -- self.state = 'return'
@@ -122,29 +128,29 @@ function inserter.update(self)
       self.state = 'wait'
     end
   elseif self.state == 'wait' then
-    if BELTS[self.from_key] then
+    if ENTS[self.from_key] then
       for i = 1, 8 do
         local lane = 0
-        if BELTS[self.from_key].lanes[1][i] ~= 0 then
+        if ENTS[self.from_key].lanes[1][i] ~= 0 then
           lane = 1
-        elseif BELTS[self.from_key].lanes[2][i] ~= 0 then
+        elseif ENTS[self.from_key].lanes[2][i] ~= 0 then
           lane = 2
         end
         if lane > 0 then
-          self.held_item_id = BELTS[self.from_key].lanes[lane][i]
-          BELTS[self.from_key].lanes[lane][i] = 0
+          self.held_item_id = ENTS[self.from_key].lanes[lane][i]
+          ENTS[self.from_key].lanes[lane][i] = 0
           self.state = 'send'
           return
           --break
         end
       end
     else
-      if GROUND_ITEMS[self.from_key] and GROUND_ITEMS[self.from_key][1] ~= 0 then
-      --try to pick from ground
-        self.held_item_id = GROUND_ITEMS[self.from_key][1]
-        GROUND_ITEMS[self.from_key][1] = 0
-        self.state = 'send'
-      end
+      -- if GROUND_ITEMS[self.from_key] and GROUND_ITEMS[self.from_key][1] ~= 0 then
+      -- --try to pick from ground
+      --   self.held_item_id = GROUND_ITEMS[self.from_key][1]
+      --   GROUND_ITEMS[self.from_key][1] = 0
+      --   self.state = 'send'
+      -- end
     end
   end
 end
