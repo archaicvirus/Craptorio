@@ -19,10 +19,10 @@ new_drill       = require('\\libs\\mining_drill')
 TICK = 0
 
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
-BELTS, INSERTERS, POLES = {}, {}, {}
-GROUND_ITEMS = {}
+ENTS = {}
 STATE = 'main'
 CURSOR_POINTER_ID = 352
+CURSOR_HIGHLIGHT_ID = 288
 cursor = {
   x = 8,
   y = 8,
@@ -41,19 +41,38 @@ cursor = {
   drag_dir = 0,
   drag_loc = 0,
 }
-player = {x = 120, y = 64, spr = 286}
+player = {x = -25, y = -15, spr = 286}
 cam = {x = 120, y = 64, ccx = 0, ccy = 0}
 inv = make_inventory()
-local ndrill = new_drill({x = 32, y = 32})
-ndrill.rot = 0
 local TILE_SIZE = 8
 local VIEWPORT_WIDTH = 240
 local VIEWPORT_HEIGHT = 136
 local MAP_WIDTH = 240 * TILE_SIZE
 local MAP_HEIGHT = 136 * TILE_SIZE
+local GRID_CELL_SIZE = math.ceil(VIEWPORT_WIDTH / TILE_SIZE)
 --------------------FUNCTIONS-------------------------
+function get_visible_ents()
+  local screen_ents = {}
+  local gridMinX, gridMinY = get_world_cell(0, 0)
+  local gridMaxX, gridMaxY = get_world_cell(30, 17)
+  for x = 0, 30 do
+    for y = 0, 17 do
+      local ent = ENTS[get_key(x*8, y*8)]
+      if ent then
+        table.insert(screen_ents, ent)
+      end
+    end
+  end
+  return screen_ents
+end
+
 function get_key(x, y)
-  return tostring(x) .. '-' .. tostring(y)
+  local xx, yy = get_world_cell(x, y)
+  return tostring(xx) .. '-' .. tostring(yy)
+end
+
+function get_world_key(x, y)
+  return x .. '-' .. y
 end
 
 function draw_pixel_sprite(item_id, x, y)
@@ -68,118 +87,114 @@ function draw_pixel_sprite(item_id, x, y)
 end
 
 function add_belt(x, y, rotation)
-  local key = tostring(x) .. '-' .. tostring(y)
-  if not BELTS[key] then
-    local belt = new_belt({x = x, y = y}, rotation)
-    table.insert(BELTS, belt)
-    local index = #BELTS
-    BELTS[key] = BELTS[index]
-    BELTS[key].index = index
-  elseif BELTS[key] then
-    BELTS[key]:rotate(rotation)
-    --return
-    --BELTS[key]:set_curved()
+  local key = get_key(x, y)
+  local cell_x, cell_y = get_world_cell(x, y)
+  local belt = {}
+  if not ENTS[key] or ENTS[key].type == 'ground-items' then
+    belt = new_belt({x = cell_x, y = cell_y}, cursor.rotation)
+    if ENTS[key] and ENTS[key].type == 'ground-items' then
+      belt.lanes = ENTS[key].items
+      belt.index = ENTS[key].index
+      ENTS[belt.index] = belt
+      ENTS[key] = ENTS[belt.index]
+    else
+      table.insert(ENTS, belt)
+      local index = #ENTS
+      ENTS[key] = ENTS[index]
+      ENTS[key].index = index
+    end
+  elseif ENTS[key] and ENTS[key].type == 'transport-belt' then
+    ENTS[key]:rotate(cursor.rotation)
   end
-  --BELTS[key]:set_output()
-  --check surrounding area for belts to update n,s,e,w
-  local tiles = {[1]={x=x,y=y-8},[2]={x=x+8,y=y},[3]={x=x,y=y+8},[4]={x=x-8,y=y}}
+  local tiles = {
+    [1] = {x = cell_x, y = cell_y - 1},
+    [2] = {x = cell_x + 1, y = cell_y},
+    [3] = {x = cell_x, y = cell_y + 1},
+    [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
-    local k = tostring(tiles[i].x) .. '-' .. tostring(tiles[i].y)
-    if BELTS[k] then BELTS[k]:set_curved() end
-    --if INSERTERS[k] then INSERTERS[k]:set_input() end
+    local k = get_world_key(tiles[i].x, tiles[i].y)
+    if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
   end
-  --check if should be curved
-  BELTS[key]:set_curved()
-  --sort_belt_render_order()
-  if GROUND_ITEMS[key] and GROUND_ITEMS[key][1] > 0 then
-    BELTS[key].lanes[2][4] = GROUND_ITEMS[key][1]
-    GROUND_ITEMS[key][1] = 0
-  end
+  if ENTS[key] and ENTS[key].type == 'transport-belt' then ENTS[key]:set_curved() end
 end
 
 function remove_belt(x, y)
-  local key = tostring(x) .. '-' .. tostring(y)
-  if BELTS[key] then
-    for i = 1, #BELTS do
-      if BELTS[i] == BELTS[key] then
-        BELTS[key] = nil
-        table.remove(BELTS, i)
-        --BELTS[i] = nil
+  local key = get_key(x, y)
+  local cell_x, cell_y = get_world_cell(x, y)
+  if ENTS[key] then
+    --local index = ENTS[key].index
+    --ENTS[key] = nil
+    --table.remove(ENTS, index)
+    
+    for i = 1, #ENTS do
+      if ENTS[i] == ENTS[key] then
+        ENTS[key] = nil
+        table.remove(ENTS, i)
         break
       end
     end
   end
-  --check surrounding area for belts to update n,s,e,w
-  local tiles = {[1]={x=x,y=y-8,z=3},[2]={x=x+8,y=y,z=0},[3]={x=x,y=y+8,z=1},[4]={x=x-8,y=y,z=2}}
+  local tiles = {
+    [1] = {x = cell_x, y = cell_y - 1},
+    [2] = {x = cell_x + 1, y = cell_y},
+    [3] = {x = cell_x, y = cell_y + 1},
+    [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
-    local k = tostring(tiles[i].x) .. '-' .. tostring(tiles[i].y)
-    if BELTS[k] then BELTS[k]:set_curved() end
-  end
-  --sort_belt_render_order()
-end
-
-function update_belts()
-  for key, belt in pairs(BELTS) do
-    --BELT table is double indexed with position, eg. BELTS[1] = BELTS['x-y']
-    if key == (tostring(belt.pos.x .. '-' ..belt.pos.y)) then
-      belt:update()
-    end
+    local k = get_world_key(tiles[i].x, tiles[i].y)
+    if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
   end
 end
 
 function add_inserter(x, y, rotation)
-  local key = x .. '-' .. y
-  if INSERTERS[key] then
-    if INSERTERS[key].rot ~= rotation then
-      INSERTERS[key]:rotate(rotation)
+  local key = get_key(x, y)
+  local cell_x, cell_y = get_world_cell(x, y)
+  if ENTS[key] and ENTS[key].type == 'inserter' then
+    if ENTS[key].rot ~= rotation then
+      ENTS[key]:rotate(rotation)
     end
-  else
-    local new_ins = new_inserter({x = x, y = y}, rotation)
-    table.insert(INSERTERS, new_ins)
-    local index = #INSERTERS
-    INSERTERS[key] = INSERTERS[index]
-    INSERTERS[key].index = index
+  elseif not ENTS[key] then
+    local new_ins = new_inserter({x = cell_x, y = cell_y}, rotation)
+    table.insert(ENTS, new_ins)
+    local index = #ENTS
+    ENTS[key] = ENTS[index]
+    ENTS[key].index = index
   end
 end
 
 function remove_inserter(x, y)
-  local key = tostring(x) .. '-' .. tostring(y)
-  if INSERTERS[key] then
-    for i = 1, #INSERTERS do
-      if INSERTERS[i] == INSERTERS[key] then
-        table.remove(INSERTERS, i)
-        INSERTERS[key] = nil
+  local key = get_key(x, y)
+  if ENTS[key] and ENTS[key].type == 'inserter' then
+    for i = 1, #ENTS do
+      if ENTS[i] == ENTS[key] then
+        table.remove(ENTS, i)
+        ENTS[key] = nil
         break
       end
     end
-  end
-end
-
-function update_inserters()
-  for key, inserter in ipairs(INSERTERS) do
-    inserter:update()
   end
 end
 
 function add_pole(x, y)
   local key = get_key(x,y)
-  if not POLES[key] then
-    local pole = new_pole({x = x, y = y})
-    table.insert(POLES, pole)
-    local index = #POLES
-    POLES[key] = POLES[index]
-    POLES[key].index = #POLES
+  local cell_x, cell_y = get_world_cell(x, y)
+  if not ENTS[key] then
+    local pole = new_pole({x = cell_x, y = cell_y})
+    table.insert(ENTS, pole)
+    local index = #ENTS
+    ENTS[key] = ENTS[index]
+    ENTS[key].index = #ENTS
   end
+  --update power connections
 end
 
 function remove_pole(x, y)
   local key = get_key(x, y)
-  if POLES[key] then
-    for i = 1, #POLES do
-      if POLES[i] == POLES[key] then
-        POLES[key] = nil
-        table.remove(POLES, i)
-        --BELTS[i] = nil
+  if ENTS[key] then
+    for i = 1, #ENTS do
+      if ENTS[i] == ENTS[key] then
+        ENTS[key] = nil
+        table.remove(ENTS, i)
+        --update power connections
         break
       end
     end
@@ -252,47 +267,23 @@ function get_flags(x, y, flags)
   return fget(mget(cell_x//8, cell_y//8), flags)
 end
 
-function move_cursor(dir, x, y)
-  if dir == 'up' then
-    if get_flags(cursor.tile_x, cursor.tile_y - 8, 0) then cursor.tile_y = cursor.tile_y - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
-  elseif dir == 'down' then
-    if get_flags(cursor.tile_x, cursor.tile_y + 8, 0) then cursor.tile_y = cursor.tile_y + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
-  elseif dir == 'left' then
-    if get_flags(cursor.tile_x - 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
-  elseif dir == 'right' then
-    if get_flags(cursor.tile_x + 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
-  end
-  if dir == 'mouse' then
-    -- if not (cursor.x == x and cursor.y == y) then
-    --   local cell_x, cell_y = get_cell(x, y)
-    --   if not (cell_x == cursor.tile_x and cell_y == cursor.tile_y) then
-          -- cursor.tile_x, cursor.tile_y = cell_x, cell_y
-          -- assuming cursor.x and cursor.y contain the current mouse position
-          cursor.tile_x, cursor.tile_y = get_screen_cell(cursor.x, cursor.y)
-          -- now (cell_x, cell_y) contains the top-left corner of the cell the cursor is hovering over
-    --   end
-    -- end
-  end 
-end
-
 function cycle_placeable()
-  if cursor.item == 'belt' then
+  if cursor.item == 'transport-belt' then
     cursor.item = 'inserter'
   elseif cursor.item == 'inserter' then
-    cursor.item = 'pole'
-  elseif cursor.item == 'pole' then
+    cursor.item = 'power-pole'
+  elseif cursor.item == 'power-pole' then
     cursor.item = 'pointer'
   elseif cursor.item == 'pointer' then
-    cursor.item = 'belt'
+    cursor.item = 'transport-belt'
   end
 end
 
 function add_item(id)
-  local key = tostring(cursor.tile_x) .. '-' .. tostring(cursor.tile_y)
-  if BELTS[key] then
-    BELTS[key].lanes[1][8] = id
-    BELTS[key].lanes[2][8] = id
-    --BELTS[key].lanes[2][8] = id
+  local key = get_key(cursor.x, cursor.y)
+  if ENTS[key] and ENTS[key].type == 'transport-belt' then
+    ENTS[key].lanes[1][8] = id
+    ENTS[key].lanes[2][8] = id
   end
 end
 
@@ -307,86 +298,57 @@ function draw_debug2(data, screen_y)
   end
 end
 
-function draw_debug()
-  --count belt items
-  local n = 0
-  for k, v in ipairs(BELTS) do
-    for i = 1, 2 do
-      for j = 1, 8 do
-        if v.lanes[i][j] ~=0 then n = n + 1 end
-      end
-    end
-  end
-
-  local info = false
-  local key = get_key(cursor.tile_x, cursor.tile_y)
-  local width, height = 60, 100
-  if BELTS[key] then info = BELTS[key]:get_info() end
-  --if INSERTERS[key] then info = INSERTERS[key]:get_info() end
-  --if POLES[key] then info = POLES[key]:get_info() end
-  --get TPS
-  if info ~= false then
-    height = (#info * 6) + 3
-    rectb(0, 0, width, height, 12)
-    rect(1, 1, width - 2, height - 2, 15)
-    for i = 1, #info do
-      print(info[i], 2, i*6 - 4, 2, true, 1, true)
-    end
-  end
-
-
-  -- local time = math.floor(TICK/(time()/1000))
-  -- rectb(0, 115, 45, 21, 5)
-  -- rect( 1, 116, 43, 19, 15)
-  -- print('BELT:' .. info, 3, 123, 2, true, 1, true)
-  -- print('ITEMS:' .. n,      3, 117, 2, true, 1, true)
-  -- print('TPS:'    .. time,   3, 129, 2, true, 1, true)
-end
-
 function draw_ground_items()
-  -- for k, v in ipairs(GROUND_ITEMS) do
-  --   trace('GI: ' .. #GROUND_ITEMS)
-  --   if v[1] > 0 then
-  --     trace('drawing_item ' .. v[1])
-  --     trace('x:' .. v[2])
-  --     trace('y:' .. v[3])
-  --     draw_pixel_sprite(ITEMS[tonumber(v[1])], v[2], v[3])
+  -- for i = 1, #GROUND_ITEMS do
+  --   if GROUND_ITEMS[i][1] > 0 then
+  --     draw_pixel_sprite(GROUND_ITEMS[i][1], GROUND_ITEMS[i][2], GROUND_ITEMS[i][3])
   --   end
   -- end
-  for i = 1, #GROUND_ITEMS do
-    if GROUND_ITEMS[i][1] > 0 then
-      draw_pixel_sprite(GROUND_ITEMS[i][1], GROUND_ITEMS[i][2], GROUND_ITEMS[i][3])
-    end
+end
+
+function move_cursor(dir, x, y)
+  if dir == 'up' then
+    if get_flags(cursor.tile_x, cursor.tile_y - 8, 0) then cursor.tile_y = cursor.tile_y - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+  elseif dir == 'down' then
+    if get_flags(cursor.tile_x, cursor.tile_y + 8, 0) then cursor.tile_y = cursor.tile_y + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+  elseif dir == 'left' then
+    if get_flags(cursor.tile_x - 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+  elseif dir == 'right' then
+    if get_flags(cursor.tile_x + 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
   end
+  if dir == 'mouse' then
+    cursor.tile_x, cursor.tile_y = get_screen_cell(cursor.x, cursor.y)
+  end 
 end
 
 function draw_cursor()
-  local key = get_key(cursor.tile_x, cursor.tile_y)
+  local key = get_key(cursor.x, cursor.y)
   if not fget(mget(get_world_cell(cursor.x, cursor.y)), 0) then
     spr(271, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1) 
     return
   end
-  if cursor.item == 'belt' and STATE == 'main' then
+  if cursor.item == 'transport-belt' and STATE == 'main' then
     if cursor.drag then
       if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-        spr(288, cursor.tile_x, cursor.drag_loc, 00, 1, 0, 0, 1, 1)
+        spr(288, cursor.tile_x, cursor.drag_loc, 0, 1, 0, 0, 1, 1)
       else
-        spr(288, cursor.drag_loc, cursor.tile_y, 00, 1, 0, 0, 1, 1)
+        spr(288, cursor.drag_loc, cursor.tile_y, 0, 1, 0, 0, 1, 1)
       end
       --arrow to indicate drag direction
-      --spr(270, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
-    elseif not BELTS[key] or (BELTS[key] and BELTS[key].rot ~= cursor.rotation) then
+      spr(287, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
+    elseif not ENTS[key] or (ENTS[key] and ENTS[key].type == 'transport-belt' and ENTS[key].rot ~= cursor.rotation) then
       spr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
       spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
     else
       spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
     end
   elseif cursor.item == 'inserter' then
-    if not INSERTERS[key] or (INSERTERS[key] and INSERTERS[key].rot ~= cursor.rotation) then
-      local temp_inserter = new_inserter({x = cursor.tile_x, y = cursor.tile_y}, cursor.rotation)
+    if not ENTS[key] or (ENTS[key] and ENTS[key].type == 'inserter' and ENTS[key].rot ~= cursor.rotation) then
+      local world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
+      local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rotation)
       temp_inserter:draw()
     end
-  elseif cursor.item == 'pole' then
+  elseif cursor.item == 'power-pole' then
     local temp_pole = new_pole({x = cursor.tile_x, y = cursor.tile_y})
     temp_pole:draw(true)
     --check around cursor to attach temp cables to other poles
@@ -411,18 +373,22 @@ end
 
 function rotate_cursor()
   if not cursor.drag then
-    local key = get_key(cursor.tile_x, cursor.tile_y)
-    local x, y = cursor.tile_x, cursor.tile_y
-    if BELTS[key] and cursor.item == 'pointer' then
-      BELTS[key]:rotate(BELTS[key].rot + 1)
-      local tiles = {[1]={x=x,y=y-8},[2]={x=x+8,y=y},[3]={x=x,y=y+8},[4]={x=x-8,y=y}}
+    local key = get_key(cursor.x, cursor.y)
+    local cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
+    if ENTS[key] and ENTS[key].type == 'transport-belt' and cursor.item == 'pointer' then
+      ENTS[key]:rotate(ENTS[key].rot + 1)
+      local tiles = {
+        [1] = {x = cell_x, y = cell_y - 1},
+        [2] = {x = cell_x + 1, y = cell_y},
+        [3] = {x = cell_x, y = cell_y + 1},
+        [4] = {x = cell_x - 1, y = cell_y}}
       for i = 1, 4 do
-        local k = tostring(tiles[i].x) .. '-' .. tostring(tiles[i].y)
-        if BELTS[k] then BELTS[k]:set_curved() end
+        local k = get_world_key(tiles[i].x, tiles[i].y)
+        if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
       end
     end
-    if INSERTERS[key] and cursor.item == 'pointer' then
-      INSERTERS[key]:rotate(INSERTERS[key].rot + 1)
+    if ENTS[key] and ENTS[key].type == 'inserter' and cursor.item == 'pointer' then
+      ENTS[key]:rotate(ENTS[key].rot + 1)
     end
     cursor.rotation = cursor.rotation + 1
     if cursor.rotation > 3 then cursor.rotation = 0 end
@@ -430,12 +396,11 @@ function rotate_cursor()
 end
 
 function place_tile(x, y, rotation)
-  local key = tostring(x) .. '-' .. tostring(y)
-  if cursor.item == 'belt' and not INSERTERS[key] and not POLES[key] then
-    add_belt(x, y, rotation)
-  elseif cursor.item == 'inserter' and not BELTS[key] and not POLES[key] then
-    add_inserter(x, y, rotation)
-  elseif cursor.item == 'pole' and not INSERTERS[key] and not BELTS[key] then
+  if cursor.item == 'transport-belt' then
+    add_belt(x, y, cursor.rotation)
+  elseif cursor.item == 'inserter' then
+    add_inserter(x, y, cursor.rotation)
+  elseif cursor.item == 'power-pole' then
     add_pole(x, y)
   end
 end
@@ -448,10 +413,12 @@ end
 
 function pipette()
   if cursor.item == 'pointer' then
-    local key = get_key(cursor.tile_x, cursor.tile_y)
-    if BELTS[key] then cursor.item = 'belt' cursor.rotation = BELTS[key].rot return
-    elseif INSERTERS[key] then cursor.item = 'inserter' cursor.rotation = INSERTERS[key].rot return
-    elseif POLES[key] then cursor.item = 'pole' end
+    local key = get_key(cursor.x, cursor.y)
+    if ENTS[key] then
+      cursor.item = ENTS[key].type
+      cursor.rotation = ENTS[key].rot
+      return
+    end
   else
     cursor.item = 'pointer'
   end
@@ -459,10 +426,8 @@ end
 
 function handle_input()
   local x, y, left, middle, right, scroll_x, scroll_y = mouse()
-  local info = {
-    [1] = 'SX: ' .. scroll_x,
-    [2] = 'SY: ' .. scroll_y
-  }
+  move_cursor('mouse', x, y)
+
   if not left and cursor.last_left and cursor.drag then
     cursor.drag = false
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
@@ -473,31 +438,32 @@ function handle_input()
       cursor.x = cursor.drag_loc
     end
   end
-  move_cursor('mouse', x, y)
-  local tile_x, tile_y = get_cell(x, y)
-  if cursor.item == 'belt' and not cursor.drag and left and cursor.last_left then
+
+  local tile_x, tile_y = get_world_cell(x, y)
+  local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
+  if cursor.item == 'transport-belt' and not cursor.drag and left and cursor.last_left then
     --drag locking/placing belts
     cursor.drag = true
+    local screen_x, screen_y = get_screen_cell(x, y)
     if cursor.rotation == 0 or cursor.rotation == 2 then
-      cursor.drag_loc = cursor.tile_y
+      cursor.drag_loc = screen_tile_y
     else
-      cursor.drag_loc = cursor.tile_x
+      cursor.drag_loc = screen_tile_x
     end
     cursor.drag_dir = cursor.rotation
-  end    
-  if cursor.item == 'belt' and cursor.drag then
-    if cursor.drag_dir == 0 or cursor.drag_dir == 2 and tile_x ~= cursor.last_tile_x then
-      place_tile(cursor.tile_x, cursor.drag_loc, cursor.drag_dir)
-    elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and tile_y ~= cursor.last_tile_y then
-      place_tile(cursor.drag_loc, cursor.tile_y, cursor.drag_dir)
+  end
+  if cursor.item == 'transport-belt' and cursor.drag then
+    if cursor.drag_dir == 0 or cursor.drag_dir == 2 and screen_tile_x ~= cursor.last_tile_x then
+      place_tile(screen_tile_x, cursor.drag_loc, cursor.drag_dir)
+    elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and screen_tile_y ~= cursor.last_tile_y then
+      place_tile(cursor.drag_loc, screen_tile_y, cursor.drag_dir)
     end
   end
 
-  if left and not cursor.last_left then place_tile(tile_x, tile_y, cursor.rotation) end
-  if right then remove_tile(tile_x, tile_y) end
-  local cell_x, cell_y = get_cell(x, y)
-  local k = get_key(cell_x, cell_y)
-  if POLES[k] then POLES[k].is_hovered = true end
+  if left and not cursor.last_left then place_tile(x, y, cursor.rotation) end
+  if right then remove_tile(x, y) end
+  local k = get_key(x, y)
+  if ENTS[k] then ENTS[k].is_hovered = true end
 
   if keyp(18) and not keyp(63) then rotate_cursor()end --r
   if keyp(17) then pipette()            end --q
@@ -506,7 +472,7 @@ function handle_input()
   if btnp(7)  then cycle_placeable()    end --s
   if keyp(9)  then toggle_inventory()   end --i
 
-  cursor.last_tile_x, cursor.last_tile_y = tile_x, tile_y
+  cursor.last_tile_x, cursor.last_tile_y = screen_tile_x, screen_tile_y
   cursor.last_rotation = cursor.rotation
   cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, left, middle, right
   cursor.x, cursor.y = x, y
@@ -550,99 +516,84 @@ function draw_image()
 end
 
 function TIC()
+  TICK = TICK + 1
+  --remove mouse cursor
+  poke(0x3FFB, 0x000000, 8)
   cls(0)
   update_camera()
   map(15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8,(cam.y % 8) - 8)
   update_player()
-  -- trace('player y:' .. player.y)
-  -- trace('cam y:' .. cam.y)
-  spr(player.spr, cam.x + player.x, cam.y + player.y, 0)
+  
+  -- local cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
+  -- local tile_id = mget(cell_x, cell_y)
+  -- local info = {
+  --   [1] = 'player: ' ..player.x .. ',' .. player.y,
+  --   [2] = 'camera: ' .. cam.x .. ',' .. cam.y,
+  --   [3] = 'ccx/ccy: ' .. (cam.x%8)-8 .. ',' .. (cam.y%8)-8,
+  --   [4] = 'tile: ' ..cell_x .. ',' .. cell_y,
+  --   [5] = 'tileID: ' .. tile_id
+  -- }
+  -- draw_debug2(info, 8)
+  handle_input()
+  if TICK % BELT_TICKRATE == 0 then
+    BELT_TICK = BELT_TICK + 1
+    if BELT_TICK > BELT_MAXTICK then BELT_TICK = 0 end
+  end
+  ----------------update--all--ENTS----------------
+
+  draw_ground_items()
+
+  for k, v in ipairs(ENTS) do
+    v:update()
+  end
+
+  local ents = get_visible_ents()
+  for k, ent in ipairs(ents) do
+    ent:draw()
+  end
+
+  local key = get_key(cursor.x, cursor.y)
   local cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
   local tile_id = mget(cell_x, cell_y)
   local info = {
     [1] = 'player: ' ..player.x .. ',' .. player.y,
     [2] = 'camera: ' .. cam.x .. ',' .. cam.y,
     [3] = 'ccx/ccy: ' .. (cam.x%8)-8 .. ',' .. (cam.y%8)-8,
-    [4] = 'tile: ' ..cell_x .. ',' .. cell_y,
-    [5] = 'tileID: ' .. tile_id
+    [4] = 'tile: ' .. cell_x .. ',' .. cell_y,
+    [5] = 'tileID: ' .. tile_id,
+    [6] = '#ENTS: ' .. #ENTS,
+    [7] = 'VIS ENTS: ' .. #ents,
   }
-  draw_debug2(info, 8)
-  --map(cam.ccx - 15, cam.ccy - 8, 32, 17, (cam.x % 8) - 8, (cam.y % 8) - 8)
-  
-  TICK = TICK + 1
-  --remove mouse cursor
-  poke(0x3FFB, 0x000000, 8)
-  ----------------UPDATE BELTS-----------------
-  if TICK % BELT_TICKRATE == 0 then
-    BELT_TICK = BELT_TICK + 1
-    if BELT_TICK > BELT_MAXTICK then
-      BELT_TICK = 0
-    end
-    update_belts()
-  end
-  for i = 1, #BELTS do
-    BELTS[i].updated = false
-    BELTS[i].drawn = false
-    BELTS[i]:draw()
-  end
-  for i = 1, #BELTS do
-    if not BELTS[i].drawn then
-      BELTS[i]:draw_items()
+
+  if ENTS[key] and ENTS[key].type == 'transport-belt' then
+    local item_info = ENTS[key]:get_info()
+    for i = 1, #item_info do
+      info[7 + i] = item_info[i]
     end
   end
-  ----------------UPDATE-INSERTERS-------------
-  if TICK % INSERTER_TICKRATE == 0 then
-    update_inserters()
+
+  draw_debug2(info)
+
+  for k, ent in ipairs(ents) do
+    if ent.type == 'transport-belt' and not ent.drawn then
+      ent:draw_items()
+    end
   end
-  for k, v in ipairs(INSERTERS) do
-    v:draw()
+
+  spr(player.spr, cam.x + player.x, cam.y + player.y, 0)
+
+  draw_cursor()
+
+  for k, v in ipairs(ENTS) do
+    v.updated = false
+    v.drawn = false
   end
-  ----------------UPDATE-POLES-----------------
-  for k, v in ipairs(POLES) do
-    v:draw()
-    v.is_hovered = false
-  end
-  if POLES[1] and POLES[2] then
-    local offset  = POWER_POLE_ANCHOR_POINTS['power'][1]
-    local offset2 = POWER_POLE_ANCHOR_POINTS['red'][1]
-    local offset3 = POWER_POLE_ANCHOR_POINTS['green'][1]
-    local p1 = {x = POLES[1].pos.x + offset.x,  y = POLES[1].pos.y + offset.y  - 16}
-    local p2 = {x = POLES[2].pos.x + offset.x,  y = POLES[2].pos.y + offset.y  - 16}
-    local r1 = {x = POLES[1].pos.x + offset2.x, y = POLES[1].pos.y + offset2.y - 16}
-    local r2 = {x = POLES[2].pos.x + offset2.x, y = POLES[2].pos.y + offset2.y - 16}
-    local g1 = {x = POLES[1].pos.x + offset3.x, y = POLES[1].pos.y + offset3.y - 16}
-    local g2 = {x = POLES[2].pos.x + offset3.x, y = POLES[2].pos.y + offset3.y - 16}
-    draw_cable(p1, p2, 4)
-  end
-  -----------UPDATE-MINING-DRILLS--------------
-  -- if TICK % DRILL_TICK_RATE == 0 then
-  --   DRILL_ANIM_TICK = DRILL_ANIM_TICK + 1
-  --   if DRILL_ANIM_TICK > 3 then DRILL_ANIM_TICK = 0 end
-  --   if DRILL_BIT_DIR == 0 then
-  --     DRILL_BIT_TICK = DRILL_BIT_TICK + 1
-  --     if DRILL_BIT_TICK > 5 then
-  --       DRILL_BIT_TICK = 5
-  --       DRILL_BIT_DIR = 1
-  --     end
-  --   elseif DRILL_BIT_DIR == 1 then
-  --     DRILL_BIT_TICK = DRILL_BIT_TICK - 1
-  --     if DRILL_BIT_TICK < 0 then
-  --       DRILL_BIT_TICK = 0
-  --       DRILL_BIT_DIR = 0
-  --     end
-  --   end
-  --   ndrill:update()
-  -- end
-  -- ndrill:draw()
-  ------------------INPUT----------------------
-  handle_input()
-  draw_ground_items()
+
   if STATE == 'inventory' then
     draw_inventory()
   else
     inv:draw_hotbar()
   end
-  draw_cursor()
 end
 
 -- <TILES>
@@ -684,12 +635,12 @@ end
 -- 035:5755565555755655557555575555657565565575565656555655556555555565
 -- 036:ddddeddddeedddeddddddddddddedddeddedddddeddddedddeddddeddddddddd
 -- 037:2433324333333333433232332323333433334233324333323333333343423343
--- 038:44444cd44d84488448444444444d4444484444d44d4448c4dc844484e8444d44
+-- 038:55555cd55d85588558555555555d5555585555d55d5558c5dc855585e8555d55
 -- 039:f000f00f000000f0000f0000f000000f00000f00f0f0000f0000f0f00f0f000f
 -- 040:6676666665566756657676566666666766675666666666667566567566676665
 -- 041:1111011111011110111111110111011111011111111111011110111101111011
--- 042:4444444443443444444444444444443434444444444344444444444443444434
--- 043:4444444444444444444444444444444444444444444444444444444444444444
+-- 042:5555565556555555555555555555655555555556655555555555555555565555
+-- 043:5555565556555555555555555555655555555556655555555555555555565555
 -- 044:4444444444444444444444444444444444444444444444444444444444444444
 -- </TILES>
 
@@ -706,9 +657,9 @@ end
 -- 005:00ffffff0feeeeeefecddcd4fefccf40fe4ff440fed44dd4fecddcdefefccfef
 -- 006:00ffffff0feeeeeefeeddd4ffecdd4fcfefcc4fcfe4ff44ffed44ddefeddddef
 -- 007:00ffffff0feeeeeefeedd4fcfedd4fcdfecd4fcdfefcf4fcfe4ff4defed44def
--- 008:00000033000003e30000333f333333f033333300000033300000f3e300000f33
--- 009:0000000044000000004000000004444300f44434ff4000004400000000000000
--- 010:0004000000004000f00040004fff400004444400000044400000043400000043
+-- 008:00000033000003e30000333f333333f0333333f0ffff333f0000f3e300000f33
+-- 009:ff00000044f00000004fffff0004444300f44434ff4000004400000000000000
+-- 010:0004f00000004f00f0004f004fff4f00044444f00000444f0000043400000043
 -- 011:0000000099000000009000000009999300f99939ff9000009900000000000000
 -- 012:0009000000009000f00090009fff900009999900000099900000093900000093
 -- 013:0000008a000008980000888fc88888f0c8888800000088800000f89800000f8a
@@ -727,6 +678,7 @@ end
 -- 028:0000000004300980032408fd003300e800000000003300ed03240efe04300dd0
 -- 029:000000000e0d00000eff00000de0000000000000000000000000000000000000
 -- 030:d00ccc00e0c9e9c0e0ceeec0f3ecccd3ff3dde30ffeccec00eceecc00033cc33
+-- 031:0000000000f00f000fc00cf0fcffffcfccccccccfcffffcf0fc00cf000f00f00
 -- 032:3030303000000003300000000000000330000000000000033000000003030303
 -- 033:000000000000000000000000e0000000e0000000ee000000dd000000cdeeeeee
 -- 034:00000ede000000dd000000de0000000e0000000e000000ee000000ddeeeeeedc
@@ -755,7 +707,7 @@ end
 -- 074:000000000000022000000002000000000000000f00000ff20000022000000000
 -- 075:0000000000000000000000002222222222222222000000000000000000000000
 -- 076:00000014000001710000111f222231f022232100000011100000f17100000f14
--- 080:6500000050000000000000000000000000000000000000000000000000000000
+-- 080:2400000030000000000000000000000000000000000000000000000000000000
 -- 081:deffd000fdeff000ffdef000effde000deffd000fdeff0000fde000000f00000
 -- 082:0027272702727272272727277272000027200000727006562720056572700656
 -- 083:7270656027205656727065652720565672720000272727270272727200272727
