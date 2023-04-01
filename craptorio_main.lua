@@ -22,7 +22,7 @@ TICK = 0
 ENTS = {}
 STATE = 'main'
 CURSOR_POINTER_ID = 352
-CURSOR_HIGHLIGHT_ID = 288
+CURSOR_HIGHLIGHT_ID = 272
 cursor = {
   x = 8,
   y = 8,
@@ -247,10 +247,10 @@ function move_player(x, y)
 end
 
 function update_player()
-  if btn(0) then move_player(player.x, player.y - 1) end
-  if btn(1) then move_player(player.x, player.y + 1) end
-  if btn(2) then move_player(player.x - 1, player.y) end
-  if btn(3) then move_player(player.x + 1, player.y) end
+  if key(23) then move_player(player.x, player.y - 1) end --w
+  if key(19)  then move_player(player.x, player.y + 1) end --a
+  if key(1) then move_player(player.x - 1, player.y) end --s
+  if key(4)  then move_player(player.x + 1, player.y) end --d
   player.x = math.min(math.max(-120, player.x), MAP_WIDTH - 8 - 120)
   player.y = math.min(math.max(-64, player.y), MAP_HEIGHT - 8 - 64)
 end
@@ -267,16 +267,17 @@ function get_flags(x, y, flags)
   return fget(mget(cell_x//8, cell_y//8), flags)
 end
 
-function cycle_placeable()
-  if cursor.item == 'transport-belt' then
-    cursor.item = 'inserter'
-  elseif cursor.item == 'inserter' then
-    cursor.item = 'power-pole'
-  elseif cursor.item == 'power-pole' then
-    cursor.item = 'pointer'
-  elseif cursor.item == 'pointer' then
-    cursor.item = 'transport-belt'
-  end
+local cursor_items = {[0] = 'transport-belt', [1] = 'inserter', [2] = 'power-pole', [3] = 'pointer'}
+local cursor_item = 3
+
+function cycle_hotbar(dir)
+  cursor_item = cursor_item + dir
+  inv.active_slot = inv.active_slot + dir
+  if inv.active_slot < 1 then inv.active_slot = 10 end
+  if inv.active_slot > 10 then inv.active_slot = 1 end
+  if cursor_item < 0 then cursor_item = 3 end
+  if cursor_item > 3 then cursor_item = 0 end
+  cursor.item = cursor_items[cursor_item]
 end
 
 function add_item(id)
@@ -349,25 +350,41 @@ function draw_cursor()
       temp_inserter:draw()
     end
   elseif cursor.item == 'power-pole' then
-    local temp_pole = new_pole({x = cursor.tile_x, y = cursor.tile_y})
+    local world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
+    local temp_pole = new_pole({x = world_x, y = world_y})
     temp_pole:draw(true)
     --check around cursor to attach temp cables to other poles
   elseif cursor.item == 'pointer' then
-    if STATE == 'inventory' then
-      spr(CURSOR_POINTER_ID, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
-      pix(cursor.x, cursor.y, 5)
-      --if hovered over item slot
-      local slot, sx, sy, slot_index = inv:get_hovered_slot(cursor.x, cursor.y)
-      if slot then
-        spr(288, sx, sy, 00, 1, 0, 0, 1, 1)
-        local slot_data = {[1] = 'Slot:' .. tostring(slot_index), [2] = 'Item ID:' .. inv.slots[slot_index].item_id, [3] = 'Count:' .. inv.slots[slot_index].count}
-        draw_debug2(slot_data)
-      end
+    -- if inv.vis or inv.hotbar_vis then
+    --   local slot, sx, sy, slot_index = inv:get_hovered_slot(cursor.x, cursor.y)
+    --   if slot and inv.vis == true then
+    --     if inv.vis == true then
+    --       local slot_data = {[1] = 'Slot:' .. tostring(slot_index), [2] = 'Item ID:' .. inv.slots[slot_index].item_id, [3] = 'Count:' .. inv.slots[slot_index].count}
+    --       draw_debug2(slot_data)
+    --     end
+
+    --   spr(CURSOR_HIGHLIGHT_ID, sx, sy, 0, 1, 0, 0, 1, 1)
+    --   else
+    --     spr(CURSOR_HIGHLIGHT_ID, cursor.tile_x, cursor.tile_y, 0, 1, 0, 0, 1, 1)
+    --   end
+    -- end
+    -- spr(CURSOR_POINTER_ID, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
+    -- pix(cursor.x, cursor.y, 5)
+    local slot, sx, sy, slot_index = inv:get_hovered_slot(cursor.x, cursor.y)
+
+    if inv.vis == true and slot then
+      local slot_data = {[1] = 'Slot:' .. tostring(slot_index), [2] = 'Item ID:' .. inv.slots[slot_index].item_id, [3] = 'Count:' .. inv.slots[slot_index].count}
+      draw_debug2(slot_data)
+      spr(CURSOR_HIGHLIGHT_ID, sx, sy, 0, 1, 0, 0, 1, 1)
+    elseif inv.vis == false and inv.hotbar_vis == true and slot and slot_index > 90 and slot_index < 101 then
+      local slot_data = {[1] = 'Slot:' .. tostring(slot_index), [2] = 'Item ID:' .. inv.slots[slot_index].item_id, [3] = 'Count:' .. inv.slots[slot_index].count}
+      draw_debug2(slot_data)
+      spr(CURSOR_HIGHLIGHT_ID, sx, sy, 0, 1, 0, 0, 1, 1)
     else
-      spr(CURSOR_POINTER_ID, cursor.x, cursor.y, 00, 1, 0, 0, 1, 1)
-      spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1)
-      pix(cursor.x, cursor.y, 5)
+      spr(CURSOR_HIGHLIGHT_ID, cursor.tile_x, cursor.tile_y, 0, 1, 0, 0, 1, 1)
     end
+    spr(CURSOR_POINTER_ID, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
+    pix(cursor.x, cursor.y, 5)
   end
 end
 
@@ -375,23 +392,26 @@ function rotate_cursor()
   if not cursor.drag then
     local key = get_key(cursor.x, cursor.y)
     local cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
-    if ENTS[key] and ENTS[key].type == 'transport-belt' and cursor.item == 'pointer' then
-      ENTS[key]:rotate(ENTS[key].rot + 1)
-      local tiles = {
-        [1] = {x = cell_x, y = cell_y - 1},
-        [2] = {x = cell_x + 1, y = cell_y},
-        [3] = {x = cell_x, y = cell_y + 1},
-        [4] = {x = cell_x - 1, y = cell_y}}
-      for i = 1, 4 do
-        local k = get_world_key(tiles[i].x, tiles[i].y)
-        if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
+    if ENTS[key] then
+      if ENTS[key].type == 'transport-belt' and cursor.item == 'pointer' then
+        ENTS[key]:rotate(ENTS[key].rot + 1)
+        local tiles = {
+          [1] = {x = cell_x, y = cell_y - 1},
+          [2] = {x = cell_x + 1, y = cell_y},
+          [3] = {x = cell_x, y = cell_y + 1},
+          [4] = {x = cell_x - 1, y = cell_y}}
+        for i = 1, 4 do
+          local k = get_world_key(tiles[i].x, tiles[i].y)
+          if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
+        end
       end
+      if ENTS[key].type == 'inserter' and cursor.item == 'pointer' then
+        ENTS[key]:rotate(ENTS[key].rot + 1)
+      end
+    else
+      cursor.rotation = cursor.rotation + 1
+      if cursor.rotation > 3 then cursor.rotation = 0 end
     end
-    if ENTS[key] and ENTS[key].type == 'inserter' and cursor.item == 'pointer' then
-      ENTS[key]:rotate(ENTS[key].rot + 1)
-    end
-    cursor.rotation = cursor.rotation + 1
-    if cursor.rotation > 3 then cursor.rotation = 0 end
   end
 end
 
@@ -416,7 +436,9 @@ function pipette()
     local key = get_key(cursor.x, cursor.y)
     if ENTS[key] then
       cursor.item = ENTS[key].type
-      cursor.rotation = ENTS[key].rot
+      if ENTS[key].rot then
+        cursor.rotation = ENTS[key].rot
+      end
       return
     end
   else
@@ -426,6 +448,7 @@ end
 
 function handle_input()
   local x, y, left, middle, right, scroll_x, scroll_y = mouse()
+  if scroll_y ~= 0 then cycle_hotbar(scroll_y) end
   move_cursor('mouse', x, y)
 
   if not left and cursor.last_left and cursor.drag then
@@ -469,8 +492,8 @@ function handle_input()
   if keyp(17) then pipette()            end --q
   if key(6)   then add_item(1)          end --f
   if key(7)   then add_item(2)          end --g
-  if btnp(7)  then cycle_placeable()    end --s
-  if keyp(9)  then toggle_inventory()   end --i
+  if keyp(9) or keyp(49) then toggle_inventory() end --i or tab
+  if keyp(8) then toggle_hotbar() end
 
   cursor.last_tile_x, cursor.last_tile_y = screen_tile_x, screen_tile_y
   cursor.last_rotation = cursor.rotation
@@ -478,17 +501,24 @@ function handle_input()
   cursor.x, cursor.y = x, y
 end
 
-function toggle_inventory()
-  if STATE == 'main' then
-    STATE = 'inventory'
+function toggle_hotbar()
+  if not inv.hotbar_vis then
+    inv.hotbar_vis = true
     cursor.item = 'pointer'
   else
-    STATE = 'main'
+    inv.hotbar_vis = false
+    inv.hovered_slot = -1
   end
 end
 
-function draw_inventory()
-  inv:draw()
+function toggle_inventory()
+  if not inv.vis then
+    inv.vis = true
+    cursor.item = 'pointer'
+  else
+    inv.hovered_slot = -1
+    inv.vis = false
+  end
 end
 
 local img_count = 1
@@ -581,19 +611,16 @@ function TIC()
   end
 
   spr(player.spr, cam.x + player.x, cam.y + player.y, 0)
-
-  draw_cursor()
-
+  
   for k, v in ipairs(ENTS) do
     v.updated = false
     v.drawn = false
   end
-
-  if STATE == 'inventory' then
-    draw_inventory()
-  else
-    inv:draw_hotbar()
-  end
+  
+  inv:draw()
+  inv:draw_hotbar()
+  
+  draw_cursor()
 end
 
 -- <TILES>
@@ -635,18 +662,16 @@ end
 -- 035:5755565555755655557555575555657565565575565656555655556555555565
 -- 036:ddddeddddeedddeddddddddddddedddeddedddddeddddedddeddddeddddddddd
 -- 037:2433324333333333433232332323333433334233324333323333333343423343
--- 038:55555cd55d85588558555555555d5555585555d55d5558c5dc855585e8555d55
+-- 038:5ce5cf558bd5fdb58ee558f555555555edcb5ff5fc8e58cf5ff5ffbc55555ef5
 -- 039:f000f00f000000f0000f0000f000000f00000f00f0f0000f0000f0f00f0f000f
 -- 040:6676666665566756657676566666666766675666666666667566567566676665
 -- 041:1111011111011110111111110111011111011111111111011110111101111011
 -- 042:5555565556555555555555555555655555555556655555555555555555565555
 -- 043:5555565556555555555555555555655555555556655555555555555555565555
 -- 044:4444444444444444444444444444444444444444444444444444444444444444
+-- 045:5ce5cf558bd5fdb58ee558f555555555edcb5ff5fc8e58cf5ff5ffbc55555ef5
+-- 046:55555cd55d85588558555555555d5555585555d55d5558c5dc855585e8555d55
 -- </TILES>
-
--- <TILES1>
--- 000:0000000000000000000000000020000000000000000000000000000000000000
--- </TILES1>
 
 -- <SPRITES>
 -- 000:ffffffffeeeeeeee4fcd4fcdfcd4fcd4fcd4fcd44fcd4fcdeeeeeeeeffffffff
@@ -654,17 +679,18 @@ end
 -- 002:ffffffffeeeeeeeecd4fcd4fd4fcd4fcd4fcd4fccd4fcd4feeeeeeeeffffffff
 -- 003:ffffffffeeeeeeeed4fcd4fc4fcd4fcd4fcd4fcdd4fcd4fceeeeeeeeffffffff
 -- 004:00ffffff0feeeeeefeed4fcdfed4fcd4fed4fcd4fecd4fcdfefccfdefe4ff4ef
--- 005:00ffffff0feeeeeefecddcd4fefccf40fe4ff440fed44dd4fecddcdefefccfef
+-- 005:00ffffff0feeeeeefecddcd4fefccf4ffe4ff44ffed44dd4fecddcdefefccfef
 -- 006:00ffffff0feeeeeefeeddd4ffecdd4fcfefcc4fcfe4ff44ffed44ddefeddddef
 -- 007:00ffffff0feeeeeefeedd4fcfedd4fcdfecd4fcdfefcf4fcfe4ff4defed44def
--- 008:00000033000003e30000333f333333f0333333f0ffff333f0000f3e300000f33
--- 009:ff00000044f00000004fffff0004444300f44434ff4000004400000000000000
+-- 008:00000f330000f3d3ffff333f333333f0333333f0ffff333f0000f3d300000f33
+-- 009:ff00000044f00000004fffff00f4444300f44434ff4fffff4400000000000000
 -- 010:0004f00000004f00f0004f004fff4f00044444f00000444f0000043400000043
 -- 011:0000000099000000009000000009999300f99939ff9000009900000000000000
 -- 012:0009000000009000f00090009fff900009999900000099900000093900000093
 -- 013:0000008a000008980000888fc88888f0c8888800000088800000f89800000f8a
 -- 014:00000000000f000000fc00000fcffff00cccccc000cf0000000c000000000000
 -- 015:00dddd00020000d0d020000dd002000dd000200dd000020d0d00002000dddd00
+-- 016:3000000300000000000000000000000000000000000000000000000030000003
 -- 017:cdeeeeeedd000000ee000000e00000000000000000000000000000000000efef
 -- 018:eeeeeedc000000dd000000ee0000000e000000de000000dd00000edeefefefde
 -- 019:00d000000fed0000effed00000d0000000d00000000000000000000000000000
@@ -678,7 +704,7 @@ end
 -- 028:0000000004300980032408fd003300e800000000003300ed03240efe04300dd0
 -- 029:000000000e0d00000eff00000de0000000000000000000000000000000000000
 -- 030:d00ccc00e0c9e9c0e0ceeec0f3ecccd3ff3dde30ffeccec00eceecc00033cc33
--- 031:0000000000f00f000fc00cf0fcffffcfccccccccfcffffcf0fc00cf000f00f00
+-- 031:0000000000300000034000003433333344444444040000000040000000000000
 -- 032:3030303000000003300000000000000330000000000000033000000003030303
 -- 033:000000000000000000000000e0000000e0000000ee000000dd000000cdeeeeee
 -- 034:00000ede000000dd000000de0000000e0000000e000000ee000000ddeeeeeedc
@@ -748,84 +774,35 @@ end
 -- </SPRITES>
 
 -- <SPRITES1>
--- 000:cccccccccccccccccccccccccccc2222ccc22322c0123333c0233333c0233333
--- 001:cccccccccccccccccccccccc2222222222222222222222223322222232223222
--- 002:cccccccccccccccccccccccc200ccccc3200cccc3200cccc3200ccc02200ccc0
--- 003:cccccccccccccccccccccccccc221121c2222222122222220222222221222222
--- 004:cccccccccccccccccccccccc1122110022222222222222222222222222222222
--- 005:cccccccccccccccccccccccc2ccccccc22ccccc1210cccc0220cccc1220cccc2
--- 006:cccccccccccccccccccccccc2222222222222222222222222222222222233333
--- 007:cccccccccccccccccccccccc2222222222222222222222222222222233332222
--- 008:cccccccccccccccccccccccc222ccccc23221ccc333221cc3333220c2223320c
--- 009:cccccccccccccccccccccccccccccc22cccc2222ccc02333ccc02333ccc12333
--- 010:cccccccccccccccccccccccc2222222222222222322222223332222233333222
--- 011:cccccccccccccccccccccccc2222222222222333222222332222222222322222
--- 012:ccccccccccccccccccccccccccccc120220cc222230cc2332300c2332310c233
--- 013:cccccccccccccccccccccccc2221122222222222332222223322222233333333
--- 014:cccccccccccccccccccccccc2222222222222222222222222222222233333322
--- 015:cccccccccccccccccccccccc110ccccc2200cc002200cc002200cc002200cc00
--- 016:c0233333c0233333c0233333c0233333c0233333c0233333c0233333c0233333
--- 017:31000000320000003200000032cccccc32cccccc32cccccc32cccccc32cccccc
--- 018:0000ccc00000ccc00000ccc0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0
--- 019:1222222212222222123322231233323312333333133333331333333323333333
--- 020:21112111100000000000000000000000000000000ccccccc0ccccccc0ccccccc
--- 021:100cccc2000cccc0000cccc0000cccc000ccccccccccccc2ccccccc2ccccccc1
--- 022:22222222000000000000000000000000cccccccc222222223333333333333333
--- 023:22222222000002220000002200000023cccccc23222222233333333333333333
--- 024:2222320c2222320c2222320c3223320c3333320c3333320c3333320c3333320c
--- 025:ccc22333ccc22333ccc22333ccc22333ccc22333ccc23333ccc23433ccc23433
--- 026:33333222333332003333310033333200333332cc333333223333333333333333
--- 027:22222222000022220000022200000233ccccc233222222333333333333333333
--- 028:2320c0222320c0002320c0003320c0003320c0003320cccc3320cccc3200cccc
--- 029:1222222200000000000000000000000000000000f2232233f3333333f2333333
--- 030:222222220000000000000000000000000001000033331ccc33331ccc33330ccc
--- 031:2200cc000000cc000000cc000000cc00000ccccccccccccccccccccccccccccc
--- 032:c0333333c0233333c0233333c0233333c0012333c0000222c0000000c0000000
--- 033:32cccccc33333333333333333333333333333333222222220000000000000000
--- 034:ccccccc0322cccc03221ccc03220ccc03210ccc02100ccc00000ccc00000ccc0
--- 035:2333333312333333123333331233333302223323001222230002221200000000
--- 036:0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc
--- 037:ccccccc1ccccccc2ccccccc2ccccccc1ccccccc0ccccccc0ccccccc0ccccccc0
--- 038:3333333333333332333333302333333022333331123333300222222000000000
--- 039:222222330000003300000033000000330000003300000023ccccc022ccccc000
--- 040:3333320c3333320c3333320c3333320c3333320c3322200c2221000c0000000c
--- 041:ccc23433ccc22433ccc12333ccc12333ccc12333ccc01222ccc00000ccc00000
--- 042:333333333333301133333000333330003333200022220000000000cc000000cc
--- 043:333333331111211100000000000000000000000000000000cccccccccccccccc
--- 044:3000cccc0000cccc0000cccc000ccccc00cccccccccccccccccccccccccccccc
--- 045:0233333302333333013333330133333301333333012222330000112200000000
--- 046:33330ccc33332ccc33332ccc33331ccc33331ccc33330ccc22220ccc00000ccc
--- 047:ccccccc1cccccc12cccccc12cccccc11cccccc00cccccc10cccccc21cccccc00
--- 048:c0000000c0000000c0000000cc000000cccccccccccccccccccccccc00000000
--- 049:00000000000000000000000000000000cccccccccccccccccccccccc00000000
--- 050:0000ccc00000ccc00000ccc0000ccccccccccccccccccccccccccccc00000000
--- 051:00000000000000000000000000000000cc000000ccc00000cccccccc00000000
--- 052:0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0ccccccccccccccc00000000
--- 053:ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0cccccccccccccccc00000000
--- 054:00000000000000000000000000000000000000000000000ccccccccc00000000
--- 055:ccccc000ccccc000ccccc000ccccc000cccccc00ccccccc0cccccccc00000000
--- 056:0000000c0000000c000000cc000000cc000000cc00000ccccccccccc00000000
--- 057:ccc00000ccc00000ccc00000ccc00000cccc0000ccccc000cccccccc00000000
--- 058:000000cc000000cc000000cc000000cc00000ccc0000cccccccccccc00000000
--- 059:cccccccccccccccccccccccccccccccccccccccccccccccccccccccc00000000
--- 060:cccccccccccccccccccccccccccccccccccccccccccccccccccccccc00000000
--- 061:0000000000000000000000000000000000000000c0000000cccccccc00000000
--- 062:00000ccc00000ccc00000ccc00000ccc0000cccc000ccccccccccccc00000000
--- 063:cccccc00cccccc00cccccc00cccccc00cccccccccccccccccccccccc00000000
--- 064:0000000000000000000000000000000000000000c0000000cccccccc00000000
--- 065:000000000000000000000000000000000000000000000000cccccccc00000000
--- 066:000000000000000000000000000000000000000c000000cccccccccc00000000
--- 067:cc000000cc000000cc000000cc000000cccc0000ccccc000cccccccc00000000
--- 068:0000cccc0000cccc0000cccc0000cccc0000cccc0000cccccccccccc00000000
--- 069:cccccccccccccccccccccccccccccccccccccccccccccccccccccccc00000000
--- 070:c1000000c1000000c1000000c1000000cc100000ccc00000cccccccc00000000
--- 071:000000cc000000cc000000cc000000cc00000ccc000ccccccccccccc00000000
--- 072:cccccc00cccccccccccccccccccccccccccccccccccccccccccccccc00000000
--- 073:0000cc00cccccccccccccccccccccccccccccccccccccccccccccccc00000000
--- 074:00122200000222000000000000000000c0000000cc00000ccccccccc00000000
--- 075:000000000000000000ccc0000ccccccccccccccccccccccccccccccc00000000
--- 076:0000cccc000ccccc00cccccccccccccccccccccccccccccccccccccc00000000
--- 077:ccc00000ccc00000ccc00000ccc00000ccc00000ccc00000ccc0000000000000
+-- 000:1118f11111bdde111ebdcce11bbddcce1ccdf1fffee88f1f1118f11111ff811c
+-- 001:1111111111111111111ddde111dbdce11ee8881f1effff1111111111deef1111
+-- 002:1ce11f118bdefdb18e1ff8f111f18111ed1beff1fc8ef8cf1ffcffbc111ffefe
+-- 003:111111111edc1111f4434ef1c433322e2432233fe2f2332ff11f3322e11f2f31
+-- 004:112222201333331cf3333423f33334f2d2222ff1e2ff3f1111e111f1111fc111
+-- 005:1f11133cd33f23422232cf21f13211f111ff4431f44124311221ff121ff11111
+-- 006:111111111100f11110fe00111000001f1f0001ec11111100111111ff1110f111
+-- 007:11111111f0f00111ef0000e10d0000f1f00000f1000000f100000fe1fffffe11
+-- 008:1f1fff01f00ef00010001f00ff0f1ef00f1f1111e0011f000001f00ef10000f1
+-- 009:f0f1110f000110e0f0e1000f1ff1f011111f110ff00010e00e0f100ff0f1f0f1
+-- 010:111111fc11111fcc1111fccd111fccdd11fcdddd1fcdddddfcddddddccdddddd
+-- 011:cf111111ccf11111dccf1111ddccf111dddccf11ddddccf1dddddccfdddddccc
+-- 012:111ff11111fecf111fcddcf1fcddddeffdddddcf1feddcf111fecf11111ff111
+-- 013:111111ec111111ce111111c6111111d5111111c6111111d611111d761111d566
+-- 014:ce111111ec1111116d1111117c1111116d1111115d11111167d11111667c1111
+-- 015:111dd111111ee1111116711111d66d111d5666d11c6556c11d7567c111d77d11
+-- 016:1bd811cbfedde1edfedee1c8f8c1ffe81ff1111f188f11111111111111111111
+-- 017:beeece11bdcceee1beca81f1ef18f1f1ff1ee1f11118f11111188f1111111111
+-- 019:11ffffff1111e1f11e334f11e23334f111f322ff1fff1f111ff111111f1eef11
+-- 020:14443211343332e1244332f1ff4433211f2ff22fe1ff113111f1fff111111111
+-- 021:c2111121342f331133f144f112c142f11f22f1111333f42ff321142f1d2f1f11
+-- 022:1f00f0111fdff0111fef0f011ff0ff0110fff001100f00011100001111111111
+-- 023:111111111111111111fe00f11f00d0011000000f10e0000f11000ff111111111
+-- 024:f0f1f0f10e0f100ff00010e0111f110f1ff1f011f0e1000f000110e0f0f1110f
+-- 025:f0111f0f0e011000f0001e0f110f1ff1f011f1110e01000ff001f0e01f0f1f0f
+-- 026:eccdddddfeccdddd1fecccdd11fecccc111feecc1111feec11111fee111111fe
+-- 027:ddddddccdddddddfddddddf1ddddcf11ccccf111cccf1111eef11111ef111111
+-- 029:111d5656111d656611d6566511d6666511d66666111c76661111d76611111cdd
+-- 030:6765d1116666fc1156666d1156666c1166666d116667d11167dd1111dd111111
 -- </SPRITES1>
 
 -- <MAP>
@@ -993,7 +970,7 @@ end
 -- </TRACKS>
 
 -- <FLAGS>
--- 000:10101010101010101010000000000000101010101010100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 000:10101010101010101010000000000000101010101010100010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- </FLAGS>
 
 -- <PALETTE>
@@ -1003,4 +980,12 @@ end
 -- <PALETTE1>
 -- 000:1a1c2c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f673eff7919191aeaaae656c79333434
 -- </PALETTE1>
+
+-- <PALETTE2>
+-- 000:1a1c2c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f673eff7919191aeaaae656c79333434
+-- </PALETTE2>
+
+-- <PALETTE3>
+-- 000:1a1c2c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f673eff7919191aeaaae656c79333434
+-- </PALETTE3>
 
