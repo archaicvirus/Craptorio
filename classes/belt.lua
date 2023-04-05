@@ -6,6 +6,7 @@ BELT_TICK         = 0
 
 local belt = {
   pos = {x = 0, y = 0},
+  world_pos = {x = 0, y = 0},
   rot = 0,
   sprite_rot = 0,
   flip = 0,
@@ -329,19 +330,43 @@ function belt.draw(self)
   local rot = self.rot
   local flip = 0
   if self.id == BELT_ID_CURVED then rot = self.sprite_rot flip = self.flip end
+  self.world_pos = {x = cam.x - 120 + self.pos.x*8, y = cam.y - 64 + self.pos.y*8}
   spr(self.id + BELT_TICK, cam.x - 120 + self.pos.x*8, cam.y - 64 + self.pos.y*8, 0, 1, flip, rot, 1, 1)
 end
 
 function belt.draw_items(self)
-  self.drawn = true
-  if ENTS[self.output_key] and (ENTS[self.output_key].type == 'transport-belt' and not ENTS[self.output_key].drawn) then ENTS[self.output_key]:draw_items() end
-  local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
-  for i = 1, 2 do
-    for j = 1, 8 do
-      if self.lanes[i][j] > 0 then
-        local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
-        local x, y = item_locations[j][i].x + loc_x, item_locations[j][i].y + loc_y
-        draw_pixel_sprite(self.lanes[i][j], x, y)
+  if not self.drawn then
+    self.drawn = true
+    if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport-belt' and vis_ents[self.output_key] and not vis_ents[self.output_key].drawn then ENTS[self.output_key]:draw_items() end
+    local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
+    for i = 1, 2 do
+      for j = 1, 8 do
+        if self.lanes[i][j] > 0 then
+          --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
+          local x, y = item_locations[j][i].x + self.world_pos.x, item_locations[j][i].y + self.world_pos.y
+          local input_key = self.pos.x + (self.exit.x * -1) .. '-' .. self.pos.y + (self.exit.y * -1)
+          local next1, next2 = 0, 0
+          if j == 7 then
+            next1, next2 = self.lanes[i][8], vis_ents[input_key] and vis_ents[input_key].lanes[i][1] or 0
+          elseif j == 8 then  
+            next1, next2 = vis_ents[input_key] and vis_ents[input_key].lanes[i][1] or 0, vis_ents[input_key] and vis_ents[input_key].lanes[i][2] or 0
+          elseif j < 7 then
+            next1, next2 = self.lanes[i][j + 1], self.lanes[i][j + 2]
+          end
+          if self.id == -1 then
+            local pixels = ITEMS[self.lanes[i][j]].pixels
+            draw_pixel_column(pixels, x, y, 1)
+            if next1 == 0 then
+              draw_pixel_column(pixels, x, y, 2)
+            end
+            if next2 == 0 then
+              draw_pixel_column(pixels, x, y, 3)
+            end
+          else
+            draw_pixel_sprite(ITEMS[self.lanes[i][j]].pixels, x, y)
+          end
+          --draw_pixel_sprite(self.lanes[i][j], x, y, next1, next2)
+        end
       end
     end
   end

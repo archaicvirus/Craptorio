@@ -67,7 +67,7 @@ function inserter.draw(self)
   spr(config.id, x, y, 0, 1, 0, config.rot, 1, 1)
   
   if self.held_item_id > 0 then
-    draw_pixel_sprite(self.held_item_id, x + config.item_offset.x, y + config.item_offset.y)
+    draw_pixel_sprite(ITEMS[self.held_item_id].pixels, x + config.item_offset.x, y + config.item_offset.y)
   end
   -- debug to show item path when moving
   -- for k, v in pairs(self.itemLocations) do
