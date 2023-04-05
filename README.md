@@ -1,7 +1,7 @@
 ![craptorio_intro_screen](https://user-images.githubusercontent.com/25288625/227828751-3b368b87-f0eb-49df-9d21-7928a78b0876.gif)
 
 
-A de-make of Factorio for the Tic-80 fantasy console. 
+A de-make of Factorio for the [TIC-80](https://tic80.com/) fantasy console. 
 
 **Note that at this time this project is a WIP.
 
@@ -11,11 +11,18 @@ inserters, and machines to craft science-packs which are used to research new te
 
 - This is a passion project for me, and I am putting as much time into this as I can for now. That is between IRL work and daily obligations.
 
-- With that being said, not much is final ATM. Many game-mechanics will likey be left out due to the constraints
-imposed by the Tic-80 dev enviornment. This is the point obviously, (or perhaps not so obvious to some) however 
+- Certain game-mechanics will likey be left out, due to the constraints
+imposed by TIC80. This is the point obviously, (or perhaps not so obvious to some) however 
 I do intend to add as many features and mechanics from the original as technically feasible.
 
-**Update: Currently working on worldgen, and oregen systems
+# Updates - Will post development and progress updates here
+- Currently working on crafting mechanics, inventory, and item systems.
+- Moved source code to private repo. I have put a lot of time and energy into this project, so I have to decided to take this step to protect my efforts while the project remains in development. The code will still be fully available, but only after initial release. I will then open the internal branch.
+
+![crafting_menu_test](https://user-images.githubusercontent.com/25288625/229274215-6586e950-eccf-4b99-a30b-f95d4678e94b.gif)
+![ui_test_05](https://user-images.githubusercontent.com/25288625/229348513-abfbc5e8-b86c-4a69-987f-53a673d63163.gif)
+
+
 # Transport Belt
 - The idea here is to re-create belts VERY similar to factorio, however there are some differences.
 - The belts in Craptorio are displayed as 8x8 pixel sprites, with 4 animation frames. 
@@ -56,7 +63,7 @@ Inserters are rendered using 2 8x8 sprites, 1 for base, and 1 for straight arm o
 # World Generation
 - Skeleton system in place
 - Uses open simplex noise to generate terrain and ore fields
-- Generates a large island for the game world
+- Generates a large island for the starting game world, updating to support 'infinite' terrain
 - Generates separate fields for iron, copper, stone, etcetera.
 - Currently focused on ore distrubution and implementing remaining ore types (stone, coal, uranium, oil)
 - (TODO) Need to implement similar method above to generate forests
@@ -64,4 +71,3 @@ Inserters are rendered using 2 8x8 sprites, 1 for base, and 1 for straight arm o
 
 ![simplex_ore_test](https://user-images.githubusercontent.com/25288625/227750297-cfbe41e4-0ff5-4e54-9685-22fbac108bc7.gif)
 ![worldgen_collision_test](https://user-images.githubusercontent.com/25288625/228401155-64cea2ba-a3d4-49bd-a124-20e3677ce22e.gif)
-
