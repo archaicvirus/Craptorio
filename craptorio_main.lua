@@ -8,7 +8,6 @@
 
 new_belt        = require('\\classes\\belt')
 new_inserter    = require('\\classes\\inserter')
-aspr            = require('\\classes\\affine_sprite')
 ITEMS           = require('\\classes\\item_definitions')
 draw_cable      = require('\\classes\\cable')
 new_pole        = require('\\classes\\power_pole')
@@ -89,17 +88,18 @@ function get_world_key(x, y)
 end
 
 function draw_pixel_sprite(pixels, x, y)
-  for i = 1, 3 do
-    for j = 1, 3 do
-      local index = ((i - 1) * 3) + j
-      local pix_color = pixels[index]
-      if pix_color ~= 0 then
+  spr(297, x, y, 0)
+  -- for i = 1, 3 do
+  --   for j = 1, 3 do
+  --     local index = ((i - 1) * 3) + j
+  --     local pix_color = pixels[index]
+  --     if pix_color ~= 0 then
 
-          draw_pixel(x + j - 1, y + i - 1, pix_color)
+  --         draw_pixel(x + j - 1, y + i - 1, pix_color)
 
-      end
-    end
-  end
+  --     end
+  --   end
+  -- end
 end
 
 function draw_pixel_column(pixels, x, y, column)
@@ -796,6 +796,7 @@ end
 -- 038:fffffffffcd4fce4ffffffff0000000000000000000000000000000000000000
 -- 039:ffffffffcd4fce4fffffffff0000000000000000000000000000000000000000
 -- 040:ffffffffd4fce4fcffffffff0000000000000000000000000000000000000000
+-- 041:9980000034900000894000000000000000000000000000000000000000000000
 -- 045:0f4444f0f4dddd4e44dddd4404effe4044dddd44e444444e0d4ee4d0eeccccee
 -- 046:0000000000000000000009000000090000000090000000090000000900000009
 -- 047:0000000000000000009000000090000009000000900000009000000090000000
