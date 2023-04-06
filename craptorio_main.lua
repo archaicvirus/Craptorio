@@ -6,16 +6,16 @@
 -- version: 0.3
 -- script:  lua
 
-new_belt        = require('\\libs\\belt')
-new_inserter    = require('\\libs\\inserter')
-aspr            = require('\\libs\\affine_sprite')
-ITEMS           = require('\\libs\\item_definitions')
-draw_cable      = require('\\libs\\cable')
-new_pole        = require('\\libs\\power_pole')
-make_inventory  = require('\\libs\\inventory')
-new_drill       = require('\\libs\\mining_drill')
-ui              = require('\\libs\\ui')
-recipies        = require('\\libs\\crafting_definitions')
+new_belt        = require('\\classes\\belt')
+new_inserter    = require('\\classes\\inserter')
+aspr            = require('\\classes\\affine_sprite')
+ITEMS           = require('\\classes\\item_definitions')
+draw_cable      = require('\\classes\\cable')
+new_pole        = require('\\classes\\power_pole')
+make_inventory  = require('\\classes\\inventory')
+new_drill       = require('\\classes\\mining_drill')
+ui              = require('\\classes\\ui')
+recipies        = require('\\classes\\crafting_definitions')
 --image           = require('\\assets\\fullscreen_images')
 --------------------COUNTERS--------------------------
 TICK = 0
