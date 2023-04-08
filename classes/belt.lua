@@ -13,6 +13,7 @@ local belt = {
   lanes = {[1] = {}, [2] = {}},
   id = BELT_ID_STRAIGHT,
   type = 'transport-belt',
+  idle = false,
   updated = false,
   drawn = false,
   output_key = nil,
@@ -286,18 +287,24 @@ end
 
 function belt.update(self)
   -- if we have NOT updated this frame, continue
-  if not self.updated then
+  if not self.updated and not self.idle then
     self.updated = true
+    local should_idle = true
     for i = 1, 2 do
       --check each lane
       for j = 1, 8 do
         --check each lane's slots for an item (0 means no item, else number is an ITEM id)
         local id = self.lanes[i][j]
+        if id ~= 0 then
+          self.idle = false
+          should_idle = false
+        end
         if j == 1 and id ~= 0 then
           --if we are the 1st slot (closest to output), check next tile for a belt to output to
           local key = get_world_key(self.pos.x + self.exit.x, self.pos.y + self.exit.y)
           if not ENTS[key] then self.output = nil end
           if self.output ~= nil and ENTS[key] and ENTS[key].type == 'transport-belt' then
+            ENTS[key].idle = false
             --if i am facing another belt, update that belt first
             if not ENTS[key].updated then ENTS[key]:update() end
             --if we find a belt, and the ENTS nearest slot is empty (equals 0) then
@@ -305,6 +312,7 @@ function belt.update(self)
             if ENTS[self.output_key].id == BELT_ID_CURVED and ENTS[self.output_key].lanes[i][8] == 0 then
               --add item to other belt
               ENTS[self.output_key].lanes[i][8] = id
+              
               --remove item from self
               self.lanes[i][j] = 0
             elseif ENTS[self.output_key].lanes[self.output[i].a][self.output[i].b] == 0 then
@@ -322,6 +330,7 @@ function belt.update(self)
     end
     --set flag so we don't update twice in certain cases
     self.updated = true
+    if should_idle then self.idle = true end
   end
   --return true
 end
@@ -334,7 +343,7 @@ function belt.draw(self)
   spr(self.id + BELT_TICK, cam.x - 120 + self.pos.x*8, cam.y - 64 + self.pos.y*8, 0, 1, flip, rot, 1, 1)
 end
 
-function belt.draw_items(self)
+function belt.draw_itemsOLD(self)
   if not self.drawn then
     self.drawn = true
     if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport-belt' and vis_ents[self.output_key] and not vis_ents[self.output_key].drawn then ENTS[self.output_key]:draw_items() end
@@ -369,6 +378,23 @@ function belt.draw_items(self)
         end
       end
     end
+  end
+end
+
+function belt.draw_items(self)
+  if not self.drawn and not self.idle then
+    self.drawn = true
+    if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport-belt' and vis_ents[self.output_key] and not vis_ents[self.output_key].drawn then ENTS[self.output_key]:draw_items() end
+    local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
+    for i = 1, 2 do
+      for j = 1, 8 do
+        if self.lanes[i][j] > 0 then
+          --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
+          local x, y = item_locations[j][i].x + self.world_pos.x, item_locations[j][i].y + self.world_pos.y
+          spr(297, x, y, 0)
+        end
+      end
+    end    
   end
 end
 
