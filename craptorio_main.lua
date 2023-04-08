@@ -15,6 +15,8 @@ make_inventory  = require('\\classes\\inventory')
 new_drill       = require('\\classes\\mining_drill')
 ui              = require('\\classes\\ui')
 recipies        = require('\\classes\\crafting_definitions')
+floor = math.floor
+sspr = spr
 --image           = require('\\assets\\fullscreen_images')
 --------------------COUNTERS--------------------------
 TICK = 0
@@ -22,8 +24,10 @@ TICK = 0
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 ENTS = {}
 STATE = 'main'
-CURSOR_POINTER_ID = 356
-CURSOR_HIGHLIGHT_ID = 288
+CURSOR_POINTER_ID = 341
+CURSOR_HIGHLIGHT_ID = 312
+CURSOR_HAND_ID = 356
+CURSOR_GRAB_ID = 357
 cursor = {
   x = 8,
   y = 8,
@@ -41,7 +45,7 @@ cursor = {
   drag = false,
   panel_drag = false,
   drag_dir = 0,
-  drag_loc = 0,
+  drag_loc = {x = 0, y = 0},
   hand_item = {id = 0, count = 0},
   drag_offset = {x = 0, y = 0}
 }
@@ -87,8 +91,30 @@ function get_world_key(x, y)
   return x .. '-' .. y
 end
 
+function world_to_screen(world_x, world_y)
+  local screen_x = world_x * 8 + (cam.x - 120)
+  local screen_y = world_y * 8 + (cam.y - 64)
+  return screen_x, screen_y
+end
+
+function get_cell(x, y)
+  return x - (x % 8), y - (y % 8)
+end
+
+function get_screen_cell(x, y)
+  return x - ((x - (floor(cam.x) % 8)) % 8), y - ((y - (floor(cam.y) % 8)) % 8)
+end
+
+function get_world_cell(x, y)
+  local worldX = x - cam.x
+  local worldY = y - cam.y
+  local cellX = floor(worldX / 8)
+  local cellY = floor(worldY / 8)
+  return cellX + 15, cellY + 8
+end
+
 function draw_pixel_sprite(pixels, x, y)
-  spr(297, x, y, 0)
+  sspr(297, x, y, 0)
   -- for i = 1, 3 do
   --   for j = 1, 3 do
   --     local index = ((i - 1) * 3) + j
@@ -241,26 +267,6 @@ function remove_pole(x, y)
   end
 end
 
-function get_cell(x, y)
-  return x - (x % 8), y - (y % 8)
-end
-
-function get_screen_cell(x, y)
-  local tile_size = 8  -- size of each tile in pixels
-  local cx, cy = cam.x, cam.y
-  local map_offset_x = math.floor(cx) % tile_size
-  local map_offset_y = math.floor(cy) % tile_size
-  return x - ((x - map_offset_x) % tile_size), y - ((y - map_offset_y) % tile_size)
-end
-
-function get_world_cell(x, y)
-  local worldX = x - cam.x
-  local worldY = y - cam.y
-  local cellX = math.floor(worldX / TILE_SIZE)
-  local cellY = math.floor(worldY / TILE_SIZE)
-  return cellX + 15, cellY + 8
-end
-
 function update_camera()
   cam.x = math.min(120, 120 - player.x)
   cam.y = math.min(64, 64 - player.y)
@@ -310,6 +316,7 @@ function get_flags(x, y, flags)
   return fget(mget(cell_x//8, cell_y//8), flags)
 end
 
+--temp
 local cursor_items = {[0] = 'transport-belt', [1] = 'inserter', [2] = 'power-pole', [3] = 'pointer'}
 local cursor_item = 3
 
@@ -331,7 +338,7 @@ function add_item(id)
   end
 end
 
-function draw_debug2(data, screen_y)
+function draw_debug2(data, x, y)
   if debug then
     screen_y = screen_y or 0
     local width = 90
@@ -347,7 +354,7 @@ end
 function draw_ground_items()
   -- for i = 1, #GROUND_ITEMS do
   --   if GROUND_ITEMS[i][1] > 0 then
-  --     draw_pixel_sprite(GROUND_ITEMS[i][1], GROUND_ITEMS[i][2], GROUND_ITEMS[i][3])
+  --     draw_pixel_ssprite(GROUND_ITEMS[i][1], GROUND_ITEMS[i][2], GROUND_ITEMS[i][3])
   --   end
   -- end
 end
@@ -368,25 +375,37 @@ function move_cursor(dir, x, y)
 end
 
 function draw_cursor()
-  local key = get_key(cursor.x, cursor.y)
-  if not fget(mget(get_world_cell(cursor.x, cursor.y)), 0) then
-    spr(271, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1) 
+  local x, y = cursor.x, cursor.y
+  local key = get_key(x, y)
+  if not fget(mget(get_world_cell(x, y)), 0) then
+    sspr(271, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1) 
     return
   end
-  if cursor.item == 'transport-belt' and STATE == 'main' then
+
+  if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) then
+    if cursor.panel_drag then
+      sspr(CURSOR_GRAB_ID, cursor.x - 1, cursor.y, 0, 1, 0, 0, 1, 1)
+    else
+      sspr(CURSOR_HAND_ID, cursor.x - 2, cursor.y, 0, 1, 0, 0, 1, 1)
+    end
+    return
+  end
+
+  if cursor.item == 'transport-belt' then
     if cursor.drag then
+      local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
       if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-        spr(288, cursor.tile_x, cursor.drag_loc, 0, 1, 0, 0, 1, 1)
+        sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, sy - 1, 0, 1, 0, 0, 2, 2)
       else
-        spr(288, cursor.drag_loc, cursor.tile_y, 0, 1, 0, 0, 1, 1)
+        sspr(CURSOR_HIGHLIGHT_ID, sx - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
       end
       --arrow to indicate drag direction
-      spr(287, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
+      sspr(287, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
     elseif not ENTS[key] or (ENTS[key] and ENTS[key].type == 'transport-belt' and ENTS[key].rot ~= cursor.rotation) then
-      spr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
-      spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
+      sspr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
+      sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
     else
-      spr(288, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
+      sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
     end
   elseif cursor.item == 'inserter' then
     if not ENTS[key] or (ENTS[key] and ENTS[key].type == 'inserter' and ENTS[key].rot ~= cursor.rotation) then
@@ -400,17 +419,9 @@ function draw_cursor()
     temp_pole:draw(true)
     --check around cursor to attach temp cables to other poles
   elseif cursor.item == 'pointer' then
-    if (not inv:is_hovered(cursor.x, cursor.y) or not inv.vis) and (not craft_menu:is_hovered(cursor.x, cursor.y) or not craft_menu.vis) then
-      spr(CURSOR_HIGHLIGHT_ID, cursor.tile_x, cursor.tile_y, 0, 1, 0, 0, 1, 1)  
-    end
-
-    if craft_menu.vis and cursor.panel_drag and craft_menu:is_hovered(cursor.x, cursor.y) then
-      spr(CURSOR_POINTER_ID + 1, cursor.x - 1, cursor.y, 0, 1, 0, 0, 1, 1)
-    else
-      spr(CURSOR_POINTER_ID, cursor.x - 2, cursor.y, 0, 1, 0, 0, 1, 1)
-    end
-    
-    --pix(cursor.x, cursor.y, 2)
+    sspr(CURSOR_POINTER_ID, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
+    sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+    pix(cursor.x, cursor.y, 2)
   end
 end
 
@@ -480,13 +491,14 @@ function handle_input()
   move_cursor('mouse', x, y)
 
   if not left and cursor.last_left and cursor.drag then
+    local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     cursor.drag = false
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-      cursor.tile_y = cursor.drag_loc
-      cursor.y = cursor.drag_loc
-    else
-      cursor.tile_x = cursor.drag_loc
-      cursor.x = cursor.drag_loc
+      cursor.tile_y = sy
+      --cursor.y = sy
+    else      
+      cursor.tile_x = sx
+      --cursor.x = sx
     end
   end
 
@@ -496,18 +508,16 @@ function handle_input()
     --drag locking/placing belts
     cursor.drag = true
     local screen_x, screen_y = get_screen_cell(x, y)
-    if cursor.rotation == 0 or cursor.rotation == 2 then
-      cursor.drag_loc = screen_tile_y
-    else
-      cursor.drag_loc = screen_tile_x
-    end
+    local wx, wy = get_world_cell(screen_x, screen_y)
+    cursor.drag_loc = {x = wx, y = wy}
     cursor.drag_dir = cursor.rotation
   end
   if cursor.item == 'transport-belt' and cursor.drag then
+    local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 and screen_tile_x ~= cursor.last_tile_x then
-      place_tile(screen_tile_x, cursor.drag_loc, cursor.drag_dir)
+      place_tile(cursor.tile_x, dy, cursor.drag_dir)
     elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and screen_tile_y ~= cursor.last_tile_y then
-      place_tile(cursor.drag_loc, screen_tile_y, cursor.drag_dir)
+      place_tile(dx, cursor.tile_y, cursor.drag_dir)
     end
   end
 
@@ -554,7 +564,7 @@ end
 function toggle_hotbar()
   if not inv.hotbar_vis then
     inv.hotbar_vis = true
-    cursor.item = 'pointer'
+    --cursor.item = 'pointer'
   else
     inv.hotbar_vis = false
     inv.hovered_slot = -1
@@ -564,7 +574,7 @@ end
 function toggle_inventory()
   if not inv.vis then
     inv.vis = true
-    cursor.item = 'pointer'
+    --cursor.item = 'pointer'
   else
     inv.hovered_slot = -1
     inv.vis = false
@@ -631,9 +641,8 @@ end
 local function lapse(fn, ...)
 	local t = time()
 	fn(...)
-	return math.floor((time() - t) * 1000) / 100
+	return floor((time() - t) * 1000) / 100
 end
-
 
 function TIC()
   TICK = TICK + 1
@@ -682,20 +691,21 @@ function TIC()
 
   --draw_debug2(info)
 
-  spr(player.spr, cam.x + player.x, cam.y + player.y, 0)
+  sspr(player.spr, cam.x + player.x, cam.y + player.y, 0)
   
   for k, v in ipairs(ENTS) do
     v.updated = false
     v.drawn = false
   end
   
-  inv:draw()
-  inv:draw_hotbar()
   
+  
+  inv:draw()
+  --inv:draw_hotbar()
   craft_menu:draw()
+  local dc_time = lapse(draw_cursor)
 
   --draw_cursor()
-  local dc_time = lapse(draw_cursor)
 
     local info = {
     [1] = 'update_camnera: ' .. uc_time,
@@ -811,10 +821,14 @@ end
 -- 052:0001100000011000000110000001100000011000000110000001100000011000
 -- 054:feddddeffed44deffe4ee4eff4eeee4fdddeedddcffffffceeeeeeeeffffffff
 -- 055:feddddeffed44deffe4ee4eff4eeee4fdddeedddcffffffceeeeeeeefffffffe
+-- 056:3030303000000000300000000000000030000000000000003000000000000000
+-- 057:3000000003000000000000000300000000000000030000000000000003000000
 -- 062:000000030000008900000888000089800000a800000000000000000000000000
 -- 063:90000000380000008880000008980000008a0000000000000000000000000000
 -- 064:3300003330000003000000000000000000000000000000003000000333000033
 -- 068:0001100000011000000cd000000dc000000ce000000cd0000000000000000000
+-- 072:3000000003030303000000000000000000000000000000000000000000000000
+-- 073:0000000003000000000000000000000000000000000000000000000000000000
 -- 080:2400000030000000000000000000000000000000000000000000000000000000
 -- 081:deffd000fdeff000ffdef000effde000deffd000fdeff0000fde000000f00000
 -- 082:0027272702727272272727277272000027200000727006562720056572700656

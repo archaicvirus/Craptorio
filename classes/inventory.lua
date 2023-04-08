@@ -17,6 +17,8 @@ local inventory = {
   hotbar = {},
   hovered_slot = 0,
   active_slot = 1,
+  hotbar_h = 12,
+  hotbar_y = 136 - (INVENTORY_SLOT_SIZE + 4) - 2,
   vis = false,
   hotbar_vis = true,
 }
@@ -37,7 +39,22 @@ function inventory.draw(self)
     end
     local x, y = mouse()
     local slot = self:get_hovered_slot(x, y)
-    if slot then spr(CURSOR_HIGHLIGHT_ID, slot.x, slot.y, 0) end
+    if slot then spr(CURSOR_HIGHLIGHT_ID, slot.x - 1, slot.y - 1, 0, 1, 0, 0, 2, 2) end
+  end
+
+  if self.hotbar_vis and not self.vis then
+    rectb(self.x, 136 - 2 - (INVENTORY_SLOT_SIZE + 4), self.w, INVENTORY_SLOT_SIZE + 4, INVENTORY_FG_COL)
+    rect(self.x + 1, 136 - 2 - (INVENTORY_SLOT_SIZE + 3), self.w - 2, INVENTORY_SLOT_SIZE + 2, INVENTORY_BG_COL)
+    for col = 1, INVENTORY_COLS do
+      local x, y = (self.x + 2) + ((col - 1) * (INVENTORY_SLOT_SIZE + 1)), 136 - 2 - (INVENTORY_SLOT_SIZE + 2)
+      rect(x, y, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_COL)
+      if col == self.active_slot then
+        --spr(CURSOR_HIGHLIGHT_ID, x, y, 0)
+        rectb(x - 1, y - 1, 10, 10, 4)
+      end
+      if col > 9 then col = 0 end
+      print(col, x + 2, y + 1, 0, true, 1, true)
+    end
   end
 end
 
@@ -51,8 +68,7 @@ function inventory.draw_hotbar(self)
       if col == self.active_slot then
         spr(CURSOR_HIGHLIGHT_ID, x, y, 0)
       end
-      if col > 9 then col = 0 end
-      --if col == 1 then x = x + 1 end
+      if col == 10 then col = 0 end
       print(col, x + 2, y + 1, 0, true, 1, true)
     end
   end
@@ -85,7 +101,12 @@ function inventory.clicked(self)
 end
 
 function inventory.is_hovered(self, x, y)
-  return x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h and true or false
+  if self.vis then
+    return x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h and true or false
+  elseif self.hotbar_vis then
+    return x >= self.x and x < self.x + self.w and y >= self.hotbar_y and y < self.hotbar_y + self.hotbar_h and true or false
+  end
+  return false
 end
 
 function inventory.get_hovered_slot(self, x, y)
