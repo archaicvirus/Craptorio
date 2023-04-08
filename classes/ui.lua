@@ -210,7 +210,7 @@ function CraftPanel.draw(self)
         local row = math.ceil(slot_index / 10)
         local col = ((slot_index - 1) % 10) + 1
         if row <= #recipies['logistics'] and col <= #recipies['logistics'][row] then draw_recipie_widget(mouse_x + 8, mouse_y, recipies['logistics'][row][col]) end
-        spr(CURSOR_HIGHLIGHT_ID, sl_x, sl_y, 0)
+        spr(CURSOR_HIGHLIGHT_ID, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
         --print(slot_index, mouse_x + 8, mouse_y - 3, 12, false, 1, true)
       end
     end
@@ -236,7 +236,10 @@ function CraftPanel.click(self, x, y)
 end
 
 function CraftPanel.is_hovered(self, x, y)
-  return x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h and true or false
+  if self.vis then
+    return x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h and true or false
+  end
+  return false
 end
 
 function CraftPanel.get_hovered_slot(self, x, y)
