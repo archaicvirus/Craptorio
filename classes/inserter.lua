@@ -59,7 +59,8 @@ end
 
 function inserter.draw(self)
   local config = INSERTER_ARM_OFFSETS[INSERTER_ANIM_KEYS[self.rot][self.anim_frame]]
-  local screen_pos = {x = cam.x - 120 + self.pos.x*8, y = cam.y - 64 + self.pos.y*8}
+  local sx, sy = world_to_screen(self.pos.x, self.pos.y)
+  local screen_pos = {x = sx, y = sy}
   local x, y = config.x + screen_pos.x, config.y + screen_pos.y
   spr(INSERTER_BASE_ID, screen_pos.x, screen_pos.y, 0, 1, 0, self.rot, 1, 1)
   --spr(INSERTER_BASE_ID, self.pos.x, self.pos.y, 0, 1, 0, self.rot, 1, 1)
@@ -91,13 +92,14 @@ function inserter.update(self)
       self.anim_frame = 1
       --try to deposit item
       --trace('looking for output')
-      if ENTS[self.to_key] and ENTS[self.to_key].type == 'transport-belt' then
+      if ENTS[self.to_key] and ENTS[self.to_key].type == 'transport_belt' then
         --trace('FOUND belt')
         for i = 8, 1, -1 do
           local index = ENTS[self.to_key].rot
           local lane = INSERTER_DEPOSIT_MAP[self.rot][index]
           if ENTS[self.to_key].lanes[lane][i] == 0 then
             ENTS[self.to_key].lanes[lane][i] = self.held_item_id
+            ENTS[self.to_key].idle = false
             self.held_item_id = 0
             self.state = 'return'
             break

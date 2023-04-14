@@ -12,7 +12,7 @@ local belt = {
   flip = 0,
   lanes = {[1] = {}, [2] = {}},
   id = BELT_ID_STRAIGHT,
-  type = 'transport-belt',
+  type = 'transport_belt',
   idle = false,
   updated = false,
   drawn = false,
@@ -218,9 +218,9 @@ function belt.get_info(self)
   local x, y = self.pos.x, self.pos.y
   local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
   local key1, key2, key3 = get_world_key(loc1.x + x, loc1.y + y), get_world_key(loc2.x + x, loc2.y + y), get_world_key(loc3.x + x, loc3.y + y)
-  if ENTS[key1] and ENTS[key1].type == 'transport-belt' and ENTS[key1]:is_facing(self) then info[5] = info[5] .. 'true' else info[5] = info[5] .. 'false' end
-  if ENTS[key2] and ENTS[key2].type == 'transport-belt' and ENTS[key2]:is_facing(self) then info[6] = info[6] .. 'true' else info[6] = info[6] .. 'false' end
-  if ENTS[key3] and ENTS[key3].type == 'transport-belt' and ENTS[key3]:is_facing(self) then info[7] = info[7] .. 'true' else info[7] = info[7] .. 'false' end
+  if ENTS[key1] and ENTS[key1].type == 'transport_belt' and ENTS[key1]:is_facing(self) then info[5] = info[5] .. 'true' else info[5] = info[5] .. 'false' end
+  if ENTS[key2] and ENTS[key2].type == 'transport_belt' and ENTS[key2]:is_facing(self) then info[6] = info[6] .. 'true' else info[6] = info[6] .. 'false' end
+  if ENTS[key3] and ENTS[key3].type == 'transport_belt' and ENTS[key3]:is_facing(self) then info[7] = info[7] .. 'true' else info[7] = info[7] .. 'false' end
   return info
 end
 
@@ -233,7 +233,7 @@ function belt.rotate(self, rotation)
 end
 
 function belt.is_facing(self, other)
-  if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport-belt' and ENTS[self.output_key] == other then return true end
+  if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and ENTS[self.output_key] == other then return true end
   local exit = BELT_ROTATION_MAP[other.rot]
   local key = get_world_key(other.pos.x + exit.x, other.pos.y + exit.y)
   if ENTS[key] and ENTS[key] == self then return true end
@@ -243,7 +243,7 @@ end
 function belt.set_output(self)
   self.exit = BELT_ROTATION_MAP[self.rot]
   self.output_key = get_world_key(self.pos.x + self.exit.x, self.pos.y + self.exit.y)
-  if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport-belt' then
+  if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' then
     local index = self.rot .. ENTS[self.output_key].rot
     self.output = BELT_OUTPUT_MAP[index]
   else
@@ -264,12 +264,12 @@ function belt.set_curved(self)
   local x, y = self.pos.x, self.pos.y
   local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
   local key1, key2, key3 = get_world_key(loc1.x + x, loc1.y + y), get_world_key(loc2.x + x, loc2.y + y), get_world_key(loc3.x + x, loc3.y + y)
-  if not ENTS[key2] or (ENTS[key2].type == 'transport-belt' and not ENTS[key2]:is_facing(self)) then
+  if not ENTS[key2] or (ENTS[key2].type == 'transport_belt' and not ENTS[key2]:is_facing(self)) then
     --no input belt facing same direction eg. <-<- or ->->
-    if ENTS[key1] and ENTS[key1].type == 'transport-belt' and ENTS[key1]:is_facing(self) and (not ENTS[key3] or (ENTS[key3].type == 'transport-belt' and not ENTS[key3]:is_facing(self))) then
+    if ENTS[key1] and ENTS[key1].type == 'transport_belt' and ENTS[key1]:is_facing(self) and (not ENTS[key3] or (ENTS[key3].type == 'transport_belt' and not ENTS[key3]:is_facing(self))) then
       --found a belt to the left, and belt is facing me, and no other ENTS are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
-    elseif ENTS[key3] and ENTS[key3].type == 'transport-belt' and ENTS[key3]:is_facing(self) and (not ENTS[key1] or (ENTS[key1].type == 'transport-belt' and not ENTS[key1]:is_facing(self))) then
+    elseif ENTS[key3] and ENTS[key3].type == 'transport_belt' and ENTS[key3]:is_facing(self) and (not ENTS[key1] or (ENTS[key1].type == 'transport_belt' and not ENTS[key1]:is_facing(self))) then
       --found a belt to the right, and belt is facing me, and no other ENTS are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
     else
@@ -303,7 +303,7 @@ function belt.update(self)
           --if we are the 1st slot (closest to output), check next tile for a belt to output to
           local key = get_world_key(self.pos.x + self.exit.x, self.pos.y + self.exit.y)
           if not ENTS[key] then self.output = nil end
-          if self.output ~= nil and ENTS[key] and ENTS[key].type == 'transport-belt' then
+          if self.output ~= nil and ENTS[key] and ENTS[key].type == 'transport_belt' then
             ENTS[key].idle = false
             --if i am facing another belt, update that belt first
             if not ENTS[key].updated then ENTS[key]:update() end
@@ -339,14 +339,15 @@ function belt.draw(self)
   local rot = self.rot
   local flip = 0
   if self.id == BELT_ID_CURVED then rot = self.sprite_rot flip = self.flip end
-  self.world_pos = {x = cam.x - 120 + self.pos.x*8, y = cam.y - 64 + self.pos.y*8}
-  spr(self.id + BELT_TICK, cam.x - 120 + self.pos.x*8, cam.y - 64 + self.pos.y*8, 0, 1, flip, rot, 1, 1)
+  local wx, wy = world_to_screen(self.pos.x, self.pos.y)
+  self.world_pos = {x = wx, y = wy}
+  spr(self.id + BELT_TICK, wx, wy, 0, 1, flip, rot, 1, 1)
 end
 
 function belt.draw_itemsOLD(self)
   if not self.drawn then
     self.drawn = true
-    if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport-belt' and vis_ents[self.output_key] and not vis_ents[self.output_key].drawn then ENTS[self.output_key]:draw_items() end
+    if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and vis_ents[self.output_key] and not vis_ents[self.output_key].drawn then ENTS[self.output_key]:draw_items() end
     local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
     for i = 1, 2 do
       for j = 1, 8 do
@@ -384,7 +385,7 @@ end
 function belt.draw_items(self)
   if not self.drawn and not self.idle then
     self.drawn = true
-    if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport-belt' and vis_ents[self.output_key] and not vis_ents[self.output_key].drawn then ENTS[self.output_key]:draw_items() end
+    if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and vis_ents[self.output_key] and not vis_ents[self.output_key].drawn then ENTS[self.output_key]:draw_items() end
     local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
     for i = 1, 2 do
       for j = 1, 8 do
