@@ -50,7 +50,7 @@ end
 
 function ore_sample(x, y, ore)
   local scale = ore.scale
-  local noise = (simplex.Noise2D(x * scale + (ore.offset * scale), y * scale + ore.offset) / 2 + 0.5) * 16
+  local noise = (simplex.Noise2D(x * scale + (ore.offset * scale) + offset * scale, (y * scale) + (ore.offset * scale) + (offset * scale)) / 2 + 0.5) * 16
   return noise > ore.min and true or false
 end
 

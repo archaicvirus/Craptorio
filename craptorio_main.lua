@@ -17,6 +17,10 @@ ui              = require('\\classes\\ui')
 recipies        = require('\\classes\\crafting_definitions')
 simplex         = require('\\classes\\open_simplex_noise')
 TileManager     = require('\\classes\\TileManager')
+
+math.randomseed(tstamp())
+offset = math.random(100000, 500000)
+simplex.seed()
 TileMan = TileManager:new()
 floor = math.floor
 sspr = spr
@@ -66,12 +70,13 @@ local VIEWPORT_HEIGHT = 136
 local MAP_WIDTH = 240 * TILE_SIZE
 local MAP_HEIGHT = 136 * TILE_SIZE
 local GRID_CELL_SIZE = math.ceil(VIEWPORT_WIDTH / TILE_SIZE)
+local render_order = {'transport_belt', 'inserter', 'power_pole'}
 --------------------FUNCTIONS-------------------------
 function get_visible_ents()
   vis_ents = {}
   if #ENTS > 0 then
-    for x = 0, 30 do
-      for y = 0, 17 do
+    for x = 1, 31 do
+      for y = 1, 18 do
         local worldX = (x*8) + (player.x - 116)
         local worldY = (y*8) + (player.y - 64)
         local cellX = floor(worldX / 8)
@@ -84,43 +89,31 @@ function get_visible_ents()
       end
     end
   end
+  -- Sort the entities
+  table.sort(vis_ents, sort_render_order)
 end
 
-local priorityOrder = {'belt', 'inserter', }
-
--- Define the comparison function
-local function compareEntities(a, b)
-    local aPriority = math.huge
-    local bPriority = math.huge
-    
-    -- Get the priority of a
-    for i, type in ipairs(priorityOrder) do
-        if a.type == type then
-            aPriority = i
-            break
-        end
+function sort_render_order(a, b)
+  local aPriority = math.huge
+  local bPriority = math.huge
+  for i, type in ipairs(render_order) do
+    if a.type == type then
+        aPriority = i
+        break
     end
-    
-    -- Get the priority of b
-    for i, type in ipairs(priorityOrder) do
-        if b.type == type then
-            bPriority = i
-            break
-        end
+  end
+  for i, type in ipairs(render_order) do
+    if b.type == type then
+        bPriority = i
+        break
     end
-    
-    -- Compare the priorities
-    if aPriority == bPriority then
-        -- If priorities are equal, sort by key
-        return a.key < b.key
-    else
-        return aPriority < bPriority
-    end
+  end
+  if aPriority == bPriority then
+    return a.index < b.index
+  else
+    return aPriority < bPriority
+  end
 end
-
--- Sort the entities
-table.sort(ENTS, compareEntities)
-
 
 function get_key(x, y)
   local tile, wx, wy = get_world_cell(x, y)
@@ -343,10 +336,10 @@ end
 
 function update_player()
   player.lx, player.ly = player.x, player.y
-  if key(23) then move_player(player.x, player.y - 8) end --w
-  if key(19) then move_player(player.x, player.y + 8) end --a
-  if key(1)  then move_player(player.x - 8, player.y) end --s
-  if key(4)  then move_player(player.x + 8, player.y) end --d
+  if key(23) then move_player(player.x, player.y - 1) end --w
+  if key(19) then move_player(player.x, player.y + 1) end --a
+  if key(1)  then move_player(player.x - 1, player.y) end --s
+  if key(4)  then move_player(player.x + 1, player.y) end --d
   -- if player.x ~= player.lx or player.y ~= player.ly then
   --   player.x = math.min(math.max(-120, player.x), MAP_WIDTH - 8 - 120)
   --   player.y = math.min(math.max(-64, player.y), MAP_HEIGHT - 8 - 64)
@@ -461,8 +454,10 @@ function draw_cursor()
     if not ENTS[key] or (ENTS[key] and ENTS[key].type == 'inserter' and ENTS[key].rot ~= cursor.rotation) then
       local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
       local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rotation)
+      spr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
       temp_inserter:draw()
     end
+    spr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
   elseif cursor.item == 'power_pole' then
     local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
     local temp_pole = new_pole({x = world_x, y = world_y})
@@ -696,6 +691,7 @@ end
 
 function TIC()
   TICK = TICK + 1
+  local start = time()
   --remove mouse cursor
   poke(0x3FFB, 0x000000, 8)
   cls(0)
@@ -738,7 +734,7 @@ function TIC()
   --     info[7 + i] = item_info[i]
   --   end
   -- end
-    local db_time = lapse(draw_belt_items)
+    --local db_time = lapse(draw_belt_items)
 
   --draw_debug2(info)
 
@@ -779,7 +775,8 @@ function TIC()
     [2] = 'Tile: ' .. tile,
     [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
     [4] = 'Key: ' .. key,
-    [5] = '#Ents: ' .. #vis_ents
+    [5] = '#Ents: ' .. #vis_ents,
+    [6] = 'Frame Time: ' .. floor(time() - start)
   }
   draw_debug2(info)
 end
