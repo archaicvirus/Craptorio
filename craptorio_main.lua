@@ -15,6 +15,9 @@ make_inventory  = require('\\classes\\inventory')
 new_drill       = require('\\classes\\mining_drill')
 ui              = require('\\classes\\ui')
 recipies        = require('\\classes\\crafting_definitions')
+simplex         = require('\\classes\\open_simplex_noise')
+TileManager     = require('\\classes\\TileManager')
+TileMan = TileManager:new()
 floor = math.floor
 sspr = spr
 --image           = require('\\assets\\fullscreen_images')
@@ -49,13 +52,13 @@ cursor = {
   hand_item = {id = 0, count = 0},
   drag_offset = {x = 0, y = 0}
 }
-player = {x = 100, y = 130, spr = 301, lx = 0, ly = 0}
+player = {x = 0, y = 0, spr = 301, lx = 0, ly = 0}
 cam = {x = 120, y = 64, ccx = 0, ccy = 0}
 mcx, mcy, mw, mh, msx, msy = 15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8, (cam.y % 8) - 8
 inv = make_inventory()
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
-debug = false
+debug = true
 last_num_ents = 0
 local TILE_SIZE = 8
 local VIEWPORT_WIDTH = 240
@@ -66,30 +69,62 @@ local GRID_CELL_SIZE = math.ceil(VIEWPORT_WIDTH / TILE_SIZE)
 --------------------FUNCTIONS-------------------------
 function get_visible_ents()
   vis_ents = {}
-  -- local gridMinX, gridMinY = get_world_cell(0, 0)
-  -- local gridMaxX, gridMaxY = get_world_cell(30, 17)
   if #ENTS > 0 then
     for x = 0, 30 do
       for y = 0, 17 do
-        --local key = get_key(x*8, y*8)
-        local worldX = (x*8) - cam.x
-        local worldY = (y*8) - cam.y
-        local cellX = floor(worldX / 8) + 15
-        local cellY = floor(worldY / 8) + 8
+        local worldX = (x*8) + (player.x - 116)
+        local worldY = (y*8) + (player.y - 64)
+        local cellX = floor(worldX / 8)
+        local cellY = floor(worldY / 8)
         local key = cellX .. '-' .. cellY
         if ENTS[key] then
           vis_ents[#vis_ents + 1] = ENTS[key]
           vis_ents[key] = vis_ents[#vis_ents]
-          --table.insert(vis_ents, ENTS[key])
         end
       end
     end
   end
 end
 
+local priorityOrder = {'belt', 'inserter', }
+
+-- Define the comparison function
+local function compareEntities(a, b)
+    local aPriority = math.huge
+    local bPriority = math.huge
+    
+    -- Get the priority of a
+    for i, type in ipairs(priorityOrder) do
+        if a.type == type then
+            aPriority = i
+            break
+        end
+    end
+    
+    -- Get the priority of b
+    for i, type in ipairs(priorityOrder) do
+        if b.type == type then
+            bPriority = i
+            break
+        end
+    end
+    
+    -- Compare the priorities
+    if aPriority == bPriority then
+        -- If priorities are equal, sort by key
+        return a.key < b.key
+    else
+        return aPriority < bPriority
+    end
+end
+
+-- Sort the entities
+table.sort(ENTS, compareEntities)
+
+
 function get_key(x, y)
-  local xx, yy = get_world_cell(x, y)
-  return xx .. '-' .. yy
+  local tile, wx, wy = get_world_cell(x, y)
+  return wx .. '-' .. wy
 end
 
 function get_world_key(x, y)
@@ -97,25 +132,32 @@ function get_world_key(x, y)
 end
 
 function world_to_screen(world_x, world_y)
-  local screen_x = world_x * 8 + (cam.x - 120)
-  local screen_y = world_y * 8 + (cam.y - 64)
-  return screen_x, screen_y
+  local screen_x = world_x * 8 - (player.x - 116)
+  local screen_y = world_y * 8 - (player.y - 64)
+  return screen_x - 8, screen_y - 8
 end
 
 function get_cell(x, y)
   return x - (x % 8), y - (y % 8)
 end
 
-function get_screen_cell(x, y)
-  return x - ((x - (floor(cam.x) % 8)) % 8), y - ((y - (floor(cam.y) % 8)) % 8)
+function get_screen_cell(mouse_x, mouse_y)
+  local cam_x, cam_y = 116 - player.x, 64 - player.y
+  local mx = floor(cam_x) % 8
+  local my = floor(cam_y) % 8
+  return mouse_x - ((mouse_x - mx) % 8), mouse_y - ((mouse_y - my) % 8)
 end
 
-function get_world_cell(x, y)
-  local worldX = x - cam.x
-  local worldY = y - cam.y
-  local cellX = floor(worldX / 8)
-  local cellY = floor(worldY / 8)
-  return cellX + 15, cellY + 8
+function get_world_cell(mouse_x, mouse_y)
+  local cam_x = player.x - 116
+  local cam_y = player.y - 64
+  local sub_tile_x = cam_x % 8
+  local sub_tile_y = cam_y % 8
+  local sx = floor((mouse_x + sub_tile_x) / 8)
+  local sy = floor((mouse_y + sub_tile_y) / 8)
+  local wx = floor(cam_x / 8) + sx + 1
+  local wy = floor(cam_y / 8) + sy + 1
+  return TileMan.tiles[wy][wx], wx, wy
 end
 
 function draw_pixel_sprite(pixels, x, y)
@@ -158,8 +200,10 @@ function draw_pixel(x, y, color)
 end
 
 function add_belt(x, y, rotation)
-  local key = get_key(x, y)
-  local cell_x, cell_y = get_world_cell(x, y)
+  --local key = get_key(x, y)
+  local tile, cell_x, cell_y = get_world_cell(x, y)
+  local key = cell_x .. '-' .. cell_y
+  trace('adding belt with key = ' .. key)
   local belt = {}
   if not ENTS[key] or ENTS[key].type == 'ground-items' then
     belt = new_belt({x = cell_x, y = cell_y}, cursor.rotation)
@@ -174,7 +218,7 @@ function add_belt(x, y, rotation)
       ENTS[key] = ENTS[index]
       ENTS[key].index = index
     end
-  elseif ENTS[key] and ENTS[key].type == 'transport-belt' then
+  elseif ENTS[key] and ENTS[key].type == 'transport_belt' then
     ENTS[key]:rotate(cursor.rotation)
   end
   local tiles = {
@@ -183,15 +227,15 @@ function add_belt(x, y, rotation)
     [3] = {x = cell_x, y = cell_y + 1},
     [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
-    local k = get_world_key(tiles[i].x, tiles[i].y)
-    if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
+    local k = tiles[i].x .. '-' .. tiles[i].y
+    if ENTS[k] and ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
   end
-  if ENTS[key] and ENTS[key].type == 'transport-belt' then ENTS[key]:set_curved() end
+  if ENTS[key] and ENTS[key].type == 'transport_belt' then ENTS[key]:set_curved() end
 end
 
 function remove_belt(x, y)
   local key = get_key(x, y)
-  local cell_x, cell_y = get_world_cell(x, y)
+  local tile, cell_x, cell_y = get_world_cell(x, y)
   if ENTS[key] then
     --local index = ENTS[key].index
     --ENTS[key] = nil
@@ -212,13 +256,13 @@ function remove_belt(x, y)
     [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
     local k = get_world_key(tiles[i].x, tiles[i].y)
-    if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
+    if ENTS[k] and ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
   end
 end
 
 function add_inserter(x, y, rotation)
   local key = get_key(x, y)
-  local cell_x, cell_y = get_world_cell(x, y)
+  local tile, cell_x, cell_y = get_world_cell(x, y)
   if ENTS[key] and ENTS[key].type == 'inserter' then
     if ENTS[key].rot ~= rotation then
       ENTS[key]:rotate(rotation)
@@ -247,7 +291,7 @@ end
 
 function add_pole(x, y)
   local key = get_key(x,y)
-  local cell_x, cell_y = get_world_cell(x, y)
+  local tile, cell_x, cell_y = get_world_cell(x, y)
   if not ENTS[key] then
     local pole = new_pole({x = cell_x, y = cell_y})
     table.insert(ENTS, pole)
@@ -280,10 +324,10 @@ function update_camera()
 end
 
 function move_player(x, y)
-  local tile_nw = fget(mget(get_world_cell(cam.x + x,     cam.y + y    )), 0)
-  local tile_ne = fget(mget(get_world_cell(cam.x + x + 7, cam.y + y    )), 0)
-  local tile_se = fget(mget(get_world_cell(cam.x + x + 7, cam.y + y + 7)), 0)
-  local tile_sw = fget(mget(get_world_cell(cam.x + x,     cam.y + y + 7)), 0)
+  -- local tile_nw = fget(mget(get_world_cell(cam.x + x,     cam.y + y    )), 0)
+  -- local tile_ne = fget(mget(get_world_cell(cam.x + x + 7, cam.y + y    )), 0)
+  -- local tile_se = fget(mget(get_world_cell(cam.x + x + 7, cam.y + y + 7)), 0)
+  -- local tile_sw = fget(mget(get_world_cell(cam.x + x,     cam.y + y + 7)), 0)
   -- local info = {
   --   [1] = 'tile_nw:' .. tostring(tile_nw),
   --   [2] = 'tile_ne:' .. tostring(tile_ne),
@@ -291,22 +335,22 @@ function move_player(x, y)
   --   [4] = 'tile_sw:' .. tostring(tile_sw),
   -- }
   --draw_debug2(info, 10)
-  if tile_nw and tile_ne and tile_se and tile_sw then
+  --if tile_nw and tile_ne and tile_se and tile_sw then
     player.lx, player.ly = player.x, player.y
     player.x, player.y = x, y
-  end
+  --end
 end
 
 function update_player()
   player.lx, player.ly = player.x, player.y
-  if key(23) then move_player(player.x, player.y - 1) end --w
-  if key(19)  then move_player(player.x, player.y + 1) end --a
-  if key(1) then move_player(player.x - 1, player.y) end --s
-  if key(4)  then move_player(player.x + 1, player.y) end --d
-  if player.x ~= player.lx or player.y ~= player.ly then
-    player.x = math.min(math.max(-120, player.x), MAP_WIDTH - 8 - 120)
-    player.y = math.min(math.max(-64, player.y), MAP_HEIGHT - 8 - 64)
-  end
+  if key(23) then move_player(player.x, player.y - 8) end --w
+  if key(19) then move_player(player.x, player.y + 8) end --a
+  if key(1)  then move_player(player.x - 8, player.y) end --s
+  if key(4)  then move_player(player.x + 8, player.y) end --d
+  -- if player.x ~= player.lx or player.y ~= player.ly then
+  --   player.x = math.min(math.max(-120, player.x), MAP_WIDTH - 8 - 120)
+  --   player.y = math.min(math.max(-64, player.y), MAP_HEIGHT - 8 - 64)
+  -- end
 end
 
 function get_flags(x, y, flags)
@@ -322,7 +366,7 @@ function get_flags(x, y, flags)
 end
 
 --temp
-local cursor_items = {[0] = 'transport-belt', [1] = 'inserter', [2] = 'power-pole', [3] = 'pointer'}
+local cursor_items = {[0] = 'transport_belt', [1] = 'inserter', [2] = 'power_pole', [3] = 'pointer'}
 local cursor_item = 3
 
 function cycle_hotbar(dir)
@@ -337,7 +381,7 @@ end
 
 function add_item(id)
   local key = get_key(cursor.x, cursor.y)
-  if ENTS[key] and ENTS[key].type == 'transport-belt' then
+  if ENTS[key] and ENTS[key].type == 'transport_belt' then
     ENTS[key].idle = false
     ENTS[key].lanes[1][8] = id
     ENTS[key].lanes[2][8] = id
@@ -376,17 +420,17 @@ function move_cursor(dir, x, y)
     if get_flags(cursor.tile_x + 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
   end
   if dir == 'mouse' then
-    cursor.tile_x, cursor.tile_y = get_screen_cell(cursor.x, cursor.y)
+    cursor.tile_x, cursor.tile_y = get_screen_cell(x, y)
   end 
 end
 
 function draw_cursor()
   local x, y = cursor.x, cursor.y
   local key = get_key(x, y)
-  if not fget(mget(get_world_cell(x, y)), 0) then
-    sspr(271, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1) 
-    return
-  end
+  -- if not fget(mget(get_world_cell(x, y)), 0) then
+  --   sspr(271, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1) 
+  --   return
+  -- end
 
   if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) then
     if cursor.panel_drag then
@@ -397,7 +441,7 @@ function draw_cursor()
     return
   end
 
-  if cursor.item == 'transport-belt' then
+  if cursor.item == 'transport_belt' then
     if cursor.drag then
       local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
       if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
@@ -407,7 +451,7 @@ function draw_cursor()
       end
       --arrow to indicate drag direction
       sspr(287, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
-    elseif not ENTS[key] or (ENTS[key] and ENTS[key].type == 'transport-belt' and ENTS[key].rot ~= cursor.rotation) then
+    elseif not ENTS[key] or (ENTS[key] and ENTS[key].type == 'transport_belt' and ENTS[key].rot ~= cursor.rotation) then
       sspr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rotation, 1, 1)
       sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
     else
@@ -415,12 +459,12 @@ function draw_cursor()
     end
   elseif cursor.item == 'inserter' then
     if not ENTS[key] or (ENTS[key] and ENTS[key].type == 'inserter' and ENTS[key].rot ~= cursor.rotation) then
-      local world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
+      local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
       local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rotation)
       temp_inserter:draw()
     end
-  elseif cursor.item == 'power-pole' then
-    local world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
+  elseif cursor.item == 'power_pole' then
+    local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
     local temp_pole = new_pole({x = world_x, y = world_y})
     temp_pole:draw(true)
     --check around cursor to attach temp cables to other poles
@@ -436,9 +480,9 @@ function rotate_cursor()
     cursor.rotation = cursor.rotation + 1
     if cursor.rotation > 3 then cursor.rotation = 0 end
     local key = get_key(cursor.x, cursor.y)
-    local cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
+    local tile, cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
     if ENTS[key] then
-      if ENTS[key].type == 'transport-belt' and cursor.item == 'pointer' then
+      if ENTS[key].type == 'transport_belt' and cursor.item == 'pointer' then
         ENTS[key]:rotate(ENTS[key].rot + 1)
         local tiles = {
           [1] = {x = cell_x, y = cell_y - 1},
@@ -447,7 +491,7 @@ function rotate_cursor()
           [4] = {x = cell_x - 1, y = cell_y}}
         for i = 1, 4 do
           local k = get_world_key(tiles[i].x, tiles[i].y)
-          if ENTS[k] and ENTS[k].type == 'transport-belt' then ENTS[k]:set_curved() end
+          if ENTS[k] and ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
         end
       end
       if ENTS[key].type == 'inserter' and cursor.item == 'pointer' then
@@ -461,11 +505,11 @@ function rotate_cursor()
 end
 
 function place_tile(x, y, rotation)
-  if cursor.item == 'transport-belt' then
+  if cursor.item == 'transport_belt' then
     add_belt(x, y, cursor.rotation)
   elseif cursor.item == 'inserter' then
     add_inserter(x, y, cursor.rotation)
-  elseif cursor.item == 'power-pole' then
+  elseif cursor.item == 'power_pole' then
     add_pole(x, y)
   end
 end
@@ -508,22 +552,22 @@ function handle_input()
     end
   end
 
-  local tile_x, tile_y = get_world_cell(x, y)
+  local tile, tile_x, tile_y = get_world_cell(x, y)
   local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
-  if cursor.item == 'transport-belt' and not cursor.drag and left and cursor.last_left then
+  if cursor.item == 'transport_belt' and not cursor.drag and left and cursor.last_left then
     --drag locking/placing belts
     cursor.drag = true
     local screen_x, screen_y = get_screen_cell(x, y)
-    local wx, wy = get_world_cell(screen_x, screen_y)
+    local tile, wx, wy = get_world_cell(x, y)
     cursor.drag_loc = {x = wx, y = wy}
     cursor.drag_dir = cursor.rotation
   end
-  if cursor.item == 'transport-belt' and cursor.drag then
+  if cursor.item == 'transport_belt' and cursor.drag then
     local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 and screen_tile_x ~= cursor.last_tile_x then
-      place_tile(cursor.tile_x, dy, cursor.drag_dir)
+      place_tile(x, dy, cursor.drag_dir)
     elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and screen_tile_y ~= cursor.last_tile_y then
-      place_tile(dx, cursor.tile_y, cursor.drag_dir)
+      place_tile(dx, y, cursor.drag_dir)
     end
   end
 
@@ -631,7 +675,7 @@ end
 
 function draw_belt_items()
   for k, ent in ipairs(vis_ents) do
-    if ent.type == 'transport-belt' and not ent.drawn then
+    if ent.type == 'transport_belt' and not ent.drawn then
       ent:draw_items()
     end
   end
@@ -647,7 +691,7 @@ end
 local function lapse(fn, ...)
 	local t = time()
 	fn(...)
-	return floor((time() - t) * 1000) / 100
+	return floor((time() - t))
 end
 
 function TIC()
@@ -657,9 +701,10 @@ function TIC()
   cls(0)
   local gv_time = lapse(get_visible_ents)
   --update_camera()
-  local uc_time = lapse(update_camera)
+  --local uc_time = lapse(update_camera)
   --map(15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8,(cam.y % 8) - 8)
-  local m_time = lapse(draw_map)
+  --local m_time = lapse(draw_map)
+  local m_time = lapse(TileMan.draw, TileMan, player, 31, 18)
   --update_player()
   local up_time = lapse(update_player)
   --handle_input()
@@ -687,7 +732,7 @@ function TIC()
   --   [7] = 'VIS ENTS: ' .. #ents,
   -- }
 
-  -- if ENTS[key] and ENTS[key].type == 'transport-belt' then
+  -- if ENTS[key] and ENTS[key].type == 'transport_belt' then
   --   local item_info = ENTS[key]:get_info()
   --   for i = 1, #item_info do
   --     info[7 + i] = item_info[i]
@@ -697,11 +742,12 @@ function TIC()
 
   --draw_debug2(info)
 
-  sspr(player.spr, cam.x + player.x, cam.y + player.y, 0)
+  sspr(player.spr, 116, 64, 0)
   
   for k, v in ipairs(ENTS) do
     v.updated = false
     v.drawn = false
+    v.is_hovered = false
   end
   
   
@@ -713,16 +759,27 @@ function TIC()
 
   --draw_cursor()
 
-    local info = {
-    [1] = 'update_camnera: ' .. uc_time,
-    [2] = 'draw_map: ' .. m_time,
-    [3] = 'update_player: ' .. up_time,
-    [4] = 'handle_input: ' .. hi_time,
-    [5] = 'draw_ents: ' .. de_time,
-    [6] = 'update_ents:' .. ue_time,
-    [7] = 'draw_cursor: ' .. dc_time,
-    [8] = 'draw_belt_items: ' ..db_time,
-    [9] = 'get_vis_ents: ' .. gv_time,
+  --   local info = {
+  --   --[1] = 'update_camnera: ' .. uc_time,
+  --   [1] = 'nil',
+  --   [2] = 'draw_map: ' .. m_time,
+  --   [3] = 'update_player: ' .. up_time,
+  --   [4] = 'handle_input: ' .. hi_time,
+  --   [5] = 'draw_ents: ' .. de_time,
+  --   [6] = 'update_ents:' .. ue_time,
+  --   [7] = 'draw_cursor: ' .. dc_time,
+  --   [8] = 'draw_belt_items: ' ..db_time,
+  --   [9] = 'get_vis_ents: ' .. gv_time,
+  -- }
+  local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
+  local sx, sy = get_screen_cell(cursor.x, cursor.y)
+  local key = get_key(cursor.x, cursor.y)
+  local info = {
+    [1] = 'Wx,Wy: ' .. wx ..',' .. wy,
+    [2] = 'Tile: ' .. tile,
+    [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
+    [4] = 'Key: ' .. key,
+    [5] = '#Ents: ' .. #vis_ents
   }
   draw_debug2(info)
 end
