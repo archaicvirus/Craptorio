@@ -97,7 +97,8 @@ end
 local Prev2D = {}
 
 function simplex.seed(seed)
-  math.randomseed(seed * tstamp())
+  seed = seed or tstamp()
+  math.randomseed(seed * seed)
   for i = 1, 256 do
     p[i] = math.floor(math.random()*256)
   end

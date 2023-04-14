@@ -68,7 +68,7 @@ function inserter.draw(self)
   spr(config.id, x, y, 0, 1, 0, config.rot, 1, 1)
   
   if self.held_item_id > 0 then
-    draw_pixel_sprite(ITEMS[self.held_item_id].pixels, x + config.item_offset.x, y + config.item_offset.y)
+    spr(297, x + config.item_offset.x, y + config.item_offset.y, 0)
   end
   -- debug to show item path when moving
   -- for k, v in pairs(self.itemLocations) do
@@ -106,17 +106,17 @@ function inserter.update(self)
           end
         end
       else
-        -- if not ENTS[self.to_key].type == 'ground-items' or (ENTS[self.to_key].type == 'ground-items' and ENTS[self.to_key][1] == 0) then
-        --   local to = INSERTER_GRAB_OFFSETS[self.rot].to
-        --   --create ground item entity with belt lanes
-        --   local gnd_item = {id = self.held_item_id, pos = {self.pos.x + to.x, self.pos.y + to.y}, type = 'gound-item'}
-        --   table.insert(GROUND_ITEMS, gnd_item)
-        --   local index = #GROUND_ITEMS
-        --   GROUND_ITEMS[self.to_key] = GROUND_ITEMS[index]
-        --   self.held_item_id = 0
-        --   self.state = 'return'
-        -- --drop on ground
-        -- end
+      -- if not ENTS[self.to_key].type == 'ground-items' or (ENTS[self.to_key].type == 'ground-items' and ENTS[self.to_key][1] == 0) then
+      --   local to = INSERTER_GRAB_OFFSETS[self.rot].to
+      --   --create ground item entity with belt lanes
+      --   local gnd_item = {id = self.held_item_id, pos = {self.pos.x + to.x, self.pos.y + to.y}, type = 'gound-item'}
+      --   table.insert(GROUND_ITEMS, gnd_item)
+      --   local index = #GROUND_ITEMS
+      --   GROUND_ITEMS[self.to_key] = GROUND_ITEMS[index]
+      --   self.held_item_id = 0
+      --   self.state = 'return'
+      -- --drop on ground
+      -- end
       end
       -- self.held_item_id = 0
       -- self.state = 'return'
@@ -125,12 +125,11 @@ function inserter.update(self)
     self.anim_frame = self.anim_frame + 1
     if self.anim_frame >= 5 then
       -- inserter has returned, and waits for another item
-
       self.anim_frame = 5
       self.state = 'wait'
     end
   elseif self.state == 'wait' then
-    if ENTS[self.from_key] then
+    if ENTS[self.from_key] and ENTS[self.from_key].type == 'transport_belt' then
       for i = 1, 8 do
         local lane = 0
         if ENTS[self.from_key].lanes[1][i] ~= 0 then

@@ -264,12 +264,12 @@ function belt.set_curved(self)
   local x, y = self.pos.x, self.pos.y
   local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
   local key1, key2, key3 = get_world_key(loc1.x + x, loc1.y + y), get_world_key(loc2.x + x, loc2.y + y), get_world_key(loc3.x + x, loc3.y + y)
-  if not ENTS[key2] or (ENTS[key2].type == 'transport_belt' and not ENTS[key2]:is_facing(self)) then
+  if not ENTS[key2] or (ENTS[key2].type == 'transport_belt' and not ENTS[key2]:is_facing(self) or ENTS[key2].type ~= 'transport_belt') then
     --no input belt facing same direction eg. <-<- or ->->
-    if ENTS[key1] and ENTS[key1].type == 'transport_belt' and ENTS[key1]:is_facing(self) and (not ENTS[key3] or (ENTS[key3].type == 'transport_belt' and not ENTS[key3]:is_facing(self))) then
+    if     ENTS[key1] and ENTS[key1].type == 'transport_belt' and ENTS[key1]:is_facing(self) and (not ENTS[key3] or (ENTS[key3].type == 'transport_belt' and not ENTS[key3]:is_facing(self)) or ENTS[key3].type ~= 'transport_belt') then
       --found a belt to the left, and belt is facing me, and no other ENTS are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
-    elseif ENTS[key3] and ENTS[key3].type == 'transport_belt' and ENTS[key3]:is_facing(self) and (not ENTS[key1] or (ENTS[key1].type == 'transport_belt' and not ENTS[key1]:is_facing(self))) then
+    elseif ENTS[key3] and ENTS[key3].type == 'transport_belt' and ENTS[key3]:is_facing(self) and (not ENTS[key1] or (ENTS[key1].type == 'transport_belt' and not ENTS[key1]:is_facing(self)) or ENTS[key1].type ~= 'transport_belt') then
       --found a belt to the right, and belt is facing me, and no other ENTS are facing me
       self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
     else
