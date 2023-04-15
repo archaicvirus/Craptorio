@@ -73,7 +73,7 @@ local GRID_CELL_SIZE = math.ceil(VIEWPORT_WIDTH / TILE_SIZE)
 local render_order = {'transport_belt', 'inserter', 'power_pole'}
 --------------------FUNCTIONS-------------------------
 function get_visible_ents()
-  vis_ents = {}
+  vis_ents = {['transport_belt'] = {}, ['inserter'] = {}, ['power_pole'] = {}}
   if #ENTS > 0 then
     for x = 1, 31 do
       for y = 1, 18 do
@@ -83,14 +83,18 @@ function get_visible_ents()
         local cellY = floor(worldY / 8)
         local key = cellX .. '-' .. cellY
         if ENTS[key] then
-          vis_ents[#vis_ents + 1] = ENTS[key]
-          vis_ents[key] = vis_ents[#vis_ents]
+          -- vis_ents[#vis_ents + 1] = ENTS[key]
+          -- vis_ents[key] = vis_ents[#vis_ents]
+          local ent = ENTS[key]
+          local new_index = #vis_ents[ent.type] + 1
+          vis_ents[ent.type][new_index] = ENTS[key]
+          vis_ents[ent.type][key] = vis_ents[ent.type][#vis_ents[ent.type]]
         end
       end
     end
   end
   -- Sort the entities
-  table.sort(vis_ents, sort_render_order)
+  --table.sort(vis_ents, sort_render_order)
 end
 
 function sort_render_order(a, b)
@@ -196,7 +200,6 @@ function add_belt(x, y, rotation)
   --local key = get_key(x, y)
   local tile, cell_x, cell_y = get_world_cell(x, y)
   local key = cell_x .. '-' .. cell_y
-  trace('adding belt with key = ' .. key)
   local belt = {}
   if not ENTS[key] or ENTS[key].type == 'ground-items' then
     belt = new_belt({x = cell_x, y = cell_y}, cursor.rotation)
@@ -663,7 +666,16 @@ function update_ents()
 end
 
 function draw_ents()
-  for k, ent in ipairs(vis_ents) do
+  for key, ent in pairs(vis_ents['transport_belt']) do
+    ent:draw()
+  end
+  for key, ent in pairs(vis_ents['transport_belt']) do
+    ent:draw_items()
+  end
+  for key, ent in pairs(vis_ents['inserter']) do
+    ent:draw()
+  end
+  for key, ent in pairs(vis_ents['power_pole']) do
     ent:draw()
   end
 end
@@ -832,6 +844,17 @@ end
 -- 047:f000f00f000000f0000f0000f000000f00000f00f0f0000f0000f0f00f0f000f
 -- </TILES>
 
+-- <TILES1>
+-- 000:11efef111efefef11eeeeee11efefee11f6f6ff11efdfed111dddd11110dd011
+-- 001:11fefe111fefefe11eeeeee11eefefe11ff6f6f11defdfe111dddd11110dd011
+-- 016:10effe0110feef1010effe101deeee1d118ff81111411f111111141111111111
+-- 017:10effe0101feef0101effe01d1eeeed1118ff81111f114111141111111111111
+-- 032:11efef111efefef11eeeeee11efefee11f6f6ff11efdfed111dddd11110dd011
+-- 033:11fefe111fefefe11eeeeee11eefefe11ff6f6f11defdfe111dddd11110dd011
+-- 048:10effe0110feef0110effe011deeeed1118ff81111f11f111141141111111111
+-- 049:10effe0110feef0110effe011deeeed1118ff81111f11f111141141111111111
+-- </TILES1>
+
 -- <SPRITES>
 -- 000:ffffffffeeeeeeee4fcd4fcdfcd4fcd4fcd4fcd44fcd4fcdeeeeeeeeffffffff
 -- 001:ffffffffeeeeeeeefcd4fcd4cd4fcd4fcd4fcd4ffcd4fcd4eeeeeeeeffffffff
@@ -894,7 +917,8 @@ end
 -- 082:0027272702727272272727277272000027200000727006562720056572700656
 -- 083:7270656027205656727065652720565672720000272727270272727200272727
 -- 085:bbb00000bd000000b0b00000000b000000000000000000000000000000000000
--- 090:000eeef000e4dcef004ccddf04cdecdf04dececf004decdf00e4cdcf000cdcef
+-- 087:000eefff00e4fcee004ccdde04cdecde04decece004decde00e4cdce000fdcef
+-- 090:000eefff00e4fcee004ccdde04cdecde04decece004decde00e4cdce000fdcef
 -- 093:0000c0ef009cdcef09cdcddf9cdcecdf9dcececf09dcecdf009dcdef0000d0ef
 -- 094:0000c0ef002cdcef02cdcddf2cdcecdf2dcececf02dcecdf002dcdef0000d0ef
 -- 095:000fffc0000cdfc0000cccd000c4ecd00c4edcd004eeecd00c4edcd000e4cec0
@@ -902,7 +926,8 @@ end
 -- 097:0000de00dddddde04fec4fdefec4fedefec4fede4fec4fdedddddde00000de00
 -- 100:00b0000000b0000000bbb000b0bbb0000bbbb00000cc00000000000000000000
 -- 101:000000000bb000000bbb0000bbbb0000bbbb00000cc000000000000000000000
--- 106:000cdcef00e4cdcf004decdf04dececf04cdecdf004ccddf00e4dcef000eeef0
+-- 103:000fdcef00e4cdce004decde04decece04cdecde004ccdde00e4fcee000eefff
+-- 106:000fdcef00e4cdce004decde04decece04cdecde004ccdde00e4fcee000eefff
 -- 109:009dcdef09dcecdf9dcececf9cdcecdf09cdcddf009cdcdf00f0c0df00ecddef
 -- 110:002dcdef02dcecdf2dcececf2cdcecdf02cdcddf002cdcdf00f0c0df00ecddef
 -- 111:00e4cec00c4edcd004eeecd00c4edcd000c4ecd0000cccd0000cdfc0000fffc0
