@@ -7,6 +7,7 @@
 -- script:  lua
 
 new_belt        = require('\\classes\\belt')
+new_splitter    = require('\\classes\\splitter')
 new_inserter    = require('\\classes\\inserter')
 ITEMS           = require('\\classes\\item_definitions')
 draw_cable      = require('\\classes\\cable')
@@ -48,7 +49,7 @@ cursor = {
   last_right = false,
   rotation = 0,
   last_rotation = 0,
-  item = 'pointer',
+  item = 'splitter',
   drag = false,
   panel_drag = false,
   drag_dir = 0,
@@ -56,7 +57,7 @@ cursor = {
   hand_item = {id = 0, count = 0},
   drag_offset = {x = 0, y = 0}
 }
-player = {x = 0, y = 0, spr = 301, lx = 0, ly = 0}
+player = {x = 0, y = 0, spr = 363, lx = 0, ly = 0}
 cam = {x = 120, y = 64, ccx = 0, ccy = 0}
 mcx, mcy, mw, mh, msx, msy = 15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8, (cam.y % 8) - 8
 inv = make_inventory()
@@ -73,45 +74,21 @@ local GRID_CELL_SIZE = math.ceil(VIEWPORT_WIDTH / TILE_SIZE)
 local render_order = {'transport_belt', 'inserter', 'power_pole'}
 --------------------FUNCTIONS-------------------------
 function get_visible_ents()
-  vis_ents = {}
-  if #ENTS > 0 then
-    for x = 1, 31 do
-      for y = 1, 18 do
-        local worldX = (x*8) + (player.x - 116)
-        local worldY = (y*8) + (player.y - 64)
-        local cellX = floor(worldX / 8)
-        local cellY = floor(worldY / 8)
-        local key = cellX .. '-' .. cellY
-        if ENTS[key] then
-          vis_ents[#vis_ents + 1] = ENTS[key]
-          vis_ents[key] = vis_ents[#vis_ents]
-        end
+  vis_ents = {['transport_belt'] = {}, ['inserter'] = {}, ['power_pole'] = {}, ['splitter'] = {}}
+  for x = 1, 31 do
+    for y = 1, 18 do
+      local worldX = (x*8) + (player.x - 116)
+      local worldY = (y*8) + (player.y - 64)
+      local cellX = floor(worldX / 8)
+      local cellY = floor(worldY / 8)
+      local key = cellX .. '-' .. cellY
+      if ENTS[key] and ENTS[key].type ~= 'dummy' then
+        local type = ENTS[key].type
+        local index = #vis_ents[type] + 1
+        --vis_ents[type][key] = ENTS[key]
+        vis_ents[type][index] = key
       end
     end
-  end
-  -- Sort the entities
-  table.sort(vis_ents, sort_render_order)
-end
-
-function sort_render_order(a, b)
-  local aPriority = math.huge
-  local bPriority = math.huge
-  for i, type in ipairs(render_order) do
-    if a.type == type then
-        aPriority = i
-        break
-    end
-  end
-  for i, type in ipairs(render_order) do
-    if b.type == type then
-        bPriority = i
-        break
-    end
-  end
-  if aPriority == bPriority then
-    return a.index < b.index
-  else
-    return aPriority < bPriority
   end
 end
 
@@ -153,63 +130,27 @@ function get_world_cell(mouse_x, mouse_y)
   return TileMan.tiles[wy][wx], wx, wy
 end
 
-function draw_pixel_sprite(pixels, x, y)
-  sspr(297, x, y, 0)
-  -- for i = 1, 3 do
-  --   for j = 1, 3 do
-  --     local index = ((i - 1) * 3) + j
-  --     local pix_color = pixels[index]
-  --     if pix_color ~= 0 then
-
-  --         draw_pixel(x + j - 1, y + i - 1, pix_color)
-
-  --     end
-  --   end
-  -- end
-end
-
-function draw_pixel_column(pixels, x, y, column)
-  if column == 1 then
-    draw_pixel(x + 0, y + 0, pixels[1])
-    draw_pixel(x + 0, y + 1, pixels[4])
-    draw_pixel(x + 0, y + 2, pixels[7])
-  elseif column == 2 then
-    draw_pixel(x + 1, y + 0, pixels[2])
-    draw_pixel(x + 1, y + 1, pixels[5])
-    draw_pixel(x + 1, y + 2, pixels[8])
-  elseif column == 3 then
-    draw_pixel(x + 2, y + 0, pixels[3])
-    draw_pixel(x + 2, y + 1, pixels[6])
-    draw_pixel(x + 2, y + 2, pixels[9])
-  end
-
-end
-
-function draw_pixel(x, y, color)
-  -- Check if the coordinates are within the screen bounds
-  if x >= 0 and x < 240 and y >= 0 and y < 136 and color ~= 0 then
-    poke4(0x0000 + (y * 240 + x), color)
-  end
+function is_facing(self, other, side)
+  local rotations = {
+    [0] = {['left'] = 1, ['right'] = 3},
+    [1] = {['left'] = 2, ['right'] = 0},
+    [2] = {['left'] = 3, ['right'] = 1},
+    [3] = {['left'] = 0, ['right'] = 2},
+  }
+  if rotations[self.rot][side] == other.rot then return true else return false end
 end
 
 function add_belt(x, y, rotation)
-  --local key = get_key(x, y)
   local tile, cell_x, cell_y = get_world_cell(x, y)
   local key = cell_x .. '-' .. cell_y
-  trace('adding belt with key = ' .. key)
   local belt = {}
   if not ENTS[key] or ENTS[key].type == 'ground-items' then
     belt = new_belt({x = cell_x, y = cell_y}, cursor.rotation)
     if ENTS[key] and ENTS[key].type == 'ground-items' then
       belt.lanes = ENTS[key].items
-      belt.index = ENTS[key].index
-      ENTS[belt.index] = belt
-      ENTS[key] = ENTS[belt.index]
+      ENTS[key] = belt
     else
-      table.insert(ENTS, belt)
-      local index = #ENTS
-      ENTS[key] = ENTS[index]
-      ENTS[key].index = index
+      ENTS[key] = belt
     end
   elseif ENTS[key] and ENTS[key].type == 'transport_belt' then
     ENTS[key]:rotate(cursor.rotation)
@@ -229,18 +170,9 @@ end
 function remove_belt(x, y)
   local key = get_key(x, y)
   local tile, cell_x, cell_y = get_world_cell(x, y)
-  if ENTS[key] then
-    --local index = ENTS[key].index
-    --ENTS[key] = nil
-    --table.remove(ENTS, index)
-    
-    for i = 1, #ENTS do
-      if ENTS[i] == ENTS[key] then
-        ENTS[key] = nil
-        table.remove(ENTS, i)
-        break
-      end
-    end
+  if not ENTS[key] then return end
+  if ENTS[key] and ENTS[key].type == 'transport_belt' then
+    ENTS[key] = nil
   end
   local tiles = {
     [1] = {x = cell_x, y = cell_y - 1},
@@ -248,8 +180,41 @@ function remove_belt(x, y)
     [3] = {x = cell_x, y = cell_y + 1},
     [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
-    local k = get_world_key(tiles[i].x, tiles[i].y)
+    local k = tiles[i].x .. '-' .. tiles[i].y
     if ENTS[k] and ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
+  end
+end
+
+function add_splitter(x, y)
+  local child = SPLITTER_ROTATION_MAP[cursor.rotation]
+  local tile, wx, wy = get_world_cell(x, y)
+  wx, wy = wx + child.x, wy + child.y
+  local tile2, cell_x, cell_y = get_world_cell(x, y)
+  local key = get_key(x, y)
+  local key2 = wx .. '-' .. wy
+  if not ENTS[key] and not ENTS[key2] then
+    local splitr = new_splitter(cell_x, cell_y, cursor.rotation)
+    splitr.other_key = key2
+    ENTS[key] = splitr
+    ENTS[key2] = {type = 'dummy', other_key = key, rot = cursor.rotation}
+    ENTS[key]:set_output()
+  end
+end
+
+function remove_splitter(x, y)
+  local key = get_key(x, y)
+  if not ENTS[key] then return end
+  if ENTS[key] and (ENTS[key].type == 'splitter' or ENTS[key].type == 'dummy') then
+    if ENTS[key].type == 'dummy' then key = ENTS[key].other_key end
+    local key_l, key_r = ENTS[key].output_key_l, ENTS[key].output_key_r
+    --trace('removing splitters: ')
+    local key2 = ENTS[key].other_key
+    --trace(key)
+    --trace(key2)
+    ENTS[key] = nil
+    ENTS[key2] = nil
+    if ENTS[key_l] and ENTS[key_l].type == 'transport_belt' then ENTS[key_l]:update_neighbors() end
+    if ENTS[key_r] and ENTS[key_r].type == 'transport_belt' then ENTS[key_r]:update_neighbors() end
   end
 end
 
@@ -261,24 +226,15 @@ function add_inserter(x, y, rotation)
       ENTS[key]:rotate(rotation)
     end
   elseif not ENTS[key] then
-    local new_ins = new_inserter({x = cell_x, y = cell_y}, rotation)
-    table.insert(ENTS, new_ins)
-    local index = #ENTS
-    ENTS[key] = ENTS[index]
-    ENTS[key].index = index
+    ENTS[key] = new_inserter({x = cell_x, y = cell_y}, rotation)
   end
 end
 
 function remove_inserter(x, y)
   local key = get_key(x, y)
+  if not ENTS[key] then return end
   if ENTS[key] and ENTS[key].type == 'inserter' then
-    for i = 1, #ENTS do
-      if ENTS[i] == ENTS[key] then
-        table.remove(ENTS, i)
-        ENTS[key] = nil
-        break
-      end
-    end
+    ENTS[key] = nil
   end
 end
 
@@ -286,34 +242,16 @@ function add_pole(x, y)
   local key = get_key(x,y)
   local tile, cell_x, cell_y = get_world_cell(x, y)
   if not ENTS[key] then
-    local pole = new_pole({x = cell_x, y = cell_y})
-    table.insert(ENTS, pole)
-    local index = #ENTS
-    ENTS[key] = ENTS[index]
-    ENTS[key].index = #ENTS
+    ENTS[key] = new_pole({x = cell_x, y = cell_y})
   end
-  --update power connections
 end
 
 function remove_pole(x, y)
   local key = get_key(x, y)
-  if ENTS[key] then
-    for i = 1, #ENTS do
-      if ENTS[i] == ENTS[key] then
-        ENTS[key] = nil
-        table.remove(ENTS, i)
-        --update power connections
-        break
-      end
-    end
+  if not ENTS[key] then return end
+  if ENTS[key] and ENTS[key].type == 'power_pole' then
+    ENTS[key] = nil
   end
-end
-
-function update_camera()
-  cam.x = math.min(120, 120 - player.x)
-  cam.y = math.min(64, 64 - player.y)
-  cam.ccx = cam.x / 8 + (cam.x % 8 == 0 and 1 or 0)
-  cam.ccy = cam.y / 8 + (cam.y % 8 == 0 and 1 or 0)
 end
 
 function move_player(x, y)
@@ -340,40 +278,24 @@ function update_player()
   if key(19) then move_player(player.x, player.y + 1) end --a
   if key(1)  then move_player(player.x - 1, player.y) end --s
   if key(4)  then move_player(player.x + 1, player.y) end --d
-  -- if player.x ~= player.lx or player.y ~= player.ly then
-  --   player.x = math.min(math.max(-120, player.x), MAP_WIDTH - 8 - 120)
-  --   player.y = math.min(math.max(-64, player.y), MAP_HEIGHT - 8 - 64)
-  -- end
-end
-
-function get_flags(x, y, flags)
-  local cell_x, cell_y = get_cell(x, y)
-  if type(flags) == 'table' then
-    local flag = ''
-    for i = flags[1], flags[2] do
-      flag = flag .. (fget(mget(cell_x//8, cell_y//8), i) == true) and '1' or '0'
-    end
-    return flag
-  end
-  return fget(mget(cell_x//8, cell_y//8), flags)
 end
 
 --temp
-local cursor_items = {[0] = 'transport_belt', [1] = 'inserter', [2] = 'power_pole', [3] = 'pointer'}
-local cursor_item = 3
+local cursor_items = {[0] = 'transport_belt', [1] = 'inserter', [2] = 'power_pole', [3] = 'pointer', [4] = 'splitter'}
+local cursor_item = 4
 
 function cycle_hotbar(dir)
   cursor_item = cursor_item + dir
   inv.active_slot = inv.active_slot + dir
   if inv.active_slot < 1 then inv.active_slot = 10 end
   if inv.active_slot > 10 then inv.active_slot = 1 end
-  if cursor_item < 0 then cursor_item = 3 end
-  if cursor_item > 3 then cursor_item = 0 end
+  if cursor_item < 0 then cursor_item = 4 end
+  if cursor_item > 4 then cursor_item = 0 end
   cursor.item = cursor_items[cursor_item]
 end
 
-function add_item(id)
-  local key = get_key(cursor.x, cursor.y)
+function add_item(x, y, id)
+  local key = get_key(x, y)
   if ENTS[key] and ENTS[key].type == 'transport_belt' then
     ENTS[key].idle = false
     ENTS[key].lanes[1][8] = id
@@ -420,10 +342,6 @@ end
 function draw_cursor()
   local x, y = cursor.x, cursor.y
   local key = get_key(x, y)
-  -- if not fget(mget(get_world_cell(x, y)), 0) then
-  --   sspr(271, cursor.tile_x, cursor.tile_y, 00, 1, 0, 0, 1, 1) 
-  --   return
-  -- end
 
   if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) then
     if cursor.panel_drag then
@@ -467,6 +385,11 @@ function draw_cursor()
     sspr(CURSOR_POINTER_ID, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
     sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
     pix(cursor.x, cursor.y, 2)
+  elseif cursor.item == 'splitter' then
+    local loc = SPLITTER_ROTATION_MAP[cursor.rotation]
+    sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+    sspr(CURSOR_HIGHLIGHT_ID, cursor.tile_x - 1 + (loc.x * 8), cursor.tile_y - 1 + (loc.y * 8), 0, 1, 0, 0, 2, 2)
+    sspr(SPLITTER_ID, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.rotation, 1, 2)
   end
 end
 
@@ -492,9 +415,6 @@ function rotate_cursor()
       if ENTS[key].type == 'inserter' and cursor.item == 'pointer' then
         ENTS[key]:rotate(ENTS[key].rot + 1)
       end
-    -- else
-    --   cursor.rotation = cursor.rotation + 1
-    --   if cursor.rotation > 3 then cursor.rotation = 0 end
     end
   end
 end
@@ -506,19 +426,35 @@ function place_tile(x, y, rotation)
     add_inserter(x, y, cursor.rotation)
   elseif cursor.item == 'power_pole' then
     add_pole(x, y)
+  elseif cursor.item == 'splitter' then
+    add_splitter(x, y)
   end
 end
 
 function remove_tile(x, y)
-  remove_belt(x, y)
-  remove_inserter(x, y)
-  remove_pole(x, y)
+  local tile, wx, wy = get_world_cell(x, y)
+  local key = wx .. '-'.. wy
+  if ENTS[key] then
+    if ENTS[key].type == 'transport_belt' then
+      remove_belt(x, y)
+    elseif ENTS[key].type == 'inserter' then
+      remove_inserter(x, y)
+    elseif ENTS[key].type == 'power_pole' then
+      remove_pole(x, y)
+    elseif ENTS[key].type == 'splitter' or ENTS[key].type == 'dummy' then
+      remove_splitter(x, y)
+    end
+  end
+
 end
 
 function pipette()
   if cursor.item == 'pointer' then
     local key = get_key(cursor.x, cursor.y)
     if ENTS[key] then
+      if ENTS[key].type == 'dummy' then
+        key = ENTS[key].other_key
+      end
       cursor.item = ENTS[key].type
       if ENTS[key].rot then
         cursor.rotation = ENTS[key].rot
@@ -540,10 +476,8 @@ function handle_input()
     cursor.drag = false
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
       cursor.tile_y = sy
-      --cursor.y = sy
     else      
       cursor.tile_x = sx
-      --cursor.x = sx
     end
   end
 
@@ -573,17 +507,15 @@ function handle_input()
 
   if keyp(18) and not keyp(63) then rotate_cursor()end --r
   if keyp(17) then pipette()            end --q
-  if key(6)   then add_item(1)          end --f
-  if key(7)   then add_item(2)          end --g
+  if key(6)   then add_item(x, y, 1)          end --f
+  if key(7)   then add_item(x, y, 2)          end --g
   if keyp(9) or keyp(49) then toggle_inventory() end --i or tab
   if keyp(8) then toggle_hotbar() end
   if keyp(3) then toggle_crafting() end
   if keyp(25) then debug = debug == false and true or false end
 
-  --local x, y, l, m, r, sx, sy = mouse()
   if craft_menu.vis and not cursor.panel_drag and left and not cursor.last_left and craft_menu:is_hovered(x, y) == true then
     if craft_menu:click(x, y) then
-      --craft_menu.vis = false
     elseif not craft_menu.docked then
       cursor.panel_drag = true
       cursor.drag_offset.x = craft_menu.x - x
@@ -594,13 +526,10 @@ function handle_input()
   if craft_menu.vis and cursor.panel_drag then
     craft_menu.x = math.max(1, math.min(x + cursor.drag_offset.x, 239 - craft_menu.w))
     craft_menu.y = math.max(1, math.min(y + cursor.drag_offset.y, 135 - craft_menu.h))
-    -- if inv.vis then
-    --   inv.x = craft_menu.x - inv.w - 2
-    --   inv.y = craft_menu.y + 27
-    -- end
   end
 
-  cursor.last_tile_x, cursor.last_tile_y = screen_tile_x, screen_tile_y
+  cursor.last_tile_x, cursor.last_tile_y = cursor.tile_x, cursor.tile_y
+  cursor.tile_x, cursor.tile_y = screen_tile_x, screen_tile_y
   cursor.last_rotation = cursor.rotation
   cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, left, middle, right
   cursor.x, cursor.y = x, y
@@ -609,7 +538,6 @@ end
 function toggle_hotbar()
   if not inv.hotbar_vis then
     inv.hotbar_vis = true
-    --cursor.item = 'pointer'
   else
     inv.hotbar_vis = false
     inv.hovered_slot = -1
@@ -619,7 +547,6 @@ end
 function toggle_inventory()
   if not inv.vis then
     inv.vis = true
-    --cursor.item = 'pointer'
   else
     inv.hovered_slot = -1
     inv.vis = false
@@ -656,20 +583,60 @@ end
 
 function update_ents()
   if TICK % 5 == 0 then
-    for k, v in ipairs(ENTS) do
-      v:update()
+    for k, v in pairs(ENTS) do
+      if v.type ~= 'dummy' then
+        v:update()
+      end
     end
   end
 end
 
 function draw_ents()
-  for k, ent in ipairs(vis_ents) do
+  for key, ent in pairs(vis_ents['transport_belt']) do
+    ent:draw()
+  end
+  for key, ent in pairs(vis_ents['transport_belt']) do
+    trace('drawing belt items')
+    ent:draw_items()
+  end
+  for key, ent in pairs(vis_ents['inserter']) do
+    ent:draw()
+  end
+  for key, ent in pairs(vis_ents['power_pole']) do
+    ent:draw()
+  end
+  for key, ent in pairs(vis_ents['splitter']) do
     ent:draw()
   end
 end
 
+function draw_ents2()
+  for k, v in pairs(vis_ents) do
+    if k == 'transport_belt' then
+      for index, key in pairs(vis_ents[k]) do
+        if ENTS[key] then ENTS[key]:draw() end
+      end
+      for index, key in pairs(vis_ents[k]) do
+        if ENTS[key] then ENTS[key]:draw_items() end
+      end
+    elseif k == 'splitter' then
+      for index, key in ipairs(vis_ents[k]) do
+        if ENTS[key] then ENTS[key]:draw() end
+      end
+      -- for index, key in ipairs(vis_ents[k]) do
+      --   if ENTS[key] then ENTS[key]:draw_items() end
+      -- end
+    else
+      for index, key in pairs(vis_ents[k]) do
+        --trace('drawing ent' .. k)
+        if ENTS[key] then ENTS[key]:draw() end
+      end
+    end
+  end
+end
+
 function draw_belt_items()
-  for k, ent in ipairs(vis_ents) do
+  for k, ent in pairs(vis_ents) do
     if ent.type == 'transport_belt' and not ent.drawn then
       ent:draw_items()
     end
@@ -677,10 +644,7 @@ function draw_belt_items()
 end
 
 function draw_map()
-  if player.x ~= player.lx or player.y ~= player.ly then
-    mcx, mcy, mw, mh, msx, msy = 15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8, (cam.y % 8) - 8
-  end
-  map(mcx, mcy, mw, mh, msx, msy)
+  TileMan:draw(player, 31, 18)
 end
 
 local function lapse(fn, ...)
@@ -700,7 +664,7 @@ function TIC()
   --local uc_time = lapse(update_camera)
   --map(15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8,(cam.y % 8) - 8)
   --local m_time = lapse(draw_map)
-  local m_time = lapse(TileMan.draw, TileMan, player, 31, 18)
+  local m_time = lapse(draw_map)
   --update_player()
   local up_time = lapse(update_player)
   --handle_input()
@@ -713,7 +677,7 @@ function TIC()
 
   local ue_time = lapse(update_ents)
   --draw_ents()
-  local de_time = lapse(draw_ents)
+  local de_time = lapse(draw_ents2)
   
   -- local key = get_key(cursor.x, cursor.y)
   -- local cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
@@ -738,9 +702,9 @@ function TIC()
 
   --draw_debug2(info)
 
-  sspr(player.spr, 116, 64, 0)
+  sspr(player.spr, 116, 64, 1, 1, 0, 0, 1, 2)
   
-  for k, v in ipairs(ENTS) do
+  for k, v in pairs(ENTS) do
     v.updated = false
     v.drawn = false
     v.is_hovered = false
@@ -767,17 +731,43 @@ function TIC()
   --   [8] = 'draw_belt_items: ' ..db_time,
   --   [9] = 'get_vis_ents: ' .. gv_time,
   -- }
+  local ents = 0
+  for k, v in pairs(vis_ents) do
+    for _, ent in ipairs(v) do
+      ents = ents + 1
+    end
+  end
   local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
   local sx, sy = get_screen_cell(cursor.x, cursor.y)
   local key = get_key(cursor.x, cursor.y)
-  local info = {
-    [1] = 'Wx,Wy: ' .. wx ..',' .. wy,
-    [2] = 'Tile: ' .. tile,
-    [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
-    [4] = 'Key: ' .. key,
-    [5] = '#Ents: ' .. #vis_ents,
-    [6] = 'Frame Time: ' .. floor(time() - start)
-  }
+  -- local info = {
+  --   [1] = 'Wx,Wy: ' .. wx ..',' .. wy,
+  --   [2] = 'Tile: ' .. tile,
+  --   [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
+  --   [4] = 'Key: ' .. key,
+  --   [5] = '#Ents: ' .. ents,
+  --   [6] = 'Frame Time: ' .. floor(time() - start)
+  -- }
+  local info
+  local ent = ENTS[key]
+  if ent then
+    if ent.type == 'transport_belt' or ent.type == 'splitter' then
+      info = ent:get_info()
+    else
+      info = {
+        [1] = 'ENT: ' .. ent.type,
+        [2] = 'ROT: ' .. ent.type ~= 'power_pole' and ent.rot or 'nil',
+        [3] = 'MAP: ' .. key
+      }
+    end
+    --if ent.other_key then info[4] = 'OTK: ' .. ent.other_key end
+    info[#info + 1] = 'MAP: ' .. key
+  else
+    info = {
+      [1] = 'nil',
+      [2] = 'KEY: ' .. key
+    }
+  end
   draw_debug2(info)
 end
 
@@ -832,6 +822,27 @@ end
 -- 047:f000f00f000000f0000f0000f000000f00000f00f0f0000f0000f0f00f0f000f
 -- </TILES>
 
+-- <TILES1>
+-- 000:11efef111efefef11eeeeee11efefee11f6f6ff11efdfed111dddd11110dd011
+-- 001:11fefe111fefefe11eeeeee11eefefe11ff6f6f11defdfe111dddd11110dd011
+-- 016:10effe0110feef1010effe101deeee1d118ff81111411f111111141111111111
+-- 017:10effe0101feef0101effe01d1eeeed1118ff81111f114111141111111111111
+-- 032:11efef111efefef11eeeeee11efefee11f6f6ff11efdfed111dddd11110dd011
+-- 033:11fefe111fefefe11eeeeee11eefefe11ff6f6f11defdfe111dddd11110dd011
+-- 034:1fffff11ffefeff1fcccccf1cffcffc1f5ff5ff1cffcffc11ccccc1110eee011
+-- 035:1fffff11ffefeff1fcccccf1cffcffc1f55f55f1cffcffc11ccccc1110eee011
+-- 036:1fffff11ffefeff1fcccccf1cffcffc1ff5ff5f1cffcffc11ccccc1110eee011
+-- 037:1fffff11ffeeeff1fecccef1eccfcfe1fff5f5f1eccfcfe11eccce1110efe011
+-- 038:1ffeff11efefefe1fecccef1cecccec1fffffff1cecccec11eccce1110ddd011
+-- 048:10effe0110feef0110effe011deeeed1118ff81111f11f111141141111111111
+-- 049:10effe0110feef0110effe011deeeed1118ff81111f11f111141141111111111
+-- 050:0dfffd010fffff010efffe010eeeee01cedddec11ed1de111ff1ff1114414411
+-- 051:0dfffd010fffff010efffe010eeeee01cedddec11ed1de111ff1ff1114414411
+-- 052:0dfffd010fffff010efffe010eeeee01cedddec11ed1de111ff1ff1114414411
+-- 053:0dfffd010fffff010efffe010eeeee01cedddec11ed1de111ff1ff1114414411
+-- 054:ecfffce10fffff010efffe010eeeee01deccced11ec1ce111ff1ff1114414411
+-- </TILES1>
+
 -- <SPRITES>
 -- 000:ffffffffeeeeeeee4fcd4fcdfcd4fcd4fcd4fcd44fcd4fcdeeeeeeeeffffffff
 -- 001:ffffffffeeeeeeeefcd4fcd4cd4fcd4fcd4fcd4ffcd4fcd4eeeeeeeeffffffff
@@ -870,7 +881,8 @@ end
 -- 037:0000000200000000000000000000000000000000000000000000000000000000
 -- 038:2200000022200000022200000023200000023000000000000000000000000000
 -- 039:0002200000022000000220000002200000022000000220000002300000032000
--- 041:9980000034900000894000000000000000000000000000000000000000000000
+-- 041:dcb00000bfd00000cbe000000000000000000000000000000000000000000000
+-- 042:0ed00000c12c0000d22d00000dd0000000000000000000000000000000000000
 -- 045:0f4444f0f4dddd4e44dddd4404effe4044dddd44e444444e0d4ee4d0eeccccee
 -- 046:0000000000000000000009000000090000000090000000090000000900000009
 -- 047:0000000000000000009000000090000009000000900000009000000090000000
@@ -883,18 +895,29 @@ end
 -- 055:feddddeffed44deffe4ee4eff4eeee4fdddeedddcffffffceeeeeeeefffffffe
 -- 056:3030303000000000300000000000000030000000000000003000000000000000
 -- 057:3000000003000000000000000300000000000000030000000000000003000000
+-- 058:11efef111efefef11eeeeee11efefee11f6f6ff11efcfec111cccc11110ee011
+-- 059:11fefe111fefefe11eeeeee11eefefe11ff6f6f11cefcfe111cccc11110ee011
 -- 062:000000030000008900000888000089800000a800000000000000000000000000
 -- 063:90000000380000008880000008980000008a0000000000000000000000000000
 -- 064:3300003330000003000000000000000000000000000000003000000333000033
 -- 068:0001100000011000000cd000000dc000000ce000000cd0000000000000000000
+-- 069:000fffff00fe4fee0f4e4fcdfe4e4fd4fe4e4fd4fe4e4fcdfe4efeee0fffffff
+-- 070:000fffff00fe2fee0f2e2fcdfe2e2fd2fe2e2fd2fe2e2fcdfe2efeee0fffffff
+-- 071:000fffff00fe9fee0f9e9fcdfe9e9fd9fe9e9fd9fe9e9fcdfe9efeee0fffffff
 -- 072:3000000003030303000000000000000000000000000000000000000000000000
 -- 073:0000000003000000000000000000000000000000000000000000000000000000
+-- 074:10effe0110feef0110effe011dfeefd1119999111198191111f81f1111481411
+-- 075:10effe0110feef0110effe011deeeed1119999111198891111f88f1111488411
 -- 080:2400000030000000000000000000000000000000000000000000000000000000
 -- 081:deffd000fdeff000ffdef000effde000deffd000fdeff0000fde000000f00000
 -- 082:0027272702727272272727277272000027200000727006562720056572700656
 -- 083:7270656027205656727065652720565672720000272727270272727200272727
 -- 085:bbb00000bd000000b0b00000000b000000000000000000000000000000000000
--- 090:000eeef000e4dcef004ccddf04cdecdf04dececf004decdf00e4cdcf000cdcef
+-- 086:000fffff00fe4fee0f4e4fcdfe4e4fd4fe4e4fd4fe4e4fcdfe4efeee0fffffff
+-- 087:000efffe000fccdf00f4dde00f4defd00f4dfed000f4dde0000fccf0000fccff
+-- 089:000cccc0000f4ed000f4dfee0f4dfdfe00f4dfee000f4ed00000ded00000ccc0
+-- 090:000eefff00e4fcee004ccdde04cdecde04decece004decde00e4cdce000fdcef
+-- 091:0000fef0000f4fe000f4ccd00f4cdfd00f4dfcf000f4dfd0000f4cc00000fde0
 -- 093:0000c0ef009cdcef09cdcddf9cdcecdf9dcececf09dcecdf009dcdef0000d0ef
 -- 094:0000c0ef002cdcef02cdcddf2cdcecdf2dcececf02dcecdf002dcdef0000d0ef
 -- 095:000fffc0000cdfc0000cccd000c4ecd00c4edcd004eeecd00c4edcd000e4cec0
@@ -902,7 +925,12 @@ end
 -- 097:0000de00dddddde04fec4fdefec4fedefec4fede4fec4fdedddddde00000de00
 -- 100:00b0000000b0000000bbb000b0bbb0000bbbb00000cc00000000000000000000
 -- 101:000000000bb000000bbb0000bbbb0000bbbb00000cc000000000000000000000
--- 106:000cdcef00e4cdcf004decdf04dececf04cdecdf004ccddf00e4dcef000eeef0
+-- 102:000dddff00df4dee0d4f4dcddf4f4dd4df4f4dd4df4f4dcddf4ddeeedddeffff
+-- 103:000fccff000fccf000f4dde00f4dfed00f4defd000f4dde0000fccdf000efffe
+-- 104:0000fed0000f4de000f4ccd00f4cdfd00f4dfcf000f4dfd0000f4cc00000fde0
+-- 105:000fee0000f4dde00f4defd00f4dfed000f4dde0000fecd00000ded000000dc0
+-- 106:1fffff11ffefeff1fcccccf1cffcffc1f5ff5ff1cffcffc11ccccc1110eee011
+-- 107:1fffff11ffefeff1fcccccf1cffcffc1f55f55f1cffcffc11ccccc1110eee011
 -- 109:009dcdef09dcecdf9dcececf9cdcecdf09cdcddf009cdcdf00f0c0df00ecddef
 -- 110:002dcdef02dcecdf2dcececf2cdcecdf02cdcddf002cdcdf00f0c0df00ecddef
 -- 111:00e4cec00c4edcd004eeecd00c4edcd000c4ecd0000cccd0000cdfc0000fffc0
@@ -913,6 +941,8 @@ end
 -- 119:000dddff00deedee0de4fdd4de4fed4fde4fed4fdee4fdd4deeddeeedddeffff
 -- 120:000dddff00deedee0de4fd4fde4fedfcde4fedfcdee4fd4fdeeddeeedddeffff
 -- 121:000dddff00deedee0de4fdfcde4fedcdde4fedcddee4fdfcdeeddeeedddeffff
+-- 122:0dfffd010fffff010efffe010eeeee01cedddec11ed1de111ff1ff1114414411
+-- 123:0dfffd010fffff010efffe010eeeee01cedddec11ed1de111ff1ff1114414411
 -- 128:e0000000e0000000e00000d0e0000de0e000defde0000ff0e00000e0e0000000
 -- 129:000ee000000cc000000ee000000cc000dddeeddd000cc000000ee000000cc000
 -- 130:0000000e0000000e0e00000e0ff0000edfed000e0ed0000e0d00000e0000000e
