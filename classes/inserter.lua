@@ -93,13 +93,13 @@ function inserter.update(self)
       --try to deposit item
       --trace('looking for output')
       if ENTS[self.to_key] and ENTS[self.to_key].type == 'transport_belt' then
+        ENTS[self.to_key].idle = false
         --trace('FOUND belt')
         for i = 8, 1, -1 do
           local index = ENTS[self.to_key].rot
           local lane = INSERTER_DEPOSIT_MAP[self.rot][index]
           if ENTS[self.to_key].lanes[lane][i] == 0 then
             ENTS[self.to_key].lanes[lane][i] = self.held_item_id
-            ENTS[self.to_key].idle = false
             self.held_item_id = 0
             self.state = 'return'
             break
