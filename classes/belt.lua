@@ -15,6 +15,7 @@ local belt = {
   type = 'transport_belt',
   idle = false,
   updated = false,
+  belt_drawn = false,
   drawn = false,
   output_key = nil,
   output_item_key = nil,
@@ -22,6 +23,7 @@ local belt = {
   exit = {x = -8, y = 0},
   is_hovered = false,
   index = 0,
+  curve_checked = false,
 }
 
 BELT_OUTPUT_MAP = {
@@ -229,8 +231,9 @@ function belt.rotate(self, rotation)
   --self.exit = BELT_ROTATION_MAP[rotation]
   if rotation > 3 then rotation = 0 end
   self.rot = rotation
-  --self:set_output()
+  self:set_output()
   self:set_curved()
+  --self:update_neighbors()
 end
 
 function belt.is_facing(self, other)
@@ -251,7 +254,7 @@ function belt.set_output(self)
       self.output = BELT_OUTPUT_MAP[self.rot .. ENTS[key].rot]
     elseif ENTS[key].type == 'splitter' or ENTS[key].type == 'dummy' and ENTS[key].rot == self.rot then
       if ENTS[key].type == 'dummy' then self.output_key = ENTS[key].other_key end
-      self.output = BELT_OUTPUT_MAP[self.rot .. self.rot]
+      self.output = BELT_OUTPUT_MAP[self.rot .. ENTS[key].rot]
     else
       self.output = nil
     end
@@ -263,42 +266,6 @@ function belt.set_output(self)
   end
 end
 
-function belt.set_output1(self)
-  self.exit = BELT_ROTATION_MAP[self.rot]
-  local key = self.pos.x + self.exit.x .. '-' .. self.pos.y + self.exit.y
-  local ent = ENTS[key]
-
-  if ENTS[key] and ENTS[key].type == 'transport_belt' then
-    local index = self.rot .. ENTS[key].rot
-    self.output = BELT_OUTPUT_MAP[index]
-    --self.output_item_key = ent.rot .. self.rot
-  elseif ENTS[key] and (ENTS[key].type == 'splitter' or ENTS[key].type == 'dummy') and ENTS[key].rot == self.rot then
-    local index = self.rot .. self.rot
-    self.output = BELT_OUTPUT_MAP[index]
-  else
-    self.output = nil
-  end
-  if self.id == BELT_ID_STRAIGHT then
-    self.output_item_key = self.rot .. self.rot
-  end
-  self.output_key = key
-end
-
-function belt.set_output2(self)
-  self.exit = BELT_ROTATION_MAP[self.rot]
-  local key = self.pos.x + self.exit.x .. '-' .. self.pos.y + self.exit.y
-  if ENTS[key] and (ENTS[key].type == 'transport_belt' or ENTS[key].type == 'splitter' or ENTS[key].type == 'dummy') then
-    local index = self.rot .. ENTS[key].rot
-    self.output = BELT_OUTPUT_MAP[index]
-  else
-    self.output = nil
-  end
-  if self.id == BELT_ID_STRAIGHT then
-    self.output_item_key = self.rot .. self.rot
-  end
-  self.output_key = key
-end
-
 function belt:has_items()
   for i = 1, 2 do
     for j = 1, 8 do
@@ -308,38 +275,7 @@ function belt:has_items()
   return false
 end
 
-function belt.set_curved2(self)
-  --checks left, right, and rear tiles (relative to ENTS rotation) for other ENTS
-  --ENTS only curve if loc2 (rear input) is not facing me, loc1 XOR loc3, else belt is straight
-  --loc1 = left input
-  --loc2 = rear input
-  --loc3 = right input
-  --local key = get_key(self.pos.x, self.pos.y)
-  local x, y = self.pos.x, self.pos.y
-  local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
-  local left, rear, right = get_world_key(loc1.x + x, loc1.y + y), get_world_key(loc2.x + x, loc2.y + y), get_world_key(loc3.x + x, loc3.y + y)
-  if not ENTS[rear] or (ENTS[rear].type == 'transport_belt' and not ENTS[rear]:is_facing(self) or ENTS[rear].type ~= 'transport_belt') then
-    --no input belt facing same direction eg. <-<- or ->->
-    if ENTS[left] and ENTS[left].type == 'transport_belt' and ENTS[left]:is_facing(self) and (not ENTS[right] or (ENTS[right].type == 'transport_belt' and not ENTS[right]:is_facing(self)) or ENTS[right].type ~= 'transport_belt') then
-      --found a belt to the left, and belt is facing me, and no other ENTS are facing me
-      self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
-    elseif ENTS[right] and ENTS[right].type == 'transport_belt' and ENTS[right]:is_facing(self) and (not ENTS[left] or (ENTS[left].type == 'transport_belt' and not ENTS[left]:is_facing(self)) or ENTS[left].type ~= 'transport_belt') then
-      --found a belt to the right, and belt is facing me, and no other ENTS are facing me
-      self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
-    else
-      --if (ENTS[right] and ENTS[right]:is_facing(self)) or (ENTS[left] and ENTS[left]:is_facing(self)) 
-      --or (not ENTS[left]) or (not ENTS[right]) or (ENTS[left]) then
-      self.id = BELT_ID_STRAIGHT
-      self.output_item_key = self.rot .. self.rot
-    end 
-  else
-    self.id = BELT_ID_STRAIGHT
-    self.output_item_key = self.rot .. self.rot
-  end
-  self:set_output()
-end
-
-function belt.update_neighbors(self)
+function belt.update_neighbors(self, key)
   local cell_x, cell_y = self.pos.x, self.pos.y
   local tiles = {
     [1] = {x = cell_x, y = cell_y - 1},
@@ -348,95 +284,76 @@ function belt.update_neighbors(self)
     [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
     local k = tiles[i].x .. '-' .. tiles[i].y
-    if ENTS[k] and ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
+    if ENTS[k] or (key and ENTS[key] and ENTS[k] ~= ENTS[key]) then
+      if ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
+      if ENTS[k].type == 'splitter' then ENTS[k]:set_output() end
+      if ENTS[k].type == 'dummy' then ENTS[ENTS[k].other_key]:set_output() end
+    end
   end
   self:set_curved()
 end
 
 function belt.set_curved(self)
-  --checks left, right, and rear tiles (relative to ENTS rotation) for other ENTS
-  --ENTS only curve if loc2 (rear input) is not facing me, loc1 XOR loc3, else belt is straight
-  --loc1 = left input
-  --loc2 = rear input
-  --loc3 = right input
-  --local key = get_key(self.pos.x, self.pos.y)
-  local x, y = self.pos.x, self.pos.y
-  local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
-  local left, rear, right = get_world_key(loc1.x + x, loc1.y + y), get_world_key(loc2.x + x, loc2.y + y), get_world_key(loc3.x + x, loc3.y + y)
-  if ENTS[left] and is_facing(self, ENTS[left], 'left') then trace('ent facing belt on left') else trace('no ent to the left') end
-  if ENTS[right] and is_facing(self, ENTS[right], 'right') then trace('ent facing belt on right') else trace('no ent to the right') end
-  --conditions to curve:
-  --no belt/splitter behind me that's facing me
-  --curve left if no belt/splitter to the right facing me AND  >
-  --splitter/belt on left facing me
-  ------------------------------------------------------------------------------------------
-    if not ENTS[rear] or (ENTS[rear] and ENTS[rear].rot ~= self.rot) then
-      --can curve left or right now, since no REAR connection preventing snapping
-
-      --------------------------------------------------------------------------------------
-      if ENTS[left]
-      and
-      (ENTS[left].type == 'transport_belt' or ENTS[left].type == 'splitter' or ENTS[left].type == 'dummy')
-      and
-      ENTS[left].rot == loc1.other_rot
-      and
-      (not ENTS[right] or (ENTS[right] and ENTS[right].rot ~= loc3.other_rot))
-      --is_facing(self, ENTS[left], 'left') and
-      --(not ENTS[right] or (ENTS[right] and not is_facing(self, ENTS[right], 'right')))
+  if not self.curve_checked then
+    self.curve_checked = true
+    --checks left, right, and rear tiles (relative to ENTS rotation) for other ENTS
+    --ENTS only curve if loc2 (rear input) is not facing me, loc1 XOR loc3, else belt is straight
+    --loc1 = left input
+    --loc2 = rear input
+    --loc3 = right input
+    local x, y = self.pos.x, self.pos.y
+    local loc1, loc2, loc3 = table.unpack(BELT_CURVE_MAP[self.rot])
+    local left, rear, right = get_world_key(loc1.x + x, loc1.y + y), get_world_key(loc2.x + x, loc2.y + y), get_world_key(loc3.x + x, loc3.y + y)
+    --if ENTS[left] and is_facing(self, ENTS[left], 'left') then trace('ent facing belt on left') else trace('no ent to the left') end
+    --if ENTS[right] and is_facing(self, ENTS[right], 'right') then trace('ent facing belt on right') else trace('no ent to the right') end
+    --conditions to curve:
+    --no belt/splitter behind me that's facing me
+    --curve left if no belt/splitter to the right facing me AND  >
+    --splitter/belt on left facing me
+    ------------------------------------------------------------------------------------------
+      if not ENTS[rear] or (ENTS[rear] and ENTS[rear].rot ~= self.rot) then
+        --can curve left or right now, since no REAR connection preventing snapping
+        --------------------------------------------------------------------------------------
+        if ENTS[left]
+        and
+        (ENTS[left].type == 'transport_belt' or ENTS[left].type == 'splitter' or ENTS[left].type == 'dummy')
+        and
+        ENTS[left].rot == loc1.other_rot
+        and
+        (not ENTS[right] or (ENTS[right] and ENTS[right].rot ~= loc3.other_rot))
+        --is_facing(self, ENTS[left], 'left') and
+        --(not ENTS[right] or (ENTS[right] and not is_facing(self, ENTS[right], 'right')))
+        then
+          self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
+        --------------------------------------------------------------------------------------
+        elseif ENTS[right]
+        and
+        (ENTS[right].type == 'transport_belt' or ENTS[right].type == 'splitter' or ENTS[right].type == 'dummy')
+        and
+        ENTS[right].rot == loc3.other_rot
+        and
+        (not ENTS[left] or (ENTS[left] and ENTS[left].rot ~= loc1.other_rot))
       then
-        self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
-      --------------------------------------------------------------------------------------
-
-      elseif ENTS[right]
-      and
-      (ENTS[right].type == 'transport_belt' or ENTS[right].type == 'splitter' or ENTS[right].type == 'dummy')
-      and
-      ENTS[right].rot == loc3.other_rot
-      and
-      (not ENTS[left] or (ENTS[left] and ENTS[left].rot ~= loc1.other_rot))
-      -- is_facing(self, ENTS[right], 'right') and
-      -- (not ENTS[left] or (ENTS[left] and not is_facing(self, ENTS[left], 'left')))
-      then
-        self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
-      --------------------------------------------------------------------------------------
-
+          self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
+        --------------------------------------------------------------------------------------
+        else
+          self.id = BELT_ID_STRAIGHT
+          self.output_item_key = self.rot .. self.rot
+        end
+      ------------------------------------------------------------------------------------------
       else
-        --if ENTS[left] and is_facing(self, ENTS[left], 'left') or ENTS[right] and is_facing(self, ENTS[right], 'right') or (not ENTS[left] and not ENTS[right]) then
         self.id = BELT_ID_STRAIGHT
         self.output_item_key = self.rot .. self.rot
       end
-    ------------------------------------------------------------------------------------------
-    else
-      self.id = BELT_ID_STRAIGHT
-      self.output_item_key = self.rot .. self.rot
-    end
-    self:set_output()
-
-  -- if not ENTS[rear] or (ENTS[rear].type == 'transport_belt' and not ENTS[rear]:is_facing(self) or ENTS[rear].type ~= 'transport_belt') then
-  --   --no input belt facing same direction eg. <-<- or ->->
-  --   if     ENTS[left] and ENTS[left].type == 'transport_belt' and ENTS[left]:is_facing(self) and (not ENTS[right] or (ENTS[right].type == 'transport_belt' and not ENTS[right]:is_facing(self)) or ENTS[right].type ~= 'transport_belt') then
-  --     --found a belt to the left, and belt is facing me, and no other ENTS are facing me
-  --     self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc1.flip, loc1.rot, loc1.key
-  --   elseif ENTS[right] and ENTS[right].type == 'transport_belt' and ENTS[right]:is_facing(self) and (not ENTS[left] or (ENTS[left].type == 'transport_belt' and not ENTS[left]:is_facing(self)) or ENTS[left].type ~= 'transport_belt') then
-  --     --found a belt to the right, and belt is facing me, and no other ENTS are facing me
-  --     self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
-  --   else
-  --     --if (ENTS[right] and ENTS[right]:is_facing(self)) or (ENTS[left] and ENTS[left]:is_facing(self)) 
-  --     --or (not ENTS[left]) or (not ENTS[right]) or (ENTS[left]) then
-  --     self.id = BELT_ID_STRAIGHT
-  --     self.output_item_key = self.rot .. self.rot
-  --   end 
-  -- else
-  --   self.id = BELT_ID_STRAIGHT
-  --   self.output_item_key = self.rot .. self.rot
-  -- end
-  -- self:set_output()
+      self:set_output()
+  end
 end
 
 function belt.update(self)
   --self.idle = false
   -- if we have NOT updated this frame, continue
-  if not self.updated and not self.idle then
+  if self.updated then return end
+  if not self.updated then
     self.updated = true
     local should_idle = true
     for i = 1, 2 do
@@ -455,7 +372,7 @@ function belt.update(self)
             if ENTS[self.output_key].type == 'transport_belt' then
               ENTS[self.output_key].idle = false
               --if i am facing another belt, update that belt first
-              if ENTS[self.output_key].updated == false then ENTS[self.output_key]:update() end
+              if not ENTS[self.output_key].updated then ENTS[self.output_key]:update() end
               --if we find a belt, and the ENTS nearest slot is empty (equals 0) then
               --move item to that belt
               if ENTS[self.output_key].id == BELT_ID_CURVED and ENTS[self.output_key].lanes[i][8] == 0 then
@@ -468,31 +385,20 @@ function belt.update(self)
                 --ENTS[self.output_key].idle = false
                 self.lanes[i][j] = 0
               end
+            --------------------------------------------------------------------------------------------------
             elseif ENTS[self.output_key].type == 'splitter' or ENTS[self.output_key].type == 'dummy' then
-              --trace(self.output_key)
               local key = self.output_key
               --if key is a dummy splitter, then get the parent splitter's key
-              if ENTS[self.output_key].type == 'dummy' then
-                --trace('dummy detected')
+              if ENTS[key].type == 'dummy' then
                 key = ENTS[self.output_key].other_key
               end
               --if not ENTS[key].updated then ENTS[key]:update() end
-              local should_shift = false
-              if ENTS[key].shift then
-                if ENTS[key].lanes.right[i][8] == 0 then
-                  ENTS[key].lanes.right[i][8] = id
-                  self.lanes[i][j] = 0
-                  --should_shift = true
-                end
-              else
-                if ENTS[key].lanes.left[i][8] == 0 then
-                  ENTS[key].lanes.left[i][8] = id
-                  self.lanes[i][j] = 0
-                  --should_shift = true
-                end
+              if ENTS[key]:input(id, i) then
+                self.lanes[i][1] = 0
               end
               --if should_shift then ENTS[key].shift = not ENTS[key].shift end
             end
+          ------------------------------------------------------------------------------------------------------
           end
         elseif id ~= 0 and j > 1 and j < 9 and self.lanes[i][j-1] == 0 then
           --shift item up 1-index if next slot is empty -> (== 0)
@@ -503,35 +409,47 @@ function belt.update(self)
       end
     end
     --set flag so we don't update twice in certain cases
-    self.updated = true
-    if should_idle == true then self.idle = true end
+    --self.updated = true
+    --if should_idle then self.idle = true end
     --self.idle = false
   end
-  --if self.idle then trace(self.pos.x .. '-' .. self.pos.y .. ' > Belt is idle') end
-  --return true
 end
 
 function belt.draw(self)
-  local rot = self.rot
-  local flip = 0
-  if self.id == BELT_ID_CURVED then rot = self.sprite_rot flip = self.flip end
-  local wx, wy = world_to_screen(self.pos.x, self.pos.y)
-  self.world_pos = {x = wx, y = wy}
-  spr(self.id + BELT_TICK, wx, wy, 0, 1, flip, rot, 1, 1)
+  --trace('Drawing belt: ' .. self.pos.x .. '-' .. self.pos.y)
+  --trace('BELT DRAWN: ' .. tostring(self.belt_drawn))
+  --trace('ITEMS DRAWN: ' .. tostring(self.drawn))
+  if self.belt_drawn == false then
+    self.belt_drawn = true
+    if ENTS[self.output_key] then
+      local key = self.output_key
+      -- if ENTS[key].type == 'dummy' then key = ENTS[key].other_key end
+      -- if ENTS[key].type == 'splitter' and ENTS[key].drawn == false then ENTS[key]:draw() end
+      if ENTS[key].type == 'transport_belt' and ENTS[key].belt_drawn == false then ENTS[key]:draw() end
+    end
+    local rot = self.rot
+    local flip = 0
+    if self.id == BELT_ID_CURVED then rot = self.sprite_rot flip = self.flip end
+    local wx, wy = world_to_screen(self.pos.x, self.pos.y)
+    self.world_pos = {x = wx, y = wy}
+    spr(self.id + BELT_TICK, wx, wy, 0, 1, flip, rot, 1, 1)
+  end
 end
 
 function belt.draw_items(self)
-  if not self.drawn and not self.idle then
+  --if self.drawn == true then return end
+  if self.drawn == false then
     self.drawn = true
-    if ENTS[self.output_key] and (ENTS[self.output_key].type == 'transport_belt' or ENTS[self.output_key].type == 'splitter' or ENTS[self.output_key].type == 'dummy') and not ENTS[self.output_key].drawn then
-      if ENTS[self.output_key].type == 'dummy' then
-        ENTS[ENTS[self.output_key].other_key]:draw_items()
-      else
-        ENTS[self.output_key]:draw_items()
-      end
+    if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and ENTS[self.output_key].drawn == false then ENTS[self.output_key]:draw_items() end
+    if ENTS[self.output_key] and 
+    (ENTS[self.output_key].type == 'splitter' or 
+    ENTS[self.output_key].type == 'dummy') then
+      local key = self.output_key
+      if ENTS[self.output_key].type == 'dummy' then key = ENTS[self.output_key].other_key end
+      if ENTS[key].drawn == false then ENTS[key]:draw() end
     end
     --trace('belt output_item_key = ' .. tostring(self.output_item_key) or 'NIL')
-    if self.output_item_key == nil then self:set_output() end
+    --if self.output_item_key == nil then self:set_output() end
     local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
     for i = 1, 2 do
       for j = 1, 8 do
@@ -560,6 +478,6 @@ return function(pos, rotation, children)
     end
   end
   setmetatable(newBelt, {__index = belt})
-  newBelt:rotate(rotation or 0)
+  --newBelt:rotate(rotation or 0)
   return newBelt
 end
