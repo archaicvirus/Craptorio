@@ -4,7 +4,7 @@
 A de-make of Factorio for the [TIC-80](https://tic80.com/) fantasy console. 
 
 **Note that at this time this project is a WIP.
-
+- If you have found this page and would like to contribute to the project, please open a discussion and we can talk about the details.
 # Core idea for de-make
 - To cover the main factorio game loop, which is mining resources and using belts, 
 inserters, and machines to craft science-packs which are used to research new technologies.
@@ -16,9 +16,11 @@ imposed by TIC80. This is the point obviously, (or perhaps not so obvious to som
 I do intend to add as many features and mechanics from the original as technically feasible.
 
 # Updates - Will post development and progress updates here
-- Currently working on crafting mechanics, inventory, and item systems.
-- Moved source code to private repo. I have put a lot of time and energy into this project, so I have to decided to take this step to protect my efforts while the project remains in development. The code will still be fully available, but only after initial release. I will then open the internal branch.
-
+- Research will include upgrades to the player robot, such as increased fly speed, further range, etc
+- You now play as an advanced logistics robot, capable of flying over any terrain or obstacles
+- Working on finishing new splitters
+- ~Currently working on crafting mechanics, inventory, and item systems.~
+![becoming_the_bot](https://user-images.githubusercontent.com/25288625/233747874-5dfce2ab-9124-4e01-b493-294773ee6e85.gif)
 ![crafting_menu_test](https://user-images.githubusercontent.com/25288625/229274215-6586e950-eccf-4b99-a30b-f95d4678e94b.gif)
 ![ui_test_05](https://user-images.githubusercontent.com/25288625/229348513-abfbc5e8-b86c-4a69-987f-53a673d63163.gif)
 
