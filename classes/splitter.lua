@@ -194,6 +194,31 @@ function Splitter.input(self, item_id, lane)
   return false
 end
 
+function Splitter.give_inserter(self, side)
+  if side == 'left' then
+    for i = 1, 2 do
+      for j = 1, 8 do
+        if self.lanes.left[i][j] ~= 0 then
+          local item = self.lanes.left[i][j]
+          self.lanes.left[i][j] = 0
+          return item
+        end
+      end
+    end
+  else
+    for i = 1, 2 do
+      for j = 1, 8 do
+        if self.lanes.right[i][j] ~= 0 then
+          local item = self.lanes.right[i][j]
+          self.lanes.right[i][j] = 0
+          return item
+        end
+      end
+    end
+  end
+  return nil
+end
+
 function Splitter.update(self)
   --self.shift = not self.shift
   if not self.updated then

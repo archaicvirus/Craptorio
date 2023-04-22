@@ -129,21 +129,40 @@ function inserter.update(self)
       self.state = 'wait'
     end
   elseif self.state == 'wait' then
-    if ENTS[self.from_key] and ENTS[self.from_key].type == 'transport_belt' then
-      for i = 1, 8 do
-        local lane = 0
-        if ENTS[self.from_key].lanes[1][i] ~= 0 then
-          lane = 1
-        elseif ENTS[self.from_key].lanes[2][i] ~= 0 then
-          lane = 2
+    if ENTS[self.from_key] then
+      if ENTS[self.from_key].type == 'transport_belt' then
+        for i = 1, 8 do
+          local lane = 0
+          if ENTS[self.from_key].lanes[1][i] ~= 0 then
+            lane = 1
+          elseif ENTS[self.from_key].lanes[2][i] ~= 0 then
+            lane = 2
+          end
+          if lane > 0 then
+            self.held_item_id = ENTS[self.from_key].lanes[lane][i]
+            ENTS[self.from_key].lanes[lane][i] = 0
+            self.state = 'send'
+            return
+            --break
+          end
         end
-        if lane > 0 then
-          self.held_item_id = ENTS[self.from_key].lanes[lane][i]
-          ENTS[self.from_key].lanes[lane][i] = 0
-          self.state = 'send'
-          return
-          --break
+      elseif ENTS[self.from_key].type == 'splitter' or ENTS[self.from_key].type == 'dummy' then
+        if ENTS[self.from_key].type == 'dummy' then
+          local item = ENTS[ENTS[self.from_key].other_key]:give_inserter('right')
+          if item then
+            self.held_item_id = item
+            self.state = 'send'
+            return
+          end
+        else
+          local item = ENTS[self.from_key]:give_inserter('left')
+          if item then
+            self.held_item_id = item
+            self.state = 'send'
+            return
+          end
         end
+
       end
     else
       -- if GROUND_ITEMS[self.from_key] and GROUND_ITEMS[self.from_key][1] ~= 0 then

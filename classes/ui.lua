@@ -302,7 +302,8 @@ function draw_recipie_widget(x, y, cost)
   end
   local str_w = print(cost.name, 0, -6, 0, false, 1, true)
   if str_w > w then w = str_w end
-  local sx, sy = x - w/2, y + 8
+  --local sx, sy = x - w/2, y + 8
+  local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
   rectb(sx - 1, sy - 1, w + 3, h, 13)
   rect(sx, sy, w + 1, h - 2, 8)
   print(cost.name, sx + 1, sy + 1, 11, false, 1, true)
