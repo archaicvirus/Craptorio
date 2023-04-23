@@ -92,7 +92,7 @@ local CraftPanel = {
   y = y,
   grid_x = 4,
   grid_y = 26,
-  w = 100,
+  w = 99,
   h = 119,
   fg = 9,
   bg = 8,
@@ -104,24 +104,24 @@ local CraftPanel = {
   active_tab = 0,
   tab = {
     [0] = {
-      x = 1,
-      y = 1,
+      x = 2,
+      y = 2,
       w = 22,
       h = 22,
       spr_id = 387,
       slots = {},
     },
     [1] = {
-      x = 24,
-      y = 1,
+      x = 25,
+      y = 2,
       w = 20,
       h = 22,
       spr_id = 390,
       slots = {},
     },
     [2] = {
-      x = 44,
-      y = 1,
+      x = 45,
+      y = 2,
       w = 23,
       h = 22,
       spr_id = 393,
@@ -129,7 +129,7 @@ local CraftPanel = {
     },
     [3] = {
       x = 69,
-      y = 1,
+      y = 2,
       w = 22,
       h = 22,
       spr_id = 396,
@@ -148,13 +148,13 @@ function CraftPanel.draw(self)
     local mouse_x, mouse_y = mouse()
     local x, y, w, h, active_tab, ax, ay, aw, ah = self.x, self.y, self.w, self.h, self.active_tab, self.tab[self.active_tab].x, self.tab[self.active_tab].y, self.tab[self.active_tab].w, self.tab[self.active_tab].h
     --outer border
-    rectb(x - 1, y - 1, w + 2, h + 2, self.border)
+    rectb(x, y, w, h, self.border)
 
     --fill
-    rect(x, y, w, h, self.fg)
+    rect(x + 1, y + 1, w - 2, h - 2, self.fg)
 
     --tab background area
-    rect(x, y, w, 23, self.bg)
+    rect(x + 1, y + 1, w - 2, 23, self.bg)
 
     --bottom tab divider
     line(x, y + 23, x + w, y + 23, self.border)
@@ -163,10 +163,10 @@ function CraftPanel.draw(self)
     rect(ax + x - 1, ay + y - 1, aw + 1, ah + 2, self.fg)
 
     --right divider for selected tab
-    line(x + ax + aw, y + ay - 1, x + ax + aw, y + ay + ah, self.border)
+    line(x + ax + aw, y + ay - 1, x + ax + aw, y + ay + ah - 1, self.border)
     --left divider
     if active_tab > 0 then
-      line(x + ax - 1, y + ay - 1, x + ax - 1, y + ay + ah, self.border)
+      line(x + ax - 1, y + ay - 1, x + ax - 1, y + ay + ah - 1, self.border)
     end
 
     --close button
@@ -185,7 +185,7 @@ function CraftPanel.draw(self)
     --Crafting grid
 
     --Grid background (grid lines)
-    rect(self.x + 4 , self.y + 26, self.w - 9, self.h - 28, 14)
+    rect(self.x + 4, self.y + 26, self.w - 8, self.h - 28, 14)
 
     --grid tiles
     for i = 1, 10 do

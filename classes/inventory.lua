@@ -91,8 +91,8 @@ function inventory.clicked(self)
   if self.vis and self:is_hovered() then
     local result = self:get_hovered_slot(x, y)
     if l or r and result then
-      if self.slots[result.index] ~= 0 then
-
+      if self.slots[result.index].item_id ~= 0 then
+        self.slots[result.index]:callback()
       end
       return true
     end
@@ -134,7 +134,7 @@ function new_slot(index)
   local slot = {
     item_id = 0,
     count = 0,
-    callback = function () end,
+    callback = function (self) trace('hello world! From Slot: ' .. self.index) end,
     index = index,
   }
   return slot

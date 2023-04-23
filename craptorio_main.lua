@@ -6,7 +6,7 @@
 -- version: 0.3
 -- script:  lua
 
-new_belt        = require('\\classes\\belt')
+new_belt        = require('\\classes\\transport_belt')
 new_splitter    = require('\\classes\\splitter')
 new_inserter    = require('\\classes\\inserter')
 ITEMS           = require('\\classes\\item_definitions')
@@ -31,6 +31,7 @@ TICK = 0
 
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 ENTS = {}
+ORES = {}
 STATE = 'main'
 CURSOR_POINTER_ID = 341
 CURSOR_HIGHLIGHT_ID = 312
@@ -392,7 +393,7 @@ function draw_cursor()
 
   if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) then
     if cursor.panel_drag then
-      sspr(CURSOR_GRAB_ID, cursor.x - 1, cursor.y, 0, 1, 0, 0, 1, 1)
+      sspr(CURSOR_GRAB_ID, cursor.x - 1, cursor.y - 1, 0, 1, 0, 0, 1, 1)
     else
       sspr(CURSOR_HAND_ID, cursor.x - 2, cursor.y, 0, 1, 0, 0, 1, 1)
     end
@@ -515,7 +516,7 @@ end
 
 function handle_input()
   local x, y, left, middle, right, scroll_x, scroll_y = mouse()
-  if scroll_y ~= 0 then cycle_hotbar(scroll_y) end
+  if scroll_y ~= 0 then cycle_hotbar(scroll_y*-1) end
   move_cursor('mouse', x, y)
 
   if not left and cursor.last_left and cursor.drag then
@@ -530,6 +531,8 @@ function handle_input()
 
   local tile, tile_x, tile_y = get_world_cell(x, y)
   local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
+  local k = get_key(x, y)
+
   if cursor.item == 'transport_belt' and not cursor.drag and left and cursor.last_left then
     --drag locking/placing belts
     cursor.drag = true
@@ -538,6 +541,7 @@ function handle_input()
     cursor.drag_loc = {x = wx, y = wy}
     cursor.drag_dir = cursor.rotation
   end
+
   if cursor.item == 'transport_belt' and cursor.drag then
     local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 and screen_tile_x ~= cursor.last_tile_x then
@@ -549,7 +553,6 @@ function handle_input()
 
   if left and not cursor.last_left then place_tile(x, y, cursor.rotation) end
   if right then remove_tile(x, y) end
-  local k = get_key(x, y)
   if ENTS[k] then ENTS[k].is_hovered = true end
 
   if keyp(18) and not keyp(63) then rotate_cursor()end --r
@@ -573,6 +576,11 @@ function handle_input()
   if craft_menu.vis and cursor.panel_drag then
     craft_menu.x = math.max(1, math.min(x + cursor.drag_offset.x, 239 - craft_menu.w))
     craft_menu.y = math.max(1, math.min(y + cursor.drag_offset.y, 135 - craft_menu.h))
+  end
+
+  if left and not cursor.last_left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
+    local slot = inv:get_hovered_slot(x, y)
+    inv.slots[slot.index]:callback()
   end
 
   cursor.last_tile_x, cursor.last_tile_y = cursor.tile_x, cursor.tile_y
@@ -786,17 +794,17 @@ function TIC()
       ents = ents + 1
     end
   end
-  -- local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
-  -- local sx, sy = get_screen_cell(cursor.x, cursor.y)
-  -- local key = get_key(cursor.x, cursor.y)
-  -- local info = {
-  --   [1] = 'Wx,Wy: ' .. wx ..',' .. wy,
-  --   [2] = 'Tile: ' .. tile,
-  --   [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
-  --   [4] = 'Key: ' .. key,
-  --   [5] = '#Ents: ' .. ents,
-  --   [6] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
-  -- }
+  local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
+  local sx, sy = get_screen_cell(cursor.x, cursor.y)
+  local key = get_key(cursor.x, cursor.y)
+  local info = {
+    [1] = 'Wx,Wy: ' .. wx ..',' .. wy,
+    [2] = 'Tile: ' .. tile,
+    [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
+    [4] = 'Key: ' .. key,
+    [5] = '#Ents: ' .. ents,
+    [6] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
+  }
   -- local info
   -- local ent = ENTS[key]
   -- if ent then
@@ -817,7 +825,7 @@ function TIC()
   --     [2] = 'KEY: ' .. key
   --   }
   -- end
-  --draw_debug2(info)
+  draw_debug2(info)
 end
 
 -- <TILES>
@@ -928,9 +936,9 @@ end
 -- 067:00fccf000feeeef00dccc6500dccc7700dccccd00ede2de0e00d200e00030000
 -- 068:200fff0002fe65f000dce65f0dccde6f0dceccefcedccdf00cedd02000c00002
 -- 069:00feef000feccef00dceecd0ecdccdce0d2dd2d002deed202003300200300300
--- 071:00ffffff0fcdddddfcdcccccfdcffccffdcf4774fdcffccffdccccccfdcccccc
--- 072:ffffffffddddddddccccccccfcccccccf888ccccfcc8cc88ccc8cc8cffffffff
--- 073:ffffff00dddddcf0cccccdcfcdddccdfdfefdcdf8efedcdfdfefdcdfcd8dccdf
+-- 071:00000000000fffff00fddddd0fdffccf0fdf47740fdffccf0fdccccc0fdccccc
+-- 072:00000000ffffffffddddddddfcccccccf888ccccfcc8cc88ccc8cc8cffffffff
+-- 073:00000000fffff000dddddf00ceeecdf0efefedf08efeedf0efefedf0ce8ecdf0
 -- 075:0ffffff0feeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeef0ffffff0
 -- 080:00fefcec0feefecc0feefecc0fcedfec0fccffcc00000fcc00000fec0000fecc
 -- 081:cecfef00ccefeef0ccefeef0cefdecf0ccffccf0ccf00000cef00000ccef0000
@@ -938,37 +946,91 @@ end
 -- 083:00000000000000000000000000f0f0f00f0f0f0000f0f0f00f0f0f0000000000
 -- 084:00000000000000000000000000f0f0f00f0f0f0000f0f0f00f0f0f0000000000
 -- 085:00000000000000000000000000f0f0f00f0f0f0000f0f0f00f0f0f0000000000
--- 087:fdcccccff488cccffdc8cccffdc8cccffdc8888ffdcccccffdcccccffdcccccf
+-- 087:0fdccccf0f488ccf0fdc8ccf0fdc8ccf0fdc888f0fdccccf0fdccccf0fdccccf
 -- 088:efcefcefcedcedcecedcedcecedcedcecedcedcecedcedcecedcedceefcefcef
--- 089:fc8cccdffc8c88dffc8874dffccc88dffcccccdff88cccdffc8cccdffc8cccdf
+-- 089:fc8ccdf0fc8c88f0fc8874f0fccc88f0fccccdf0f88ccdf0fc8ccdf0fc8ccdf0
 -- 096:0000fccc0000fddf0000effe0000fccf0000fddf00000ff000000d400000dff0
 -- 097:cccf0000fddf0000effe0000fccf0000fddf00000ff0000004d000000ffd0000
--- 103:fdccccccfdccccccfdceddddfdedfefefddececefcdefefe0fcddddd00ffffff
--- 104:ffffffffccccc8ccdeccc8ccfdecc888cedcccccfedcccccddddddddffffffff
--- 105:cc8c88dfcc8847dfcccc88df88ccccdfc8ccccdfc4cccdcfdddddcf0ffffff00
+-- 098:00fccf000feeeef00d7657d00dc77cd00decced002dccd20200dd00200300300
+-- 099:00fccf000feeeef00dccc6500deecc700dcceed00e3ed2e0e300200e00020000
+-- 100:000fff0002fe75f020dc765f0dccd77f0dceccefcedccdf00cedd02000c00200
+-- 101:00feef000feccef00dceecd0ecdccdce0d2dd2d002deed202003300200300300
+-- 103:0fdccccc0fdccccc0fdedddd0fedfefe0fdecece00fefefe000fffff00000000
+-- 104:ffffffffccccc8ccdeccc8ccfdecc888cedcccccfeddddddffffffff00000000
+-- 105:cc8c88f0cc8847f0cccc88f088cccdf0c8cccdf0d4dddf00fffff00000000000
+-- 114:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
+-- 115:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
+-- 116:000000000000000000000000000ff00000ffff0000ffff00000ff00000000000
+-- 117:00000000000000000000000000000000000ff00000ffff00000ff00000000000
+-- 118:0000000000000000000000000000000000000000000ff0000000000000000000
 -- 135:000fffff00fdcfcd0fdcfffefdcef4fefdeeedeefdeef4fefccefffeffceefee
 -- 136:ffffffffddddddddfcf4fcfeffcfcffdeeefeefeff4d4ffffeeeeeeffeeecc3f
 -- 137:fffff000dc4cdf00eefecdf0eeffecdfdeefeedfededecdfede4eedfededecdf
 -- 138:044e04440e4e0ee40e4e04440e4e04ee0e4e04440fff0fff0fff0fff0fff0fff
 -- 140:444004444ee004ee44400444ee4004e444400444fff00ffffff00ffffff00fff
 -- 142:444004444e4004e4444004e4ee4004e4ee400444fff00ffffff00ffffff00fff
+-- 144:00000000000ddddd00dfcfff0dccfddd0dcfdcef0dcfdef80dcfdcef0dcfdeee
+-- 145:00000000ddddddddffffffffddddddddeeefeeeffef8fef5eeefeeefeeeeeeee
+-- 146:00000000ddddd000fffccd00dddfccd0ecedfcd0fecdfcd0eeedfcd0eecdfcd0
+-- 147:00000000000ddddd00dfefff0deefddd0defdcef0defdef80defdcef0defdeee
+-- 148:00000000ddddddddffffffffddddddddeeefeeeffef8fef8eeefeeefeeeeeeee
+-- 149:00000000ddddd000fffeed00dddfeed0ecedfed0fecdfed0eeedfed0eecdfed0
 -- 151:fcffffccffceeeeefccedddefdedfffdfdedeeedfdedfffdfdedeeedfdeeddde
 -- 152:ceeceeefececeeefececeeffececef77eec4cf67eeecef77eeecef77eeecef77
 -- 153:d4dfeedfedefecdffefffedf7f776fdf7f777fdf7f677fdf6f777fdf7f767fdf
 -- 154:044404e40ee404e40e4404440ee40ee404440ee40fff0fff0fff0fff0fff0fff
 -- 156:44400444ee4004e4ee400444ee4004e4ee400444fff00ffffff00ffffff00fff
--- 160:00fccf000feeeef00d7657d00dc77cd00decced002dccd20200dd00200300300
--- 161:00fccf000feeeef00dccc6500deecc700dcceed00e3ed2e0e300200e00020000
--- 162:000fff0002fe75f020dc765f0dccd77f0dceccefcedccdf00cedd02000c00200
--- 163:00feef000feccef00dceecd0ecdccdce0d2dd2d002deed202003300200300300
+-- 160:0dcfdfff0dcfdf570dcfdfff0defdddd0defcddc0defcddc0defcccc0defceec
+-- 161:ffffffff77777777ffffffffccccccccdeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 162:fffdfcd077fdfcd0fffdfcd0ddddfed0cddcfed0cddcfed0ccccfed0ceecfed0
+-- 163:0defdfff0defdf770defdfff0defdddd0defcddc0defcccc0defcccd0defcedf
+-- 164:ffffffff77777777ffffffffddddddddcceddeccccccccccddcccccdffdeccee
+-- 165:fffdfed077fdfed0fffdfed0ddddfed0cddcfed0ccccfed0ccccfed0ececfed0
 -- 167:fdceeeeefdffeffefdf4d4f3fdffeffefdceeeee0fdcecec00fddddd000fffff
 -- 168:eeecceffeeeeceefffffcfffeeeeeeeeeeeeffffeceefeecddcf4fcdffffffff
 -- 169:fefffedfeeefeedfeeefecdfeeefeedfffffecdfeceecdf0dddddf00fffff000
--- 176:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
--- 177:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
--- 178:000000000000000000000000000ff00000ffff0000ffff00000ff00000000000
--- 179:00000000000000000000000000000000000ff00000ffff00000ff00000000000
--- 180:0000000000000000000000000000000000000000000ff0000000000000000000
+-- 176:0defcddc0defceec0defceec0deefccc0defefff00deecee000ddddd00000000
+-- 177:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeccccccccffffffffdddddddd00000000
+-- 178:cddcfed0ceecfed0ceecfcd0cccfeed0fffeecd0eececd00ddddd00000000000
+-- 179:0defcddf0defcedf0defcccd0deefccc0defefff00deecee000ddddd00000000
+-- 180:ffddcdedffdecceeddcccccdcccccccccceeeeccffffffffdddddddd00000000
+-- 181:eddcfed0ececfed0ccccfcd0cccfeed0fffeecd0eececd00ddddd00000000000
+-- 192:00000000000ddddd00dfcfff0dccfddd0dcfdcef0dcfdef80dcfdcef0dcfdeee
+-- 193:00000000ddddddddffffffffddddddddeeefeeeffef8fef5eeefeeefeeeeeeee
+-- 194:00000000ddddd000fffccd00dddfccd0ecedfcd0fecdfcd0eeedfcd0eecdfcd0
+-- 195:00000000000ddddd00dfefff0deefddd0defdc3f0defd3f80defd33f0defd333
+-- 196:00000000ddddddddffffffffdddddddd333f333ff3f8f3f8333f333f33333333
+-- 197:00000000ddddd000fffefd00dddfeed033edfed0f33dfed0333dfed0333dfed0
+-- 199:000fffff00fdcfcd0fdcfff9fdc9f4f9fd999d99fd99f4f9fcc9fff9ffc99f99
+-- 200:ffffffffddddddddfcf4fcf9ffcfcffd999f99f9ff4d4ffff999999ff999cc3f
+-- 201:fffff000dc4cdf0099fecdf099ff9cdfd99f99df9d9d9cdf9d9499df9d9d9cdf
+-- 203:000fffff00fdcfcd0fdcfff3fdc3f4f3fd333d33fd33f4f3fcc3fff3ffc33f33
+-- 204:ffffffffddddddddfcf4fcf3ffcfcffd333f33f3ff4d4ffff333333ff333cc4f
+-- 205:fffff000dc4cdf0033fecdf033ff3cdfd33f33df3d3d3cdf3d3433df3d3d3cdf
+-- 208:0dcfdfff0dcfdf570dcfdfff0defdddd0defcddc0defcddc0defcccc0defceec
+-- 209:ffffffff77777777ffffffffccccccccdeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 210:fffdfcd077fdfcd0fffdfcd0ddddfed0cddcfed0cddcfed0ccccfed0ceecfed0
+-- 211:0defdfff0defdf550defdfff0defdddd0d4f34430d4f33330d4f333d0d4f3edf
+-- 212:ffffffff55577777ffffffffdddddddd33e44e3333333333dd3333ddffdeedff
+-- 213:fffdfed077fdfed0fffdfed0ddddfed03443f4d03333f4d0d333f4d0fde3f4d0
+-- 215:fcffffccffc99999fcc9ddd9fd9dfffdfd9deeedfd9dfffdfd9deeedfd99ddd9
+-- 216:c99c999f9c9c999f9c9c99ff9c9c9f7799c4cf67999c9f77999c9f77999c9f77
+-- 217:d4df99df9d9f9cdffefffedf7f776fdf7f777fdf7f677fdf6f777fdf7f767fdf
+-- 219:fcffffccffc33333fcc3ddd3fd3dfffdfd3deeedfd3dfffdfd3deeedfd33ddd3
+-- 220:c33c333f3c3c333f3c3c33ff3c3c3f7733c4cf67333c3f77333c3f77333c3f77
+-- 221:d4df33df3d3f3cdffefffedf7f776fdf7f777fdf7f677fdf6f777fdf7f767fdf
+-- 224:0defcddc0defceec0defceec0deefccc0defefff00deecee000ddddd00000000
+-- 225:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeccccccccffffffffdddddddd00000000
+-- 226:cddcfed0ceecfed0ceecfcd0cccfeed0fffeecd0eececd00ddddd00000000000
+-- 227:0d4feddf0d4f3edf0d4f333d0d44f3330d4f4fff00d44444000ddddd00000000
+-- 228:ffddddffffdeedffdd3333dd3333333333444433ffffffffdddddddd00000000
+-- 229:fddef4d0fde3f4d0d333f4d0333f44d0fff4f4d044444d00ddddd00000000000
+-- 231:fdc99999fdff9ff9fdf4d4f3fdff9ff9fdc999990fdc9c9c00fddddd000fffff
+-- 232:999cc9ff9999c99fffffcfff999999999999ffff9c99f99cddcf4fcdffffffff
+-- 233:f9fff9df999f99df999f9cdf999f99dfffff9cdf9c99cdf0dddddf00fffff000
+-- 235:fdc33333fdff3ff3fdf4d4f3fdff3ff3fdc333330fdc3c3c00fddddd000fffff
+-- 236:333cc3ff3333c33fffffcfff333333333333ffff3c33f33cddcf4fcdffffffff
+-- 237:f3fff3df333f33df333f3cdf333f33dfffff3cdf3c33cdf0dddddf00fffff000
 -- </TILES1>
 
 -- <SPRITES>
@@ -1000,7 +1062,6 @@ end
 -- 027:1ff111f010ff10ff11f01f011111111111111111100111f11f0f1f0f10f110f0
 -- 028:0000000004300980032408fd003300e800000000003300ed03240efe04300dd0
 -- 029:000000000e0d00000eff00000de0000000000000000000000000000000000000
--- 030:d00ccc00e0c9e9c0e0ceeec0f3ecccd3ff3dde30ffeccec00eceecc00033cc33
 -- 031:0000000000300000034000003433333344444444040000000040000000000000
 -- 032:3030303000000003300000000000000330000000000000033000000003030303
 -- 033:000000000000000000000000e0000000e0000000ee000000dd000000cdeeeeee
@@ -1009,43 +1070,34 @@ end
 -- 037:0000000200000000000000000000000000000000000000000000000000000000
 -- 038:2200000022200000022200000023200000023000000000000000000000000000
 -- 039:0002200000022000000220000002200000022000000220000002300000032000
--- 041:dcb00000bfd00000cbe000000000000000000000000000000000000000000000
+-- 041:0b000000b0b000000b0000000000000000000000000000000000000000000000
 -- 042:0ed00000c12c0000d22d00000dd0000000000000000000000000000000000000
--- 045:0f4444f0f4dddd4e44dddd4404effe4044dddd44e444444e0d4ee4d0eeccccee
--- 046:0000000000000000000009000000090000000090000000090000000900000009
--- 047:0000000000000000009000000090000009000000900000009000000090000000
+-- 045:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
+-- 046:000fffff00fcdfee0fe21fcdfd21dfd2fc21cfd2fdc21fcdfcdcfeee0fffffff
+-- 047:000fffff00fcdfee0fe9afcdfd9adfd9fc9acfd9fdc9afcdfcdcfeee0fffffff
 -- 048:0000e0000000de00dddddde04eff4edeeff4effe4eff4ededddddde00000de00
 -- 049:0000e0000000de00dddddde0eff4efdeff4eff4eeff4efdedddddde00000de00
 -- 050:0000e0000000de00dddddde0ff4effdef4eff4eeff4effdedddddde00000de00
 -- 051:0000e0000000de00dddddde0f4eff4de4eff4efef4eff4dedddddde00000de00
 -- 052:0001100000011000000110000001100000011000000110000001100000011000
--- 054:feddddeffed44deffe4ee4eff4eeee4fdddeedddcffffffceeeeeeeeffffffff
--- 055:feddddeffed44deffe4ee4eff4eeee4fdddeedddcffffffceeeeeeeefffffffe
 -- 056:3030303000000000300000000000000030000000000000003000000000000000
 -- 057:3000000003000000000000000300000000000000030000000000000003000000
--- 062:000000030000008900000888000089800000a800000000000000000000000000
--- 063:90000000380000008880000008980000008a0000000000000000000000000000
 -- 064:3300003330000003000000000000000000000000000000003000000333000033
 -- 068:0001100000011000000cd000000dc000000ce000000cd0000000000000000000
--- 069:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
--- 070:000fffff00fcdfee0fe21fcdfd21dfd2fc21cfd2fdc21fcdfcdcfeee0fffffff
--- 071:000fffff00fcdfee0fe9afcdfd9adfd9fc9acfd9fdc9afcdfcdcfeee0fffffff
 -- 072:3000000003030303000000000000000000000000000000000000000000000000
 -- 073:0000000003000000000000000000000000000000000000000000000000000000
 -- 080:2400000030000000000000000000000000000000000000000000000000000000
--- 081:deffd000fdeff000ffdef000effde000deffd000fdeff0000fde000000f00000
 -- 082:0000000027272700727272702727272056567270656527205656727005652720
 -- 083:0000000065656500565656506565656072725650272765607272565007276560
 -- 085:bbb00000bd000000b0b00000000b000000000000000000000000000000000000
 -- 087:000efffe000fccdf00f4dde00f4defd00f4dfed000f4dde0000fccf0000fccff
 -- 096:5dd00000de000000d0d00000000d000000000000000000000000000000000000
--- 097:0000de00dddddde04fec4fdefec4fedefec4fede4fec4fdedddddde00000de00
 -- 100:00b0000000b0000000bbb000b0bbb0000bbbb00000cc00000000000000000000
 -- 101:000000000bb000000bbb0000bbbb0000bbbb00000cc000000000000000000000
 -- 103:000fccff000fccf000f4dde00f4dfed00f4defd000f4dde0000fccdf000efffe
 -- 106:00fddf0d0fc77cfc0c7657c00ce77ec00decced002ceec20200dd00200300300
 -- 107:00fddf000fcee7f00dee76500deee7700cdccec0003ee2d0030d200d00020000
--- 108:000fff0002fed7f020dcc57f0dccdcdf0dceccefcedccdf00cedd02000c00200
+-- 108:000fff0002fecef020dc75ef0dccc7cf0dceccefcedccdf00cedd02000c00200
 -- 109:00feef000feccef00dceecd0ecdccdce0d2dd2d002deed202003300200300300
 -- 110:00300300200330022cdeedc202cddc20ecdccdc00dc77cd00f7557f000feef00
 -- 112:ddeeeeeedce00000ee000000e0000000e0000000e0000000e0000000e0000000
@@ -1076,7 +1128,7 @@ end
 -- 141:11111111111111111111111f111111fd11111fdd1111fdddf11fdddddfedddde
 -- 142:1fef1111fdfe1111dddf1111dde11111de111111e1111111e111111111111111
 -- 144:e0000000e0000000e0000000e0000000e0000000ee000000dce00000ddeeeeee
--- 145:00eeee000edddde0edfeefdedd4ff4dd0dc44cd00decced00dfeefd0ed4ff4de
+-- 145:000ee000000dd000000ee00000dddd000dffffd00d4ff4d00df44fd0edffffde
 -- 146:0000000e0000000e0000000e0000000e0000000e000000ee00000ecdeeeeeedd
 -- 147:1f44433411f4f44f11f4f44f11f44ff4111f444d1111f4df1111f4df1111144d
 -- 148:44fdeeee4fdffe444dffffeedeeffffeeeeefffffe4440ffffee40fffffe40ef
@@ -1139,13 +1191,12 @@ end
 -- 224:c00ec00cccdffdcc00deed0000dcfd0000dfcd0000deed0000dcfd0000dfcd00
 -- 225:d00dd00deddeedde000dd000000dd00000deed000deeeed00dceecd00deeeed0
 -- 226:0007000000777000007570000757770007777700077777000077700000000000
--- 228:fffff000eefccf00dcfe4df04dfce4df4dfce4dfdcfe4dcfeeefcccffffffff0
--- 229:fffff000eefccf00dcfe2df02dfce2df2dfce2dfdcfe2dcfeeefcccffffffff0
--- 230:fffff000eefccf00dcfe9df09dfce9df9dfce9dfdcfe9dcfeeefcccffffffff0
+-- 228:fffff000eefccf00dcf34df04dfc34df4dfc34dfdcf34dcfeeefcccffffffff0
+-- 229:fffff000eefccf00dcf12df02dfc12df2dfc12dfdcf12dcfeeefcccffffffff0
+-- 230:fffff000eefccf00dcfa9df09dfca9df9dfca9dfdcfa9dcfeeefcccffffffff0
 -- 244:004ecd0004eeede0004ecde0000dcd00000dcd00004ecde004eeede0004ecd00
 -- 245:002ecd0002eeede0002ecde0000dcd00000dcd00002ecde002eeede0002ecd00
 -- 246:009ecd0009eeede0009ecde0000dcd00000dcd00009ecde009eeede0009ecd00
--- 248:ffffff00eeeeeef0dcf4deef4dcf4def4dcf4defdcf4dcefedfccfeffe4ff4ef
 -- </SPRITES>
 
 -- <SPRITES1>
