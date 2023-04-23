@@ -184,7 +184,7 @@ function Splitter.input(self, item_id, lane)
   --   end
   -- end
   -- return false
-  if self.shift == true and self.lanes.right[lane][8] == 0 then
+  if self.shift and self.lanes.right[lane][8] == 0 then
     self.lanes.right[lane][8] = item_id
     return true
   elseif self.lanes.left[lane][8] == 0 then
@@ -391,11 +391,13 @@ function Splitter.draw(self)
     -- end
     if ENTS[self.output_key_r] and ENTS[self.output_key_r].type == 'transport_belt' then
       if ENTS[self.output_key_r].belt_drawn == false then ENTS[self.output_key_r]:draw() end
-      if ENTS[self.output_key_r].drawn == false then ENTS[self.output_key_r]:draw_items() end
+      ENTS[self.output_key_r]:draw_items()
+      --if ENTS[self.output_key_r].drawn == false then ENTS[self.output_key_r]:draw_items() end
     end
     if ENTS[self.output_key_l] and ENTS[self.output_key_l].type == 'transport_belt' then
       if ENTS[self.output_key_l].belt_drawn == false then ENTS[self.output_key_l]:draw() end
-      if ENTS[self.output_key_l].drawn == false then ENTS[self.output_key_l]:draw_items() end
+      --if ENTS[self.output_key_l].drawn == false then ENTS[self.output_key_l]:draw_items() end
+      ENTS[self.output_key_l]:draw_items()
     end
     --if ENTS[self.output_key_l] and ENTS[self.output_key_l].type == 'transport_belt' and not ENTS[self.output_key_l].belt_drawn and ENTS[self.output_key_l].drawn then ENTS[self.output_key_l]:draw_items() end
     self:draw_items()
