@@ -20,7 +20,8 @@ recipies        = require('\\classes\\crafting_definitions')
 simplex         = require('\\classes\\open_simplex_noise')
 TileManager     = require('\\classes\\TileManager')
 
-math.randomseed(53264)
+--math.randomseed(53264)
+math.randomseed(tstamp())
 offset = math.random(100000, 500000)
 simplex.seed()
 TileMan = TileManager:new()
@@ -55,7 +56,7 @@ cursor = {
   last_right = false,
   rot = 0,
   last_rotation = 0,
-  type = 'item',
+  type = 'pointer',
   item = 'transport_belt',
   drag = false,
   panel_drag = false,
@@ -87,7 +88,7 @@ inv.slots[94].item_id = 8
 inv.slots[95].item_id = 9
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
-debug = true
+debug = false
 last_num_ents = 0
 local TILE_SIZE = 8
 local VIEWPORT_WIDTH = 240
@@ -301,16 +302,16 @@ function add_drill(x, y)
     local sx, sy = cursor.tile_x + (pos.x * 8), cursor.tile_y + (pos.y * 8)
     local tile, wx, wy = get_world_cell(sx, sy)
     local k = get_key(sx, sy)
-    tile_keys[k] = tile
+    tile_keys[k] = tile.tile
     field_keys[i] = k
-    if tile ~= 0 then
-      table.insert(found_ores, tile)
+    if tile.tile ~= 0 then
+      table.insert(found_ores, tile.tile)
 
       if not ORES[k] then
         local ore = {
-          type = ores[tile].name,
-          tile_id = ores[tile].tile_id,
-          sprite_id = ores[tile].sprite_id,
+          type = ores[tile.tile].name,
+          tile_id = ores[tile.tile].tile_id,
+          sprite_id = ores[tile.tile].sprite_id,
           ore_remaining = 1,
           wx = wx,
           wy = wy,
@@ -518,7 +519,7 @@ function draw_cursor()
   -- elseif cursor.type == 'pointer' then
   --   sspr(CURSOR_POINTER, cursor.x, cursor.y, 0)
   else
-    sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+    --sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
   end
 
   if cursor.type == 'item' and cursor.item == 'transport_belt' then
@@ -533,18 +534,18 @@ function draw_cursor()
       sspr(287, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
     elseif not ENTS[key] or (ENTS[key] and ENTS[key].type == 'transport_belt' and ENTS[key].rot ~= cursor.rot) then
       sspr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rot, 1, 1)
-      --sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+      sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
     else
-      --sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+      sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
     end
   elseif cursor.type == 'item' and cursor.item == 'inserter' then
     if not ENTS[key] or (ENTS[key] and ENTS[key].type == 'inserter' and ENTS[key].rot ~= cursor.rot) then
       local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
       local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rot)
-      --spr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+      sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
       temp_inserter:draw()
     end
-    spr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+    sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
   elseif cursor.type == 'item' and cursor.item == 'power_pole' then
     local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
     local temp_pole = new_pole({x = world_x, y = world_y})
@@ -570,7 +571,7 @@ function draw_cursor()
       local sx, sy = cursor.tile_x + (pos.x * 8), cursor.tile_y + (pos.y * 8)
       local tile, wx, wy = get_world_cell(sx, sy)
       --table.insert(found_ores, tile)
-      if ENTS[key] or tile == 0 then
+      if ENTS[key] or tile.tile == 0 then
         color_keys[i] = {0, 5}
       end
     end
@@ -611,9 +612,9 @@ function rotate_cursor()
   end
   if cursor.drag then
     sfx(3, 'E-5', 10, 0, 15, 3)
-     cursor.rot = cursor.rot + 1
-     if cursor.rot > 3 then cursor.rot = 0 end
-    trace('rotated while dragging')
+    cursor.rot = cursor.rot + 1
+    if cursor.rot > 3 then cursor.rot = 0 end
+    --trace('rotated while dragging')
     local tile, wx, wy
     local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
@@ -627,6 +628,7 @@ function rotate_cursor()
     cursor.drag_loc = {x = wx, y = wy}
     cursor.drag_dir = cursor.rot
   end
+  if cursor.type == 'item' then sfx(3, 'E-5', 10, 0, 15, 3) end
 end
 
 function place_tile(x, y, rotation)
@@ -1131,7 +1133,7 @@ function TIC()
   local key = get_key(cursor.x, cursor.y)
   local info = {
     [1] = 'Wx,Wy: ' .. wx ..',' .. wy,
-    [2] = 'Tile: ' .. tile,
+    [2] = 'Tile: ' .. tile.tile,
     [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
     [4] = 'Key: ' .. key,
     [5] = '#Ents: ' .. ents,
@@ -1198,11 +1200,11 @@ end
 -- 034:0676767665666666766666666666666666666666766666666566666606767676
 -- 035:6766666666766666667666676666667666666676666666666666666666666666
 -- 036:6ce6ce66ccd6ecc6cee66ce666666666edcc6ee6ecc66ece6ee6eeec666666e6
--- 037:6346346642362436334663466666666633436436423362346346343366666326
+-- 037:666662366426243f23362323326666266666436633f632463436332662263266
 -- 038:6ce6cf668bd6fdb68ee668f666666666edcb6ff6fc8e68cf6ff6ffbc66666ef6
--- 039:660f66f060f06f0f6f0660066666666666f060666f066f0f6f0f600660f66666
--- 040:66756766766576f67f75577f57756557676756766676577f5f656676555756f5
--- 041:0ff01100f111111f1f111f10111111f111111111111ff11111f1111ff11111f0
+-- 039:6600600660fe60ef600f66f0660666666066660f000e60f00ef060e66f066666
+-- 040:65765f66f556f556f77667f66666666675756f76f577675f6ff6ff55666665f6
+-- 041:66666016610611ef1f1161f01eff6e0666666666111661161ef61fe66f16f166
 -- 042:6666666666666666666666666666666666666666666666666666666666666666
 -- 043:6666666666666666666666666666666666666666666666666666666666666666
 -- 044:4444444444444444444444444444444444444444444444444444444444444444

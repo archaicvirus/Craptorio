@@ -46,7 +46,7 @@ function inventory.draw(self)
     end
     -- local x, y = mouse()
     -- local slot = self:get_hovered_slot(x, y)
-    if slot then spr(CURSOR_HIGHLIGHT_ID, slot.x - 1, slot.y - 1, 0, 1, 0, 0, 2, 2) end
+    if slot then spr(CURSOR_HIGHLIGHT, slot.x - 1, slot.y - 1, 0, 1, 0, 0, 2, 2) end
   end
 
   if self.hotbar_vis and not self.vis then
@@ -56,7 +56,7 @@ function inventory.draw(self)
       local x, y = (self.x + 2) + ((col - 1) * (INVENTORY_SLOT_SIZE + 1)), 136 - 2 - (INVENTORY_SLOT_SIZE + 2)
       rect(x, y, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_COL)
       if col == self.active_slot then
-        --spr(CURSOR_HIGHLIGHT_ID, x, y, 0)
+        --spr(CURSOR_HIGHLIGHT, x, y, 0)
         rectb(x - 1, y - 1, 10, 10, 4)
       end
       local num = col
@@ -78,7 +78,7 @@ function inventory.draw_hotbar(self)
       local x, y = (self.x + 2) + ((col - 1) * (INVENTORY_SLOT_SIZE + 1)), 136 - 2 - (INVENTORY_SLOT_SIZE + 2)
       rect(x, y, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_COL)
       if col == self.active_slot then
-        spr(CURSOR_HIGHLIGHT_ID, x, y, 0)
+        spr(CURSOR_HIGHLIGHT, x, y, 0)
       end
       if col == 10 then col = 0 end
       print(col, x + 2, y + 1, 0, true, 1, true)

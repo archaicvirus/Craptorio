@@ -209,7 +209,7 @@ function CraftPanel.draw(self)
       if result then
         local row = math.ceil(slot_index / 10)
         local col = ((slot_index - 1) % 10) + 1
-        spr(CURSOR_HIGHLIGHT_ID, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
+        spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
         if row <= #recipies['logistics'] and col <= #recipies['logistics'][row] then
           draw_recipie_widget(mouse_x + 8, mouse_y, recipies['logistics'][row][col])
         end
