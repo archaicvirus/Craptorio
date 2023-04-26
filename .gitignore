@@ -1,0 +1,4 @@
+*.gif
+*.bat
+.local/
+bat_scripts/
