@@ -1,30 +1,3 @@
-ores = {
-  [1] = {
-    name = 'iron',
-    offset = 15000,
-    id = 45,
-    scale = 0.011,
-    min = 14,
-    max = 16
-  },
-  [2] = {
-    name = 'copper',
-    offset = 10000,
-    id = 37,
-    scale = 0.013,
-    min = 15,
-    max = 16
-  },
-  [3] = {
-    name = 'coal',
-    offset = 50000,
-    id = 39,
-    scale = 0.018,
-    min = 14,
-    max = 16
-  }
-}
-
 local TileMgr = {}
 TileMgr.__index = TileMgr
 
@@ -57,14 +30,30 @@ end
 function TileMgr.create_tile(x, y)
   for i = 1, #ores do
     if ore_sample(x, y, ores[i]) then
-      return ores[i].id
+      return i
     end
   end
   return 0
 end
 
-function TileMgr:get_tile(x, y)
-  return self.tiles[y][x]
+function TileMgr:get_tile_screen(screen_x, screen_y)
+  local cam_x = player.x - 116
+  local cam_y = player.y - 64
+  local sub_tile_x = cam_x % 8
+  local sub_tile_y = cam_y % 8
+  local sx = floor((mouse_x + sub_tile_x) / 8)
+  local sy = floor((mouse_y + sub_tile_y) / 8)
+  local wx = floor(cam_x / 8) + sx + 1
+  local wy = floor(cam_y / 8) + sy + 1
+  return self.tiles[wy][wx]
+end
+
+function TileMgr:get_tile_world(world_x, world_y)
+  return self.tiles[world_y][world_x]
+end
+
+function TileMgr:set_tile(tile, world_x, world_y)
+  self.tiles[world_y][world_x] = tile
 end
 
 function TileMgr:draw(player, screenWidth, screenHeight)
@@ -82,7 +71,9 @@ function TileMgr:draw(player, screenWidth, screenHeight)
       local worldX = startX + screenX
       local worldY = startY + screenY
 
-      local tile = self:get_tile(worldX, worldY)
+      local index = self.tiles[worldY][worldX]
+      local tile
+      if index == 0 then tile = 0 else tile = ores[index].id end
       local screenPosX = (screenX - 1) * 8 - subTileX
       local screenPosY = (screenY - 1) * 8 - subTileY
       spr(tile, screenPosX, screenPosY, -1)
@@ -96,7 +87,7 @@ function TileMgr:draw_p(player)
 
   for y = 0, 135 do
     for x = 0, 239 do
-      local tile = self:get_tile(startY + y - 1, startX + x - 1)
+      local tile = self.tiles[startY + y - 1][startX + x - 1]
       if tile == 48 then tile = 5 end
       if tile == 49 then tile = 0 end
       if tile == 52 then tile = 14 end

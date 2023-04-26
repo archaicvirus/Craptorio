@@ -24,6 +24,8 @@ local inventory = {
 }
 
 function inventory.draw(self)
+  local x, y = mouse()
+  local slot = self:get_hovered_slot(x, y)
   if self.vis then
     rectb(self.x, self.y, self.w, self.h, INVENTORY_FG_COL)
     rect(self.x + 1, self.y + 1, self.w - 2, self.h - 2, INVENTORY_BG_COL)
@@ -32,13 +34,18 @@ function inventory.draw(self)
         local x, y = (self.x + 2) + ((col - 1) * (INVENTORY_SLOT_SIZE + 1)), (self.y + 2) + ((row - 1) * (INVENTORY_SLOT_SIZE + 1))
         rect(x, y, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_COL)
         if row == INVENTORY_ROWS then
-          if col > 9 then col = 0 end
-          print(col, x + 2, y + 1, 0, true, 1, true)        
+          local num = col
+          if col > 9 then num = 0 end
+          print(num, x + 2, y + 1, 0, true, 1, true)
+          local id = self.slots[90 + col].item_id
+          if id ~= 0 then
+            sspr(ITEMS[id].sprite_id, x, y, 0)
+          end
         end
       end
     end
-    local x, y = mouse()
-    local slot = self:get_hovered_slot(x, y)
+    -- local x, y = mouse()
+    -- local slot = self:get_hovered_slot(x, y)
     if slot then spr(CURSOR_HIGHLIGHT_ID, slot.x - 1, slot.y - 1, 0, 1, 0, 0, 2, 2) end
   end
 
@@ -52,8 +59,13 @@ function inventory.draw(self)
         --spr(CURSOR_HIGHLIGHT_ID, x, y, 0)
         rectb(x - 1, y - 1, 10, 10, 4)
       end
-      if col > 9 then col = 0 end
-      print(col, x + 2, y + 1, 0, true, 1, true)
+      local num = col
+      if col > 9 then num = 0 end
+      print(num, x + 2, y + 1, 0, true, 1, true)
+      local id = self.slots[90 + col].item_id
+      if id ~= 0 then
+        sspr(ITEMS[id].sprite_id, x, y, 0)
+      end
     end
   end
 end
@@ -86,8 +98,8 @@ function inventory.remove_item(self, slot)
 
 end
 
-function inventory.clicked(self)
-  local x, y, l, m, r, scrx, scryy = mouse()
+function inventory.clicked(self, x, y)
+  --local x, y, l, m, r, scrx, scryy = mouse()
   if self.vis and self:is_hovered() then
     local result = self:get_hovered_slot(x, y)
     if l or r and result then
@@ -152,4 +164,5 @@ function create_inventory()
   end
   return inv
 end
+
 return create_inventory
