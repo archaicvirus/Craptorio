@@ -74,7 +74,7 @@ local drill = {
 
 function drill.yield(self)
   if self.output.count < self.output_slots then
-    trace('current tile: ' .. self.current_tile)
+    trace('current key: ' .. self.current_tile)
     local ore_key = self.field_keys[self.current_tile]
     if ORES[ore_key] then
       ORES[ore_key].ore_remaining = ORES[ore_key].ore_remaining - 1

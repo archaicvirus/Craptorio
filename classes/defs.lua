@@ -22,7 +22,31 @@ ores = {
     scale = 0.018,
     min = 14,
     max = 16
-  }
+  },
+  [4] = {
+    name = 'stone',
+    offset = 22500,
+    id = 36,
+    scale = 0.018,
+    min = 14,
+    max = 16
+  },
+  [5] = {
+    name = 'uranium',
+    offset = 76500,
+    id = 40,
+    scale = 0.022,
+    min = 15,
+    max = 16
+  },
+  [6] = {
+    name = 'oil_shale',
+    offset = 37994,
+    id = 41,
+    scale = 0.019,
+    min = 14,
+    max = 16
+  },
 }
 
 
