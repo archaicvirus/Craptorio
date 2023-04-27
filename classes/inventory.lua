@@ -20,7 +20,7 @@ local inventory = {
   hotbar_h = 12,
   hotbar_y = 136 - (INVENTORY_SLOT_SIZE + 4) - 2,
   vis = false,
-  hotbar_vis = true,
+  hotbar_vis = false,
 }
 
 function inventory.draw(self)
