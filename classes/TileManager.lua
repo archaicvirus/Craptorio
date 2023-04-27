@@ -30,10 +30,15 @@ end
 function TileMgr.create_tile(x, y)
   for i = 1, #ores do
     if ore_sample(x, y, ores[i]) then
-      return {tile = i, rot = math.random(4) % 4}
+      return {tile = ores[i].id, rot = math.random(4) % 4}
     end
   end
-  return {tile = 0, rot = math.random(4) % 4}
+  local id, r = 0, math.random(4) % 4
+  if math.random(100) > 95 then
+    id = floor(math.random(8) % 8)
+    r = 0
+  end
+  return {tile = id, rot = r}
 end
 
 function TileMgr:get_tile_screen(screen_x, screen_y)
@@ -70,13 +75,10 @@ function TileMgr:draw(player, screenWidth, screenHeight)
     for screenX = 1, screenWidth do
       local worldX = startX + screenX
       local worldY = startY + screenY
-
       local index = self.tiles[worldY][worldX]
-      local sprite
-      if index.tile == 0 then sprite = 0 else sprite = ores[index.tile].id end
       local screenPosX = (screenX - 1) * 8 - subTileX
       local screenPosY = (screenY - 1) * 8 - subTileY
-      spr(sprite, screenPosX, screenPosY, -1, 1, 0, index.rot)
+      spr(index.tile, screenPosX, screenPosY, -1, 1, 0, index.rot)
     end
   end
 end
