@@ -48,6 +48,29 @@ DRILL_AREA_MAP_ELECTRIC = {
   [9] = {x = 2, y = 2}
 }
 
+DRILL_BELT_OUTPUT_MAP = {
+  [0] = {
+    [0] = {lane = 1, slot = 8},
+    [1] = {lane = 1, slot = 5},
+    [2] = nil,
+    [3] = {lane = 2, slot = 3}},
+  [1] = {
+    [0] = {lane = 2, slot = 3},
+    [1] = {lane = 1, slot = 8},
+    [2] = {lane = 1, slot = 4},
+    [3] = nil},
+  [2] = {
+    [0] = nil,
+    [1] = {lane = 2, slot = 3},
+    [2] = {lane = 2, slot = 8},
+    [3] = {lane = 1, slot = 4}},
+  [3] = {
+    [0] = {lane = 1, slot = 4},
+    [1] = nil,
+    [2] = {lane = 2, slot = 3},
+    [3] = {lane = 1, slot = 8}}
+  }
+
 local drill = {
   pos = {x = 0, y = 0},
   rot = 0,
@@ -56,10 +79,7 @@ local drill = {
   ore_id = 3,
   output_key = '0-0',
   output_slots = 5,
-  output = {
-    item_id = 3,
-    count = 0
-  },
+  output = {},
   field_keys = {},
   is_powered = true,
   yield_tick = 0,
@@ -70,96 +90,84 @@ local drill = {
   drawn = false,
   updated = false,
   idle = false,
+  item_id = 13
 }
 
 function drill.yield(self)
-  if self.output.count < self.output_slots then
-    trace('current key: ' .. self.current_tile)
+  if #self.output < self.output_slots then
+    --trace('current key: ' .. self.current_tile)
     local ore_key = self.field_keys[self.current_tile]
+    local ore_id
     if ORES[ore_key] then
+      ore_id = ORES[ore_key].sprite_id
       ORES[ore_key].ore_remaining = ORES[ore_key].ore_remaining - 1
       if ORES[ore_key].ore_remaining < 1 then
-        trace('ore depleted')
+        --trace('ore depleted')
         local wx, wy = ORES[ore_key].wx, ORES[ore_key].wy
-        trace('WX = ' .. wx .. ', WY = ' .. wy)
+        --trace('WX = ' .. wx .. ', WY = ' .. wy)
         TileMan:set_tile(0, wx, wy)
         ORES[ore_key] = nil
       end
       
-      self.output.count = self.output.count + 1
+      table.insert(self.output, ore_id)
     else
       -- self.current_tile = self.current_tile + 1
       -- if self.current_tile > #self.field_keys then self.current_tile = 1 end
-      -- if not self.idle then self.yield_tick = 19 end
+      if not self.idle then self.yield_tick = 19 end
+      self:update()
     end
   end
-  
-
 end
 
 function drill.update(self)
   if self.is_powered and not self.idle then
-    self.current_tile = self.current_tile + 1
-    if self.current_tile > 4 then self.current_tile = 1 end
+
     --self:consume_electric()
     self.yield_tick = self.yield_tick + 1
     if self.yield_tick > 20 then
       local idle = true
-      -- for i = 1, 4 do
-      --   if ORES[self.field_keys[i]] then idle = false break end
-      -- end
-      -- if idle then self.idle = true return end
+      self.current_tile = self.current_tile + 1
+      if self.current_tile > 4 then self.current_tile = 1 end
       self.yield_tick = 0
       self:yield()
     end
 
-    if self.output.count > 0 and ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' then
+    if #self.output > 0 and ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' then
       local belt = ENTS[self.output_key]
-      for i = 1, 2 do
-        for j = 1, 8 do
-          if ENTS[self.output_key].lanes[i][j] == 0 then
-            ENTS[self.output_key].lanes[i][j] = self.output.item_id
-            self.output.count = self.output.count - 1
-            return
-          end
+      local output = DRILL_BELT_OUTPUT_MAP[self.rot][belt.rot]
+      if output then
+        if ENTS[self.output_key].lanes[output.lane][output.slot] == 0 then
+          ENTS[self.output_key].lanes[output.lane][output.slot] = self.output[#self.output]
+          table.remove(self.output, #self.output)
         end
       end
     end
 
+    local idle = true
+    for i = 1, 4 do
+      if ORES[self.field_keys[i]] then
+        idle = false
+        break
+      end
+    end
+    if idle == true and #self.output < 1 then
+      self.idle = true
+    end
   end
-
-  -- if self.is_powered then
-  --   if self.output.item_count == 0 then
-  --     self.yield_tick = self.yield_tick + 1
-  --     if self.yield_tick > 20 then
-  --       self.yield_tick = 0
-  --       self.output.item_count = self.output.item_count + 1
-  --     end
-  --   elseif self.output.item_count > 0 then
-  --     local out = DRILL_OUTPUT_MAP[self.rot]
-  --     local key = get_key(self.pos.x + out.x, self.pos.y + out.y)
-  --     if ENTS[key] and ENTS[key].type == 'transport_belt' then
-  --       for i = 2, 1, -1 do
-  --         for j = 8, 1, -1 do
-  --           if BELTS[key].lanes[i][j] == 0 then
-  --             BELTS[key].lanes[i][j] = self.ore_id
-  --             self.output.item_count = self.output.item_count - 1
-  --             --break
-  --             return true
-  --           end
-  --         end
-  --       end
-  --     end
-  --   end
-  -- end
 end
 
 function drill.draw(self)
-  --draw main drill body
-  local sx, sy = world_to_screen(self.pos.x, self.pos.y)
-  --trace(TICK % 2)
-  sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
-  sspr(DRILL_BIT_ID, sx + DRILL_BIT_TICK, sy + 9, 0, 1, 0, self.rot + 1, 1, 1)
+  if not self.idle then
+    --draw main drill body
+    local sx, sy = world_to_screen(self.pos.x, self.pos.y)
+    --trace(TICK % 2)
+    sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
+    sspr(DRILL_BIT_ID, sx + DRILL_BIT_TICK, sy + 9, 0, 1, 0, self.rot + 1, 1, 1)
+  else
+    local sx, sy = world_to_screen(self.pos.x, self.pos.y)
+    sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, self.rot, 2, 2)
+    sspr(DRILL_BIT_ID, sx, sy + 9, 0, 1, 0, self.rot + 1, 1, 1)
+  end
   --draw two drill-bits
   -- local pos1, pos2 = DRILL_BIT_MAP[self.rot][0], DRILL_BIT_MAP[self.rot][1]
   -- if self.rot == 0 or self.rot == 2 then

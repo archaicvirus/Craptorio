@@ -40,7 +40,7 @@ local items = {
   [3] = {
     name = 'iron_ore',
     id = 3,
-    sprite_id = 297,
+    sprite_id = 55,
     --alt_ids = {256, }
     type = 'ore',
     stack_size = 100,
@@ -57,7 +57,7 @@ local items = {
   [4] = {
     name = 'copper_ore',
     id = 4,
-    sprite_id = 256,
+    sprite_id = 54,
     type = 'ore',
     stack_size = 100,
     smelting_time = 5 * 60,
@@ -70,6 +70,66 @@ local items = {
     },
   },
   [5] = {
+    name = 'stone',
+    id = 4,
+    sprite_id = 53,
+    type = 'ore',
+    stack_size = 100,
+    smelting_time = 5 * 60,
+    mining_time = 4 * 60,
+    recipie = false,
+    pixels = {
+      9,8,0,
+      8,15,13,
+      0,14,8,
+    },
+  },
+  [6] = {
+    name = 'coal',
+    id = 4,
+    sprite_id = 56,
+    type = 'ore',
+    stack_size = 100,
+    smelting_time = 5 * 60,
+    mining_time = 4 * 60,
+    recipie = false,
+    pixels = {
+      9,8,0,
+      8,15,13,
+      0,14,8,
+    },
+  },
+  [7] = {
+    name = 'uranium',
+    id = 4,
+    sprite_id = 57,
+    type = 'ore',
+    stack_size = 100,
+    smelting_time = 5 * 60,
+    mining_time = 4 * 60,
+    recipie = false,
+    pixels = {
+      9,8,0,
+      8,15,13,
+      0,14,8,
+    },
+  },
+  [8] = {
+    name = 'oil_shale',
+    id = 4,
+    sprite_id = 58,
+    type = 'ore',
+    stack_size = 100,
+    smelting_time = 5 * 60,
+    mining_time = 4 * 60,
+    recipie = false,
+    pixels = {
+      9,8,0,
+      8,15,13,
+      0,14,8,
+    },
+  },
+  [9] = {
     name = 'transport_belt',
     id = 5,
     sprite_id = 256,
@@ -82,7 +142,7 @@ local items = {
       0,14,8,
     },
   },
-  [6] = {
+  [10] = {
     name = 'splitter',
     id = 6,
     sprite_id = 500,
@@ -95,7 +155,7 @@ local items = {
       0,14,8,
     },
   },
-  [7] = {
+  [11] = {
     name = 'inserter',
     id = 7,
     sprite_id = 472,
@@ -108,7 +168,7 @@ local items = {
       0,14,8,
     },
   },
-  [8] = {
+  [12] = {
     name = 'power_pole',
     id = 8,
     sprite_id = 478,
@@ -121,8 +181,8 @@ local items = {
       0,14,8,
     },
   },
-  [9] = {
-    name = 'burner_miner',
+  [13] = {
+    name = 'mining_drill',
     id = 9,
     sprite_id = 487,
     type = 'placeable',

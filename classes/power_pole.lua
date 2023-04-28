@@ -33,6 +33,7 @@ local pole = {
   has_power = false,
   is_hovered = false,
   type = 'power_pole',
+  item_id = 12
 }
 
 function pole.draw(self, show_area)

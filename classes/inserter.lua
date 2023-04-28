@@ -46,6 +46,7 @@ local inserter = {
   rot = 0,
   is_hovered = false,
   type = 'inserter',
+  item_id = 11
 }
 
 function inserter.get_info(self)
