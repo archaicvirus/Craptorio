@@ -6,6 +6,7 @@
 -- version: 0.3
 -- script:  lua
 
+--test
 new_belt        = require('\\classes\\transport_belt')
 new_splitter    = require('\\classes\\splitter')
 new_inserter    = require('\\classes\\inserter')
