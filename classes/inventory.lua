@@ -20,7 +20,7 @@ local inventory = {
   hotbar_h = 12,
   hotbar_y = 136 - (INVENTORY_SLOT_SIZE + 4) - 2,
   vis = false,
-  hotbar_vis = false,
+  hotbar_vis = true,
 }
 
 function inventory.draw(self)
@@ -100,7 +100,7 @@ end
 
 function inventory.clicked(self, x, y)
   --local x, y, l, m, r, scrx, scryy = mouse()
-  if self.vis and self:is_hovered() then
+  if self.vis and self:is_hovered(x, y) then
     local result = self:get_hovered_slot(x, y)
     if l or r and result then
       if self.slots[result.index].item_id ~= 0 then

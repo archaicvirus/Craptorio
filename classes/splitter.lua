@@ -62,6 +62,7 @@ local Splitter = {
   updated = false,
   other_key = 'nil',
   drawn = false,
+  item_id = 10
 }
 
 function Splitter.get_info(self)

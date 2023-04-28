@@ -24,6 +24,7 @@ local belt = {
   is_hovered = false,
   index = 0,
   curve_checked = false,
+  item_id = 9
 }
 
 BELT_OUTPUT_MAP = {
@@ -456,7 +457,7 @@ function belt.draw_items(self)
         if self.lanes[i][j] > 0 then
           --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
           local x, y = item_locations[j][i].x + self.world_pos.x, item_locations[j][i].y + self.world_pos.y
-          spr(297, x, y, 0)
+          spr(self.lanes[i][j], x, y, 0)
         end
       end
     end    

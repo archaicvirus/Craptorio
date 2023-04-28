@@ -2,10 +2,13 @@ ores = {
   [1] = {
     name = 'iron',
     offset = 15000,
-    id = 45,
+    id = 38,
     scale = 0.011,
     min = 14,
-    max = 16
+    max = 16,
+    color_keys = 4,
+    tile_id = 38,
+    sprite_id = 55,
   },
   [2] = {
     name = 'copper',
@@ -13,7 +16,10 @@ ores = {
     id = 37,
     scale = 0.013,
     min = 15,
-    max = 16
+    max = 16,
+    color_keys = 4,
+    tile_id = 37,
+    sprite_id = 54,
   },
   [3] = {
     name = 'coal',
@@ -21,7 +27,10 @@ ores = {
     id = 39,
     scale = 0.018,
     min = 14,
-    max = 16
+    max = 16,
+    color_keys = 4,
+    tile_id = 39,
+    sprite_id = 56,
   },
   [4] = {
     name = 'stone',
@@ -29,7 +38,10 @@ ores = {
     id = 36,
     scale = 0.018,
     min = 14,
-    max = 16
+    max = 16,
+    color_keys = 4,
+    tile_id = 36,
+    sprite_id = 53,
   },
   [5] = {
     name = 'uranium',
@@ -37,7 +49,10 @@ ores = {
     id = 40,
     scale = 0.022,
     min = 15,
-    max = 16
+    max = 16,
+    color_keys = 4,
+    tile_id = 40,
+    sprite_id = 57,
   },
   [6] = {
     name = 'oil_shale',
@@ -45,7 +60,21 @@ ores = {
     id = 41,
     scale = 0.019,
     min = 14,
-    max = 16
+    max = 16,
+    color_keys = 4,
+    tile_id = 41,
+    sprite_id = 58,
+  },
+  [7] = {
+    name = 'water',
+    offset = 37994,
+    id = 15,
+    scale = 0.011,
+    min = 13,
+    max = 16,
+    color_keys = 4,
+    tile_id = 15,
+    sprite_id = 58,
   },
 }
 
@@ -59,6 +88,7 @@ local defs = {
 
   callbacks = {
     ['transport_belt'] = function(x, y)
+      if is_water(x, y) then return end
       local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
       local screen_x, screen_y = get_screen_cell(x, y)
       local tile, wx, wy = get_world_cell(x, y)
@@ -90,18 +120,22 @@ local defs = {
     end,
 
     ['splitter'] = function(x, y)
+      if is_water(x, y) then return end
       add_splitter(x, y)
     end,
 
     ['inserter'] = function(x, y)
+      if is_water(x, y) then return end
       add_inserter(x, y)
     end,
 
     ['power_pole'] = function(x, y)
+      if is_water(x, y) then return end
       add_pole(x, y)
     end,
 
-    ['burner_miner'] = function(x, y)
+    ['mining_drill'] = function(x, y)
+      if is_water(x, y) then return end
       add_drill(x, y)
     end
   },
