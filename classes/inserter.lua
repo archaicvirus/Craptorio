@@ -38,12 +38,12 @@ INSERTER_ANIM_KEYS = {
 
 local inserter = {
   pos = {x = 0, y = 0},
+  rot = 0,
   from_key = '0-0',
   to_key = '0-0',
   anim_frame = 5,
   state = 'wait',
   held_item_id = 0,
-  rot = 0,
   is_hovered = false,
   type = 'inserter',
   item_id = 11
@@ -78,12 +78,16 @@ function inserter.draw(self)
   -- end
 end
 
-function inserter.rotate(self, rotation)
-  self.rot = rotation
-  if self.rot > 3 then self.rot = 0 end
+function inserter.set_output(self)
   local from, to = INSERTER_GRAB_OFFSETS[self.rot].from, INSERTER_GRAB_OFFSETS[self.rot].to
   self.from_key = self.pos.x + from.x .. '-' .. self.pos.y + from.y
   self.to_key = self.pos.x  + to.x .. '-' .. self.pos.y + to.y
+end
+
+function inserter.rotate(self, rotation)
+  rotation = rotation or self.rot + 1
+  self.rot = rotation
+  if self.rot > 3 then self.rot = 0 end
 end
 
 function inserter.update(self)
@@ -177,10 +181,10 @@ function inserter.update(self)
 end
 
 return function(position, rotation)
-  local new_inserter = {}
+  local new_inserter = {pos = position, rot = rotation}
   setmetatable(new_inserter, {__index = inserter})
-  new_inserter.pos = position
-  new_inserter.rot = rotation
-  new_inserter:rotate(rotation)
+  --new_inserter.pos = position
+  --new_inserter.rot = rotation
+  new_inserter:set_output()
   return new_inserter
 end

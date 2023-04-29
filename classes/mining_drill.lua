@@ -1,5 +1,6 @@
 DRILL_BURNER_SPRITE_ID = 314
 DRILL_ELEC_SPRITE_ID = 368
+DRILL_MINI_BELT_ID = 321
 DRILL_BELT_ID = 304
 DRILL_BIT_ID = 275
 DRILL_TICK_RATE = 8
@@ -20,6 +21,13 @@ DRILL_BELT_MAP = {
   [1] = {x =  5, y = -4},
   [2] = {x = 12, y =  5},
   [3] = {x =  3, y = 12},
+}
+
+DRILL_MINI_BELT_MAP = {
+  [0] = {x =  0, y =  8},
+  [1] = {x =  0, y =  0},
+  [2] = {x =  8, y =  0},
+  [3] = {x =  8, y =  8}
 }
 
 DRILL_OUTPUT_MAP = {
@@ -68,8 +76,8 @@ DRILL_BELT_OUTPUT_MAP = {
     [0] = {lane = 1, slot = 4},
     [1] = nil,
     [2] = {lane = 2, slot = 3},
-    [3] = {lane = 1, slot = 8}}
-  }
+    [3] = {lane = 1, slot = 8}},
+}
 
 local drill = {
   pos = {x = 0, y = 0},
@@ -160,13 +168,20 @@ function drill.draw(self)
   if not self.idle then
     --draw main drill body
     local sx, sy = world_to_screen(self.pos.x, self.pos.y)
+    local belt_pos = DRILL_MINI_BELT_MAP[self.rot]
     --trace(TICK % 2)
-    sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
-    sspr(DRILL_BIT_ID, sx + DRILL_BIT_TICK, sy + 9, 0, 1, 0, self.rot + 1, 1, 1)
+    --sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
+    sspr(DRILL_BIT_ID, sx + 3 + (DRILL_BIT_TICK), sy + 10, 0, 1, 0, 0, 1, 1)
+    sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
+    sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, self.rot, 1, 1)
   else
     local sx, sy = world_to_screen(self.pos.x, self.pos.y)
-    sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, self.rot, 2, 2)
-    sspr(DRILL_BIT_ID, sx, sy + 9, 0, 1, 0, self.rot + 1, 1, 1)
+    local belt_pos = DRILL_MINI_BELT_MAP[self.rot]
+    -- sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, self.rot, 2, 2)
+    -- sspr(DRILL_BIT_ID, sx, sy + 9, 0, 1, 0, self.rot + 1, 1, 1)
+    sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
+    sspr(DRILL_BIT_ID, sx + 5, sy + 12, 0, 1, 0, 0, 1, 1)
+    sspr(DRILL_MINI_BELT_ID, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, self.rot, 1, 1)
   end
   --draw two drill-bits
   -- local pos1, pos2 = DRILL_BIT_MAP[self.rot][0], DRILL_BIT_MAP[self.rot][1]
