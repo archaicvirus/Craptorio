@@ -69,6 +69,58 @@ function Furnace.draw_hover_widget(self)
 
 end
 
+function Furnace.open(self)
+  return {
+    x = cursor.x + 5,
+    y = cursor.y + 5,
+    width = 100,
+    height = 50,
+    ent_key = self.x .. '-' .. self.y,
+    is_hovered = function(self, x, y)
+      return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height and true or false
+    end,
+    draw = function(self)
+      local ent = ENTS[self.ent_key]
+      local input, output, fuel = ent.input_buffer, ent.output_buffer, ent.fuel_buffer
+      local x, y, w, h = self.x, self.y, self.width, self.height
+      --background window and border
+      rectb(x, y, w, h, 13)
+      rect(x + 1, y + 1, w - 2, h - 2, 0)
+
+      --input slots icon, and item count------------------------------------------
+      local text = #input .. '/' .. FURNACE_BUFFER_INPUT
+      local text_width = print(text, 0, -10, 0, true, 1, true)
+      local sprite_id = 311
+      print('Input - ', x + 3, y + 3, 11, true, 1, true)
+      print(text, x + w - 2 - text_width, y + 3, 4, true, 1, true)
+      if #input > 0 then sprite_id = ITEMS[input[1]].sprite_id end
+      sspr(sprite_id, x + w - 12 - text_width, y + 2, 4)
+
+      --output slots icon and item count---------------------------------------------
+      local text = #output .. '/' .. FURNACE_BUFFER_OUTPUT
+      local text_width = print(text, 0, -10, 0, true, 1, true)
+      local sprite_id = 311
+      print('Output - ', x + 3, y + 15, 11, true, 1, true)
+      print(text, x + w - 2 - text_width, y + 15, 4, true, 1, true)
+      if #output > 0 then sprite_id = ITEMS[output[1]].sprite_id end
+      sspr(sprite_id, x + w - 12 - text_width, y + 13, 4)
+      
+      --fuel buffer slot icon etc-----------------------------------------------------
+      local text = #fuel .. '/' .. FURNACE_BUFFER_FUEL
+      local text_width = print(text, 0, -10, 0, true, 1, true)
+      local sprite_id = 311
+      print('Fuel - ', x + 3, y + 24, 11, true, 1, true)
+      print(text, x + w - 2 - text_width, y + 24, 4, true, 1, true)
+      if #fuel > 0 then sprite_id = ITEMS[fuel[1]].sprite_id end
+      sspr(sprite_id, x + w - 12 - text_width, y + 24, 4)
+      --large stone furnace graphic------------------------------------------------
+      local sprite_id = FURNACE_SPRITE_INACTIVE_ID
+      if ent.is_smelting then sprite_id = FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2) end
+      sspr(sprite_id, x + (w / 2) - 8, y + 5, 0, 1, 0, 0, 2, 2)
+    end
+  }
+end
+
 function Furnace.update(self)
   --update fuel ticks
   if self.fuel_time <= 0 then
@@ -125,12 +177,12 @@ function Furnace.deposit(self, item_id, keep)
   if not self.ore_type then
     if not keep then
       self.ore_type = item.name
-      table.insert(self.fuel_buffer, item_id)
+      table.insert(self.input_buffer, item_id)
     end
     return true
   elseif #self.input_buffer < FURNACE_BUFFER_INPUT and self.ore_type == item.name then
     if not keep then
-      table.insert(self.fuel_buffer, item_id) 
+      table.insert(self.input_buffer, item_id) 
     end
     return true
   end

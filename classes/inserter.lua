@@ -164,7 +164,7 @@ function Inserter.update(self)
   elseif self.state == 'wait' then
     if ENTS[self.from_key] then
       if ENTS[self.from_key].type == 'transport_belt' then
-        if ENTS[self.to_key].type == 'stone_furnace' then
+        if ENTS[self.to_key] and ENTS[self.to_key].type == 'stone_furnace' then
           --check if output destination can take an item
           --before we pick it up from the belt
           --to prevent inserter stuck holding item

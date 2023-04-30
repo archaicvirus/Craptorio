@@ -34,6 +34,7 @@ TICK = 0
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 ENTS = {}
 ORES = {}
+window = nil
 STATE = 'main'
 CURSOR_POINTER = 341
 CURSOR_HIGHLIGHT = 312
@@ -596,11 +597,11 @@ function draw_cursor()
   elseif cursor.type == 'pointer' then
     local key = get_key(cursor.x, cursor.y)
     if ENTS[key] then
-      local ent = ENTS[key].type
-      if ent == 'dummy' or ent == 'dummy_drill' or ent == 'dummy_furnace' then
-        key = ENTS[key].other_key
-      end
-      ENTS[key]:draw_hover_widget()
+      -- local ent = ENTS[key].type
+      -- if ent == 'dummy' or ent == 'dummy_drill' or ent == 'dummy_furnace' then
+      --   key = ENTS[key].other_key
+      -- end
+      -- ENTS[key]:draw_hover_widget()
     end
     sspr(CURSOR_POINTER, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
     sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
@@ -766,7 +767,7 @@ function dispatch_input()
   local k = get_key(x, y)
   if scroll_y ~= 0 then cycle_hotbar(scroll_y*-1) end
 
-  if not left and cursor.last_left and cursor.drag then
+  if not left and cursor.left and cursor.drag then
     local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     cursor.drag = false
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
@@ -776,6 +777,10 @@ function dispatch_input()
     end
   end
 
+  if left and not cursor.left and ENTS[k] and (ENTS[k].type == 'stone_furnace' or ENTS[k].type == 'dummy_furnace') then
+    if ENTS[k].type == 'dummy_furnace' then k = ENTS[k].other_key end
+    window = ENTS[k]:open()
+  end
 
   --begin mouse-over priority dispatch
 
@@ -845,7 +850,7 @@ function dispatch_input()
   if right then remove_tile(x, y) end
   if ENTS[k] then ENTS[k].is_hovered = true end
 
-  if craft_menu.vis and not cursor.panel_drag and left and not cursor.last_left and craft_menu:is_hovered(x, y) == true then
+  if craft_menu.vis and not cursor.panel_drag and left and not cursor.left and craft_menu:is_hovered(x, y) == true then
     if craft_menu:click(x, y) then
     elseif not craft_menu.docked then
       cursor.panel_drag = true
@@ -860,7 +865,7 @@ function dispatch_input()
     craft_menu.y = math.max(1, math.min(y + cursor.drag_offset.y, 135 - craft_menu.h))
   end
 
-  if left and not cursor.last_left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
+  if left and not cursor.left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
     local slot = inv:get_hovered_slot(x, y)
     --trace('returning: slot_pos_x = ' .. slot.x .. ', slot_pos_y = ' .. slot.y .. ', slot_index = ' .. slot.index)
     if slot then inv.slots[slot.index]:callback() end
@@ -1188,6 +1193,7 @@ function TIC()
   inv:draw()
   --inv:draw_hotbar()
   craft_menu:draw()
+  if window then window:draw() end
   local dc_time = lapse(draw_cursor)
 
   --draw_cursor()
