@@ -188,11 +188,14 @@ local items = {
     type = 'placeable',
     stack_size = 100,
     recipie = {},
-    pixels = {
-      9,8,0,
-      8,15,13,
-      0,14,8,
-    },
+  },
+  [14] = {
+    name = 'stone_furnace',
+    id = 14,
+    sprite_id = 503,
+    type = 'placeable',
+    stack_size = 50,
+    recipie = {},
   },
 }
 

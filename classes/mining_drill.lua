@@ -83,11 +83,11 @@ local drill = {
   pos = {x = 0, y = 0},
   rot = 0,
   --output = {},
-  ore_type = 'iron',
-  ore_id = 3,
-  output_key = '0-0',
+  ore_type = nil,
+  ore_id = nil,
+  output_key = nil,
   output_slots = 5,
-  output = {},
+  output = nil,
   field_keys = {},
   is_powered = true,
   yield_tick = 0,
@@ -98,7 +98,7 @@ local drill = {
   drawn = false,
   updated = false,
   idle = false,
-  item_id = 13
+  item_id = 13,
 }
 
 function drill.yield(self)
@@ -122,7 +122,7 @@ function drill.yield(self)
       -- self.current_tile = self.current_tile + 1
       -- if self.current_tile > #self.field_keys then self.current_tile = 1 end
       if not self.idle then self.yield_tick = 19 end
-      self:update()
+      --self:update()
     end
   end
 end
@@ -141,10 +141,10 @@ function drill.update(self)
     end
 
     if #self.output > 0 and ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' then
-      local belt = ENTS[self.output_key]
-      local output = DRILL_BELT_OUTPUT_MAP[self.rot][belt.rot]
+      local output = DRILL_BELT_OUTPUT_MAP[self.rot][ENTS[self.output_key].rot]
       if output then
         if ENTS[self.output_key].lanes[output.lane][output.slot] == 0 then
+          --trace('drill @ ' .. self.pos.x .. ',' .. self.pos.y .. ' outputting to belt @ ' .. self.output_key)
           ENTS[self.output_key].lanes[output.lane][output.slot] = self.output[#self.output]
           table.remove(self.output, #self.output)
         end
@@ -171,7 +171,7 @@ function drill.draw(self)
     local belt_pos = DRILL_MINI_BELT_MAP[self.rot]
     --trace(TICK % 2)
     --sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
-    sspr(DRILL_BIT_ID, sx + 3 + (DRILL_BIT_TICK), sy + 10, 0, 1, 0, 0, 1, 1)
+    sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 7, 0, 1, 0, 0, 1, 1)
     sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
     sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, self.rot, 1, 1)
   else
@@ -199,10 +199,13 @@ function drill.draw(self)
   -- spr(DRILL_BELT_ID + DRILL_ANIM_TICK, self.pos.x + pos3.x - 4, self.pos.y + pos3.y - 4, 0, 1, 0, self.rot, 1, 1)
 end
 
-return function(pos, rot, tiles)
+function newDrill(pos, rot, tiles)
   local out_pos = DRILL_OUTPUT_MAP[rot]
   local output_key = pos.x + out_pos.x .. '-' .. pos.y + out_pos.y
-  local new_drill = {pos = pos, rot = rot, field_keys = tiles, output_key = output_key}
-  setmetatable(new_drill, {__index = drill})
-  return new_drill
+  trace(output_key)
+  local newdrill = {pos = pos, rot = rot, field_keys = tiles, output_key = output_key, output = {}}
+  setmetatable(newdrill, {__index = drill})
+  return newdrill
 end
+
+return newDrill
