@@ -36,7 +36,7 @@ INSERTER_ANIM_KEYS = {
   [3] = {6,7,0,1,2}
 }
 
-local inserter = {
+local Inserter = {
   pos = {x = 0, y = 0},
   rot = 0,
   from_key = '0-0',
@@ -46,71 +46,99 @@ local inserter = {
   held_item_id = 0,
   is_hovered = false,
   type = 'inserter',
-  item_id = 11
+  item_id = 11,
+  filter = {item_id = 0}
 }
 
-function inserter.get_info(self)
+function Inserter.draw_hover_widget(self)
+  local sx, sy = cursor.x, cursor.y
+  rectb(sx, sy, 50, 50, 13)
+  rect(sx + 1, sy + 1, 48, 48, 0)
+end
+
+function Inserter.get_info(self)
   local info = {
     [1] = 'POS: ' .. get_key(self.pos.x, self.pos.y),
     [2] = 'ROT: ' .. self.rot,
-    [3] = 'OTK: ',
+    [3] = 'OUT: ' .. self.to_key,
+    [4] = 'INP: ' .. self.from_key,
   }
   return info
 end
 
-function inserter.draw(self)
+function Inserter.draw(self)
   local config = INSERTER_ARM_OFFSETS[INSERTER_ANIM_KEYS[self.rot][self.anim_frame]]
   local sx, sy = world_to_screen(self.pos.x, self.pos.y)
   local screen_pos = {x = sx, y = sy}
   local x, y = config.x + screen_pos.x, config.y + screen_pos.y
   spr(INSERTER_BASE_ID, screen_pos.x, screen_pos.y, 0, 1, 0, self.rot, 1, 1)
-  --spr(INSERTER_BASE_ID, self.pos.x, self.pos.y, 0, 1, 0, self.rot, 1, 1)
-  --spr(INSERTER_ARM_ID, x, y, 00, 1, 0, 0, 1, 1)
   spr(config.id, x, y, 0, 1, 0, config.rot, 1, 1)
-  
   if self.held_item_id > 0 then
-    spr(297, x + config.item_offset.x, y + config.item_offset.y, 0)
+    local sprite_id = ITEMS[self.held_item_id].belt_id
+    spr(sprite_id, x + config.item_offset.x, y + config.item_offset.y, 0)
   end
-  -- debug to show item path when moving
-  -- for k, v in pairs(self.itemLocations) do
-  --   spr(272, self.pos.x + v.x, self.pos.y + v.y, 00, 1, 0, 0, 1, 1)
-  --   print(tostring(k), self.pos.x + v.x + 2, self.pos.y + v.y + 2, 2)
-  -- end
 end
 
-function inserter.set_output(self)
+function Inserter.can_deposit(self, other, item_id)
+  if ENTS[other] then
+    if ENTS[other].type == 'transport_belt' then
+      return true
+    elseif ENTS[other].type == 'stone_furnace' then
+      if ENTS[other].deposit(item_id) then return true end
+    elseif ENTS[other].type == 'splitter' then
+      if ENTS[other].deposit(item_id) then return true end
+    end
+  end
+  return false
+end
+
+function Inserter.set_output(self)
   local from, to = INSERTER_GRAB_OFFSETS[self.rot].from, INSERTER_GRAB_OFFSETS[self.rot].to
   self.from_key = self.pos.x + from.x .. '-' .. self.pos.y + from.y
   self.to_key = self.pos.x  + to.x .. '-' .. self.pos.y + to.y
 end
 
-function inserter.rotate(self, rotation)
+function Inserter.rotate(self, rotation)
   rotation = rotation or self.rot + 1
   self.rot = rotation
   if self.rot > 3 then self.rot = 0 end
+  self:set_output()
 end
 
-function inserter.update(self)
+function Inserter.update(self)
   if self.state == 'send' then
     self.anim_frame = self.anim_frame - 1
     if self.anim_frame <= 1 then
       self.anim_frame = 1
       --try to deposit item
       --trace('looking for output')
-      if ENTS[self.to_key] and ENTS[self.to_key].type == 'transport_belt' then
-        ENTS[self.to_key].idle = false
-        --trace('FOUND belt')
-        for i = 8, 1, -1 do
-          local index = ENTS[self.to_key].rot
-          local lane = INSERTER_DEPOSIT_MAP[self.rot][index]
-          if ENTS[self.to_key].lanes[lane][i] == 0 then
-            ENTS[self.to_key].lanes[lane][i] = self.held_item_id
+      if ENTS[self.to_key] then 
+        if ENTS[self.to_key].type == 'transport_belt' then
+          ENTS[self.to_key].idle = false
+          --trace('FOUND belt')
+          for i = 8, 1, -1 do
+            local index = ENTS[self.to_key].rot
+            local lane = INSERTER_DEPOSIT_MAP[self.rot][index]
+            if ENTS[self.to_key].lanes[lane][i] == 0 then
+              ENTS[self.to_key].lanes[lane][i] = self.held_item_id
+              self.held_item_id = 0
+              self.state = 'return'
+              break
+            end
+          end
+          --return
+        elseif ENTS[self.to_key].type == 'stone_furnace' or ENTS[self.to_key].type == 'dummy_furnace' then
+          --trace('furnace detected')
+          if ENTS[self.to_key].type == 'dummy_furnace' then
+            self.to_key = ENTS[self.to_key].other_key
+          end
+          if ENTS[self.to_key]:deposit(self.held_item_id) then
             self.held_item_id = 0
             self.state = 'return'
-            break
           end
+          return
         end
-      else
+      end
       -- if not ENTS[self.to_key].type == 'ground-items' or (ENTS[self.to_key].type == 'ground-items' and ENTS[self.to_key][1] == 0) then
       --   local to = INSERTER_GRAB_OFFSETS[self.rot].to
       --   --create ground item entity with belt lanes
@@ -122,7 +150,7 @@ function inserter.update(self)
       --   self.state = 'return'
       -- --drop on ground
       -- end
-      end
+      
       -- self.held_item_id = 0
       -- self.state = 'return'
     end    
@@ -136,21 +164,40 @@ function inserter.update(self)
   elseif self.state == 'wait' then
     if ENTS[self.from_key] then
       if ENTS[self.from_key].type == 'transport_belt' then
-        for i = 1, 8 do
-          local lane = 0
-          if ENTS[self.from_key].lanes[1][i] ~= 0 then
-            lane = 1
-          elseif ENTS[self.from_key].lanes[2][i] ~= 0 then
-            lane = 2
-          end
-          if lane > 0 then
-            self.held_item_id = ENTS[self.from_key].lanes[lane][i]
-            ENTS[self.from_key].lanes[lane][i] = 0
+        if ENTS[self.to_key].type == 'stone_furnace' then
+          --check if output destination can take an item
+          --before we pick it up from the belt
+          --to prevent inserter stuck holding item
+          local item_id = ENTS[self.from_key]:request_item(true)
+          if item_id and ENTS[self.to_key]:deposit(item_id, true) then
+            ENTS[self.to_key]:deposit(item_id, false)
+            self.held_item_id = item_id
             self.state = 'send'
-            return
-            --break
           end
+          return
         end
+
+        local item_id = ENTS[self.from_key]:request_item(false)
+        if item_id then
+          self.held_item_id = item_id
+          self.state = 'send'
+          return
+        end
+        -- for i = 1, 8 do
+        --   local lane = 0
+        --   if ENTS[self.from_key].lanes[1][i] ~= 0 then
+        --     lane = 1
+        --   elseif ENTS[self.from_key].lanes[2][i] ~= 0 then
+        --     lane = 2
+        --   end
+        --   if lane > 0 then
+        --     self.held_item_id = ENTS[self.from_key].lanes[lane][i]
+        --     ENTS[self.from_key].lanes[lane][i] = 0
+        --     self.state = 'send'
+        --     return
+        --     --break
+        --   end
+        -- end
       elseif ENTS[self.from_key].type == 'splitter' or ENTS[self.from_key].type == 'dummy' then
         if ENTS[self.from_key].type == 'dummy' then
           local item = ENTS[ENTS[self.from_key].other_key]:give_inserter('right')
@@ -167,7 +214,15 @@ function inserter.update(self)
             return
           end
         end
-
+      elseif ENTS[self.from_key].type == 'stone_furnace' or ENTS[self.from_key].type == 'dummy_furnace' then
+        --trace('furnace detected')
+        local key = self.from_key
+        if ENTS[key].type == 'dummy_furnace' then key = ENTS[key].other_key end
+        if #ENTS[key].output_buffer > 0 then
+          self.held_item_id = table.remove(ENTS[key].output_buffer, #ENTS[key].output_buffer)
+          self.state = 'send'
+          return
+        end
       end
     else
       -- if GROUND_ITEMS[self.from_key] and GROUND_ITEMS[self.from_key][1] ~= 0 then
@@ -182,9 +237,9 @@ end
 
 return function(position, rotation)
   local new_inserter = {pos = position, rot = rotation}
-  setmetatable(new_inserter, {__index = inserter})
-  --new_inserter.pos = position
-  --new_inserter.rot = rotation
+  setmetatable(new_inserter, {__index = Inserter})
+  --new_Inserter.pos = position
+  --new_Inserter.rot = rotation
   new_inserter:set_output()
   return new_inserter
 end

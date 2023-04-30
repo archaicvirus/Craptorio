@@ -4,7 +4,7 @@ BELT_TICKRATE     = 5
 BELT_MAXTICK      = 3
 BELT_TICK         = 0
 
-local belt = {
+local Belt = {
   pos = {x = 0, y = 0},
   world_pos = {x = 0, y = 0},
   rot = 0,
@@ -199,7 +199,13 @@ BELT_CURVE_MAP = {
   }
 }
 
-function belt.get_info(self)
+function Belt.draw_hover_widget(self)
+  local sx, sy = cursor.x, cursor.y
+  rectb(sx, sy, 50, 50, 13)
+  rect(sx + 1, sy + 1, 48, 48, 0)
+end
+
+function Belt.get_info(self)
   local info = {
     [1] = 'ROT: ' .. self.rot,
     [2] = 'SID: ' .. self.id,
@@ -228,7 +234,7 @@ function belt.get_info(self)
   return info
 end
 
-function belt.rotate(self, rotation)
+function Belt.rotate(self, rotation)
   --self.exit = BELT_ROTATION_MAP[rotation]
   if rotation > 3 then rotation = 0 end
   self.rot = rotation
@@ -237,7 +243,7 @@ function belt.rotate(self, rotation)
   --self:update_neighbors()
 end
 
-function belt.is_facing(self, other)
+function Belt.is_facing(self, other)
   if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and ENTS[self.output_key] == other then return true end
   local exit = BELT_ROTATION_MAP[other.rot]
   local key = get_world_key(other.pos.x + exit.x, other.pos.y + exit.y)
@@ -245,7 +251,7 @@ function belt.is_facing(self, other)
   return false
 end
 
-function belt.set_output(self)
+function Belt.set_output(self)
   self.exit = BELT_ROTATION_MAP[self.rot]
   local key = self.pos.x + self.exit.x .. '-' .. self.pos.y + self.exit.y
   self.output_key = key
@@ -267,7 +273,7 @@ function belt.set_output(self)
   end
 end
 
-function belt:has_items()
+function Belt:has_items()
   for i = 1, 2 do
     for j = 1, 8 do
       if self.lanes[i][j] ~= 0 then return true end
@@ -276,7 +282,27 @@ function belt:has_items()
   return false
 end
 
-function belt.update_neighbors(self, key)
+function Belt.request_item(self, keep, lane, slot)
+  if not lane and not slot then
+    for i = 1, 2 do
+      for j = 1, 8 do
+        if self.lanes[i][j] ~= 0 then
+          local item_id = self.lanes[i][j]
+          if not keep then self.lanes[i][j] = 0 end
+          return item_id
+        end
+      end
+    end
+    return false
+  elseif self.lanes[lane][slot] ~= 0 then
+    local item_id = self.lanes[lane][slot]
+    if not keep then self.lanes[lane][slot] = 0 end
+    return item_id
+  end
+  return false
+end
+
+function Belt.update_neighbors(self, key)
   local cell_x, cell_y = self.pos.x, self.pos.y
   local tiles = {
     [1] = {x = cell_x, y = cell_y - 1},
@@ -294,7 +320,7 @@ function belt.update_neighbors(self, key)
   self:set_curved()
 end
 
-function belt.set_curved(self)
+function Belt.set_curved(self)
   if not self.curve_checked then
     self.curve_checked = true
     --checks left, right, and rear tiles (relative to ENTS rotation) for other ENTS
@@ -350,7 +376,7 @@ function belt.set_curved(self)
   end
 end
 
-function belt.update(self)
+function Belt.update(self)
   --self.idle = false
   -- if we have NOT updated this frame, continue
   if self.updated then return end
@@ -416,7 +442,7 @@ function belt.update(self)
   end
 end
 
-function belt.draw(self)
+function Belt.draw(self)
   --trace('Drawing belt: ' .. self.pos.x .. '-' .. self.pos.y)
   --trace('BELT DRAWN: ' .. tostring(self.belt_drawn))
   --trace('ITEMS DRAWN: ' .. tostring(self.drawn))
@@ -437,7 +463,7 @@ function belt.draw(self)
   end
 end
 
-function belt.draw_items(self)
+function Belt.draw_items(self)
   --if self.drawn == true then return end
   if self.drawn == false then
     self.drawn = true
@@ -457,7 +483,8 @@ function belt.draw_items(self)
         if self.lanes[i][j] > 0 then
           --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
           local x, y = item_locations[j][i].x + self.world_pos.x, item_locations[j][i].y + self.world_pos.y
-          spr(self.lanes[i][j], x, y, 0)
+          local sprite_id = ITEMS[self.lanes[i][j]].belt_id
+          sspr(sprite_id, x, y, 0)
         end
       end
     end    
@@ -478,7 +505,7 @@ return function(pos, rotation, children)
       end
     end
   end
-  setmetatable(newBelt, {__index = belt})
+  setmetatable(newBelt, {__index = Belt})
   --newBelt:rotate(rotation or 0)
   return newBelt
 end

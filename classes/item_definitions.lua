@@ -2,7 +2,8 @@ local items = {
   [1] = {
     name = 'red_circuit',
     id = 1,
-    sprite_id = 256,
+    sprite_id = 457,
+    belt_id = 296,
     type = 'consumable',
     sub_type = 'icon_only',
     stack_size = 200,
@@ -21,7 +22,8 @@ local items = {
   [2] = {
     name = 'green_circuit',
     id = 2,
-    sprite_id = 256,
+    sprite_id = 456,
+    belt_id = 280,
     type = 'consumable',
     sub_type = 'icon_only',
     stack_size = 200,
@@ -40,7 +42,9 @@ local items = {
   [3] = {
     name = 'iron_ore',
     id = 3,
-    sprite_id = 55,
+    sprite_id = 38,
+    smelted_id = 15,
+    belt_id = 55,
     --alt_ids = {256, }
     type = 'ore',
     stack_size = 100,
@@ -58,8 +62,10 @@ local items = {
     name = 'copper_ore',
     id = 4,
     sprite_id = 54,
+    belt_id = 54,
     type = 'ore',
     stack_size = 100,
+    smelted_id = 15,
     smelting_time = 5 * 60,
     mining_time = 4 * 60,
     recipie = false,
@@ -71,8 +77,9 @@ local items = {
   },
   [5] = {
     name = 'stone',
-    id = 4,
+    id = 5,
     sprite_id = 53,
+    belt_id = 53,
     type = 'ore',
     stack_size = 100,
     smelting_time = 5 * 60,
@@ -86,11 +93,12 @@ local items = {
   },
   [6] = {
     name = 'coal',
-    id = 4,
+    id = 6,
     sprite_id = 56,
-    type = 'ore',
+    belt_id = 56,
+    type = 'fuel',
     stack_size = 100,
-    smelting_time = 5 * 60,
+    smelting_time = 8 * 5 * 60,
     mining_time = 4 * 60,
     recipie = false,
     pixels = {
@@ -101,8 +109,9 @@ local items = {
   },
   [7] = {
     name = 'uranium',
-    id = 4,
+    id = 7,
     sprite_id = 57,
+    belt_id = 57,
     type = 'ore',
     stack_size = 100,
     smelting_time = 5 * 60,
@@ -116,8 +125,9 @@ local items = {
   },
   [8] = {
     name = 'oil_shale',
-    id = 4,
+    id = 8,
     sprite_id = 58,
+    belt_id = 58,
     type = 'ore',
     stack_size = 100,
     smelting_time = 5 * 60,
@@ -131,7 +141,7 @@ local items = {
   },
   [9] = {
     name = 'transport_belt',
-    id = 5,
+    id = 9,
     sprite_id = 256,
     type = 'placeable',
     stack_size = 100,
@@ -144,7 +154,7 @@ local items = {
   },
   [10] = {
     name = 'splitter',
-    id = 6,
+    id = 10,
     sprite_id = 500,
     type = 'placeable',
     stack_size = 100,
@@ -157,7 +167,7 @@ local items = {
   },
   [11] = {
     name = 'inserter',
-    id = 7,
+    id = 11,
     sprite_id = 472,
     type = 'placeable',
     stack_size = 100,
@@ -170,7 +180,7 @@ local items = {
   },
   [12] = {
     name = 'power_pole',
-    id = 8,
+    id = 12,
     sprite_id = 478,
     type = 'placeable',
     stack_size = 100,
@@ -183,7 +193,7 @@ local items = {
   },
   [13] = {
     name = 'mining_drill',
-    id = 9,
+    id = 13,
     sprite_id = 487,
     type = 'placeable',
     stack_size = 100,
@@ -196,6 +206,24 @@ local items = {
     type = 'placeable',
     stack_size = 50,
     recipie = {},
+  },
+  [15] = {
+    name = 'iron_plate',
+    id = 15,
+    sprite_id = 448,
+    belt_id = 299,
+    type = 'intermediate',
+    stack_size = 100,
+    recipie = {[1] = {name = 'iron_ore', item_id = 3, count = 1}},
+  },
+  [16] = {
+    name = 'copper_plate',
+    id = 16,
+    sprite_id = 449,
+    belt_id = 300,
+    type = 'intermediate',
+    stack_size = 100,
+    recipie = {[1] = {name = 'copper_ore', item_id = 4, count = 1}},
   },
 }
 
