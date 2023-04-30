@@ -5,6 +5,7 @@ FURNACE_ANIM_TICKRATE = 5
 FURNACE_ANIM_TICKS = 2
 FURNACE_TICKRATE = 1
 
+
 local Furnace = {
   x = 0,
   y = 0,
