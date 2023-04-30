@@ -14,6 +14,7 @@ draw_cable      = require('\\classes\\cable')
 new_pole        = require('\\classes\\power_pole')
 make_inventory  = require('\\classes\\inventory')
 new_drill       = require('\\classes\\mining_drill')
+new_furnace     = require('\\classes\\furnace')
 ui              = require('\\classes\\ui')
 recipies        = require('\\classes\\crafting_definitions')
 simplex         = require('\\classes\\open_simplex_noise')
@@ -85,6 +86,7 @@ inv.slots[92].item_id = 10
 inv.slots[93].item_id = 11
 inv.slots[94].item_id = 12
 inv.slots[95].item_id = 13
+inv.slots[96].item_id = 14
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
 debug = false
@@ -98,7 +100,7 @@ local GRID_CELL_SIZE = math.ceil(VIEWPORT_WIDTH / TILE_SIZE)
 --------------------FUNCTIONS-------------------------
 
 function get_visible_ents()
-  vis_ents = {['transport_belt'] = {}, ['inserter'] = {}, ['power_pole'] = {}, ['splitter'] = {}, ['mining_drill'] = {}}
+  vis_ents = {['transport_belt'] = {}, ['inserter'] = {}, ['power_pole'] = {}, ['splitter'] = {}, ['mining_drill'] = {}, ['stone_furnace'] = {}}
   for x = 1, 31 do
     for y = 1, 18 do
       local worldX = (x*8) + (player.x - 116)
@@ -106,7 +108,7 @@ function get_visible_ents()
       local cellX = floor(worldX / 8)
       local cellY = floor(worldY / 8)
       local key = cellX .. '-' .. cellY
-      if ENTS[key] and ENTS[key].type ~= 'dummy' and ENTS[key].type ~= 'dummy_drill' then
+      if ENTS[key] and ENTS[key].type ~= 'dummy' and ENTS[key].type ~= 'dummy_drill' and ENTS[key].type ~= 'dummy_furnace' then
         local type = ENTS[key].type
         local index = #vis_ents[type] + 1
         --vis_ents[type][key] = ENTS[key]
@@ -116,13 +118,13 @@ function get_visible_ents()
   end
 end
 
-function get_ent(x, y, world)
-  local key = x .. '-' .. y
-  if not world then
-    key = get_key(x, y)
-  end
-  return ENTS[key]
-end
+-- function get_ent(x, y, world)
+--   local key = x .. '-' .. y
+--   if not world then
+--     key = get_key(x, y)
+--   end
+--   return ENTS[key]
+-- end
 
 function get_key(x, y)
   local tile, wx, wy = get_world_cell(x, y)
@@ -137,6 +139,18 @@ function world_to_screen(world_x, world_y)
   local screen_x = world_x * 8 - (player.x - 116)
   local screen_y = world_y * 8 - (player.y - 64)
   return screen_x - 8, screen_y - 8
+end
+
+function screen_to_world(screen_x, screen_y)
+  local cam_x = player.x - 116
+  local cam_y = player.y - 64
+  local sub_tile_x = cam_x % 8
+  local sub_tile_y = cam_y % 8
+  local sx = floor((screen_x + sub_tile_x) / 8)
+  local sy = floor((screen_y + sub_tile_y) / 8)
+  local wx = floor(cam_x / 8) + sx + 1
+  local wy = floor(cam_y / 8) + sy + 1
+  return wx, wy
 end
 
 function get_cell(x, y)
@@ -306,6 +320,7 @@ function add_drill(x, y)
   local key = get_key(x, y)
   local found_ores = {}
   local tile_keys, field_keys = {}, {}
+  --local sx, sy = get_screen_cell(x, y)
   for i = 1, 4 do
     local pos = DRILL_AREA_MAP_BURNER[i]
     local sx, sy = cursor.tile_x + (pos.x * 8), cursor.tile_y + (pos.y * 8)
@@ -334,9 +349,10 @@ function add_drill(x, y)
     end
   end
 
-  local tile, wx, wy = get_world_cell(x, y)
   if not ENTS[key] then
+    local tile, wx, wy = get_world_cell(x, y)
     sfx(4, 'B-3', 10, 0, 15, 4)
+    --trace('creating drill @ ' .. key)
     ENTS[key] = new_drill({x = wx, y = wy}, cursor.rot, field_keys)
     ENTS[wx + 1 .. '-' .. wy] = {type = 'dummy_drill', other_key = key}
     ENTS[wx + 1 .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = key}
@@ -344,7 +360,7 @@ function add_drill(x, y)
   elseif ENTS[key] and ENTS[key].type == 'mining_drill' then
     sfx(4, 'B-3', 10, 0, 15, 4)
     sfx(3, 'E-5', 10, 0, 15, 3)
-    ENTS[key].rot = cursor.rot
+    --ENTS[key].rot = cursor.rot
   end
 end
 
@@ -359,6 +375,20 @@ function remove_drill(x, y)
   if ENTS[wx + 1 .. '-' .. wy] then ENTS[wx + 1 .. '-' .. wy] = nil end
   if ENTS[wx + 1 .. '-' .. wy + 1] then ENTS[wx + 1 .. '-' .. wy + 1] = nil end
   if ENTS[wx .. '-' .. wy + 1] then ENTS[wx .. '-' .. wy + 1] = nil end
+end
+
+function add_furnace(x, y)
+  local key1 = get_key(x, y)
+  local key2 = get_key(x + 8, y)
+  local key3 = get_key(x + 8, y + 8)
+  local key4 = get_key(x, y + 8)
+  if not ENTS[key1] and not ENTS[key2] and not ENTS[key3] and not ENTS[key4] then
+    local wx, wy = screen_to_world(x, y)
+    ENTS[key1] = new_furnace(wx, wy)
+    ENTS[key2] = {type = 'dummy_furnace', other_key = key1}
+    ENTS[key3] = {type = 'dummy_furnace', other_key = key1}
+    ENTS[key4] = {type = 'dummy_furnace', other_key = key1}
+  end
 end
 
 function move_player(x, y)
@@ -583,10 +613,13 @@ function draw_cursor()
     local belt_pos = DRILL_MINI_BELT_MAP[cursor.rot]
     --trace(TICK % 2)
     --sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
+    sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 7, 0, 1, 0, 0, 1, 1)
     sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
-    sspr(DRILL_BIT_ID, sx + 5 + (DRILL_BIT_TICK % 2), sy + 12, 0, 1, 0, 0, 1, 1)
     sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, cursor.rot, 1, 1)
     --sspr(DRILL_BURNER_SPRITE_ID, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.rot, 2, 2)
+  elseif cursor.type == 'item' and cursor.item == 'stone_furnace' then
+    local sx, sy = get_screen_cell(x, y)
+    sspr(FURNACE_SPRITE_INACTIVE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
   end
 end
 
@@ -654,8 +687,8 @@ function place_tile(x, y, rotation)
     add_pole(x, y)
   elseif cursor.item == 'splitter' then
     add_splitter(x, y)
-  elseif cursor.item == 'mining_drill' then
-    add_drill(x, y)
+  -- elseif cursor.item == 'mining_drill' then
+  --   add_drill(x, y)
   end
 end
 
@@ -684,7 +717,7 @@ function pipette()
   if cursor.type == 'pointer' then
     local key = get_key(cursor.x, cursor.y)
     if ENTS[key] then
-      if ENTS[key].type == 'dummy' or ENTS[key].type == 'dummy_drill' then
+      if ENTS[key].type == 'dummy' or ENTS[key].type == 'dummy_drill' or ENTS[key].type == 'dummy_furnace' then
         key = ENTS[key].other_key
       end
       cursor.type = 'item'
@@ -975,7 +1008,7 @@ end
 function update_ents()
   if TICK % 5 == 0 then
     for k, v in pairs(ENTS) do
-      if v.type ~= 'dummy' and v.type ~= 'dummy_drill' then
+      if v.type ~= 'dummy' and v.type ~= 'dummy_drill' and v.type ~= 'dummy_furnace' then
         v:update()
       end
     end
@@ -1001,6 +1034,10 @@ function draw_ents()
     if ENTS[key] then ENTS[key]:draw() end
   end
   for index, key in pairs(vis_ents['mining_drill']) do
+    --trace('DRAWING ENT - KEY: ' .. tostring(key) .. ', VALUE: ' .. tostring(ent.type))
+    if ENTS[key] then ENTS[key]:draw() end
+  end
+  for index, key in pairs(vis_ents['stone_furnace']) do
     --trace('DRAWING ENT - KEY: ' .. tostring(key) .. ', VALUE: ' .. tostring(ent.type))
     if ENTS[key] then ENTS[key]:draw() end
   end
@@ -1074,7 +1111,7 @@ function TIC()
 
   if TICK % DRILL_TICK_RATE == 0 then
     DRILL_BIT_TICK = DRILL_BIT_TICK + DRILL_BIT_DIR
-    if DRILL_BIT_TICK > 5 or DRILL_BIT_TICK < 0 then DRILL_BIT_DIR = DRILL_BIT_DIR * -1 end
+    if DRILL_BIT_TICK > 7 or DRILL_BIT_TICK < 0 then DRILL_BIT_DIR = DRILL_BIT_DIR * -1 end
     DRILL_ANIM_TICK = DRILL_ANIM_TICK + 1
     if DRILL_ANIM_TICK > 2 then DRILL_ANIM_TICK = 0 end
   end
@@ -1268,7 +1305,7 @@ end
 -- 203:9999999949999999449999994444999944444999444444994444444944444449
 -- 204:9999999999899989999999999999999999999999999899999899989999999999
 -- 205:9999999999899989999999999999999999999999999899999899989999999999
--- 206:9999999999899989999999999999999999999999999899999899989999999999
+-- 206:9998999999888999998889999888889998888899998889999988899999989999
 -- 207:9999999999899989999999999999999999999999999899999899989999999999
 -- 212:9999999944999494944444444444944444444444444444444444444444444444
 -- 213:4444444444444444444444444444444444444444444444444444444444444444
@@ -1278,7 +1315,7 @@ end
 -- 219:4444444444444444444444444444444444444444444444444444444444444444
 -- 220:9999999949999999449999994444999944444999444444994444444944444449
 -- 221:9999999999899989999999999999999999999999999899999899989999999999
--- 222:9999999999899989999999999999999999999999999899999899989999999999
+-- 222:9989899999999999999999999999999999999999999899999899989999999999
 -- 223:9999999999899989999999999999999999999999999899999899989999999999
 -- 231:9999999999899989999999999999999999999999999899999899989999999999
 -- 235:4444444444444444444444444444444444444444444444444444444444444444
@@ -1492,8 +1529,8 @@ end
 -- 053:5252525020000000500000002000000050000000200000005000000000000000
 -- 056:3030303000000000300000000000000030000000000000003000000000000000
 -- 057:3000000003000000000000000300000000000000030000000000000003000000
--- 058:bbbbbbbbbb000000b0b00000b00b0000b000b000b0000b00b00000b0b000000b
--- 059:bbbbbbbb000000bb00000b0b0000b00b000b000b00b0000b0b00000be000000b
+-- 058:bbbbbbbbbb000000b0b00000b00b0000b000b000b0000b00b00000b0bddddddb
+-- 059:bbbbbbbb000000bb00000b0b0000b00b000b000b00b0000b0b00000beddddddb
 -- 060:cdeeeeeed000dddde00c23eee00d232de00c322cd00d33eee000eccce000c000
 -- 061:eeeeeedcdddd000deeeee00ecdcdc00edcdcd00eeeeee00dccce000e000c000e
 -- 062:cdeeeeeed000dddde00c32eee00d232de00c323cd00d23eee000eccce000c000
@@ -1505,8 +1542,8 @@ end
 -- 068:0001100000011000000cd000000dc000000ce000000cd0000000000000000000
 -- 072:3000000003030303000000000000000000000000000000000000000000000000
 -- 073:0000000003000000000000000000000000000000000000000000000000000000
--- 074:b000000eb00000b0beeeebeeb000b000beebeeeeb0b00000bb000000bbbbbbbb
--- 075:b000000b0b00000beebeeeeb000b000beeeebeeb00000b0b000000bbbbbbbbbb
+-- 074:b000000eb00000b0b0000b00b000b000b00b0000b0b00000bb000000bbbbbbbb
+-- 075:b000000b0b00000b00b0000b000b000b0000b00b00000b0b000000bbbbbbbbbb
 -- 076:fddddddde0000000ddd000004fec0000ff4eceec4fec0000ddd00000cdeeeeee
 -- 077:ddddddde0000000e0000000d0000000eceecceed0000000e0000000deeeeeedc
 -- 078:fddddddde0000000ddd00000ff4c0000f4feceecff4c0000ddd00000cdeeeeee
@@ -1620,9 +1657,26 @@ end
 -- 229:fffff000eefccf00dcf12df02dfc12df2dfc12dfdcf12dcfeeefcccffffffff0
 -- 230:fffff000eefccf00dcf9adf09dfc9adf9dfc9adfdcf9adcfeeefcccffffffff0
 -- 231:deecceede0d000ceedcd00ceedcd00ceec2c00cee23d00ceedddcefddeeecf4d
+-- 232:0000000000000dff0000ddcf0000ddcc0000ddcc0000ddcc000dddcc000ddddc
+-- 233:00000000ffe00000feee0000ceee0000ceee0000ceee0000cceee000cceee000
+-- 234:0000000000000dff0000ddcf0000ddcc0000ddcc0000ddcc000dddcc000ddddc
+-- 235:00000000ffe00000feee0000ceee0000ceee0000ceee0000cceee000cceee000
+-- 236:0000000000000dff0000dddf0000dddd0000dddd0000dddd000ddddd000ddddd
+-- 237:00000000ffe00000fcee0000ccee0000ccee0000ccee0000cccee000dccee000
+-- 238:0000000000000dff0000dddf0000dddd0000dddd0000dddd000ddddd000ddddd
+-- 239:00000000ffe00000fcee0000ccee0000dcee0000dcee0000dccee000ddcee000
 -- 244:004ecd0004eeede0004ecde0000dcd00000dcd00004ecde004eeede0004ecd00
 -- 245:002ecd0002eeede0002ecde0000dcd00000dcd00002ecde002eeede0002ecd00
 -- 246:009ecd0009eeede0009ecde0000dcd00000dcd00009ecde009eeede0009ecd00
+-- 247:00dcce0000ddce000dddcee00dddcce00ddffce0ddf23fceddffffcedddddcce
+-- 248:000ddddc00ddddff00dddfce00ddfeec0dddfece0dddffff0ddddddd00000000
+-- 249:cccee000ffceee00cefcee00eecfcee0ecefcce0ffffcce0dcccccc000000000
+-- 250:000ddddc00ddddff00dddf3400ddf4320dddf3430dddffff0ddddddd00000000
+-- 251:cccee000ffceee0023fcee00343fcee0432fcce0ffffcce0dcccccc000000000
+-- 252:000ddddd00ddddff00dddf3200ddf3430dddf4340dddffff0ddddddd00000000
+-- 253:ddcce000ffccee0034fcce00432fcee0234fcce0ffffcce0ddddcce000000000
+-- 254:000ddddd00ddddff00dddf4300ddf4340dddf4320dddff000ddddddd00000000
+-- 255:ddcce000ffdcee0043fdce00234fcee0343fdce000ffdce0dddddce000000000
 -- </SPRITES>
 
 -- <SPRITES1>
@@ -1664,20 +1718,44 @@ end
 -- 052:000000200000002000000200000002000000200000020000002000000cc00000
 -- 054:000000000000000c000000dd00000ded00000decddd00de0f4eccdc04ff4cddd
 -- 055:00000000c0000000dd000000ced00000ded000000ed000000cdc0000ddddc000
+-- 057:0000000000000ddc0000dddc0000dddc000ddddc000ddddd000ddddd000ddddd
+-- 058:00000000cee00000ceee0000ceee0000ceeee000cceee000cceee000cceee000
+-- 059:00000000000000dc00000ddc00000ddc0000dddc0000dddd0000dddd000ddddd
+-- 060:00000000ce000000cee00000cee00000ceee0000ccee0000ccee0000cceee000
+-- 061:00000000000000dc00000ddc00000ddc0000dddc0000dddd0000dddd000ddddd
+-- 062:00000000ce000000cee00000cee00000ceee0000ccee0000ccee0000cceee000
 -- 064:000cceec000ceeee0ffffffffeeeeeeefddddddd0fc23c4c00ffffff00f77777
 -- 065:ceecc000eeeec000fffffff0eeeeeeefeddedddfecceccf0ffffff0077777f00
 -- 067:000cceec000ceeee0ffffffffeeeeeeefddddddd0fc23c4c00ffffff00f27777
 -- 068:ceecc000eeeec000fffffff0eeeeeeefeddedddfecceccf0ffffff00777c7f00
 -- 070:f4ecec0dddcdec0d00dec00d0cdec00d0dec0fefcdec00fedec0000fdec00000
 -- 071:e0cedc00e0cedc00e00ced00e00cedc0cf00ced0f000cedc00000ced00000ced
+-- 073:000ddddd000ddddd00ddddff00dddf4200ddf4230dddf4340dddffff0ddddddd
+-- 074:dccee000dccee000ffccee0043fcce00433fce00232fcee0ffffcce0ddddcce0
+-- 075:000ddddd000ddddd00ddddff00dddf4200ddf4230dddf4340dddffff0ddddddd
+-- 076:dccee000dccee000ffccee0043fcce00433fce00232fcee0ffffcce0ddddcce0
+-- 077:000ddddd000ddddd00ddddff00dddf4200ddf4230dddf4340dddffff0ddddddd
+-- 078:dccee000dccee000ffccee0043fcce00433fce00232fcee0ffffcce0ddddcce0
 -- 080:00f7777700f7776700f7777700f7777700f7777700f7777700f7777700f77777
 -- 081:77777f0077777f0077777f0077777f0077777f0077777f0077677f0077777f00
 -- 083:00f7277700f7276600f7266600f7725600f7766d00f777d600f7766600f76666
 -- 084:7777df00677cdf00667cef00567cdf0066ccef00dcc7cf006677ef007667cf00
+-- 089:0000000000000dcc0000ddcc0000ddcc0000ddcc0000ddcc000dddcc000ddddc
+-- 090:00000000cee00000ceee0000ceee0000ceee0000ceee0000cceee000cceee000
+-- 091:0000000000000dcc0000ddcc0000ddcc0000ddcc0000ddcc000dddcc000ddddc
+-- 092:00000000cee00000ceee0000ceee0000ceee0000ceee0000cceee000cceee000
+-- 093:0000000000000dcc0000ddcc0000ddcc0000ddcc0000ddcc000dddcc000ddddc
+-- 094:00000000cee00000ceee0000ceee0000ceee0000ceee0000cceee000cceee000
 -- 096:00f7777700f7777700f7776700f7777700f7777700f7777700f7777700f77777
 -- 097:77777f0077777f0077777f0077777f0077777f0077777f0077777f0077777f00
 -- 099:00f7656d00f7666d00f7767d00f7766600f7766600f77e6600f7e77700f7e777
 -- 100:6667ef00666c7f0066e77f00d6777f00d6777f006d757f007d777f0077d77f00
+-- 105:000ddddc00ddddff00dddf3400ddf4320dddf3430dddffff0ddddddd00000000
+-- 106:cccee000ffceee0023fcee00343fcee0432fcce0ffffcce0dcccccc000000000
+-- 107:000ddddc00ddddff00dddf3400ddf4320dddf3430dddffff0ddddddd00000000
+-- 108:cccee000ffceee0023fcee00343fcee0432fcce0ffffcce0dcccccc000000000
+-- 109:000ddddc00ddddff00dddf3400ddf4320dddf3430dddffff0ddddddd00000000
+-- 110:cccee000ffceee0023fcee00343fcee0432fcce0ffffcce0dcccccc000000000
 -- 112:00f7777700ffffff0feefffffeefeeeeffffffff0feccccc0fcecece00ffffff
 -- 113:77777f00ffffff00ffffeef0eeeefeefffffffffccccecf0cececef0ffffff00
 -- 115:00fe777500ffffff0feefffffeefeeeeffffffff0feccccc0fcecece00ffffff
