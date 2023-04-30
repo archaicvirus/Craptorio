@@ -232,7 +232,7 @@ function belt.rotate(self, rotation)
   --self.exit = BELT_ROTATION_MAP[rotation]
   if rotation > 3 then rotation = 0 end
   self.rot = rotation
-  self:set_output()
+  --self:set_output()
   self:set_curved()
   --self:update_neighbors()
 end

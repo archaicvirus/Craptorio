@@ -1,5 +1,16 @@
 ores = {
   [1] = {
+    name = 'water',
+    offset = 37994,
+    id = 15,
+    scale = 0.011,
+    min = 13,
+    max = 16,
+    color_keys = 4,
+    tile_id = 15,
+    sprite_id = 58,
+  },
+  [2] = {
     name = 'iron',
     offset = 15000,
     id = 38,
@@ -10,7 +21,7 @@ ores = {
     tile_id = 38,
     sprite_id = 55,
   },
-  [2] = {
+  [3] = {
     name = 'copper',
     offset = 10000,
     id = 37,
@@ -21,7 +32,7 @@ ores = {
     tile_id = 37,
     sprite_id = 54,
   },
-  [3] = {
+  [4] = {
     name = 'coal',
     offset = 50000,
     id = 39,
@@ -32,7 +43,7 @@ ores = {
     tile_id = 39,
     sprite_id = 56,
   },
-  [4] = {
+  [5] = {
     name = 'stone',
     offset = 22500,
     id = 36,
@@ -42,17 +53,6 @@ ores = {
     color_keys = 4,
     tile_id = 36,
     sprite_id = 53,
-  },
-  [5] = {
-    name = 'uranium',
-    offset = 76500,
-    id = 40,
-    scale = 0.022,
-    min = 15,
-    max = 16,
-    color_keys = 4,
-    tile_id = 40,
-    sprite_id = 57,
   },
   [6] = {
     name = 'oil_shale',
@@ -66,15 +66,15 @@ ores = {
     sprite_id = 58,
   },
   [7] = {
-    name = 'water',
-    offset = 37994,
-    id = 15,
-    scale = 0.011,
-    min = 13,
+    name = 'uranium',
+    offset = 76500,
+    id = 40,
+    scale = 0.022,
+    min = 15,
     max = 16,
     color_keys = 4,
-    tile_id = 15,
-    sprite_id = 58,
+    tile_id = 40,
+    sprite_id = 57,
   },
 }
 
@@ -126,7 +126,7 @@ local defs = {
 
     ['inserter'] = function(x, y)
       if is_water(x, y) then return end
-      add_inserter(x, y)
+      add_inserter(x, y, cursor.rot)
     end,
 
     ['power_pole'] = function(x, y)
@@ -137,7 +137,11 @@ local defs = {
     ['mining_drill'] = function(x, y)
       if is_water(x, y) then return end
       add_drill(x, y)
-    end
+    end,
+
+    ['stone_furnace'] = function(x, y)
+      add_furnace(x, y)
+    end,
   },
 }
 
