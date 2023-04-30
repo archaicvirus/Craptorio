@@ -137,7 +137,11 @@ local defs = {
     ['mining_drill'] = function(x, y)
       if is_water(x, y) then return end
       add_drill(x, y)
-    end
+    end,
+
+    ['stone_furnace'] = function(x, y)
+      add_furnace(x, y)
+    end,
   },
 }
 
