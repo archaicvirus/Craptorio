@@ -30,7 +30,7 @@ end
 function TileMgr.create_tile(x, y)
   for i = 1, #ores do
     if ore_sample(x, y, ores[i]) then
-      return {tile = ores[i].id, rot = math.random(4) % 4, index = i}
+      return {tile = ores[i].id, rot = math.random(4) % 4, index = i, is_ore = true}
     end
   end
   local id, r = 0, math.random(4) % 4
@@ -38,7 +38,7 @@ function TileMgr.create_tile(x, y)
     id = floor(math.random(8) % 8)
     r = 0
   end
-  return {tile = id, rot = r, index = 1}
+  return {tile = id, rot = r, index = 1, is_ore = false}
 end
 
 function TileMgr:get_tile_screen(screen_x, screen_y)
@@ -58,7 +58,12 @@ function TileMgr:get_tile_world(world_x, world_y)
 end
 
 function TileMgr:set_tile(tile, world_x, world_y)
-  self.tiles[world_y][world_x].tile = tile
+  local id, r = 0, math.random(4) % 4
+  if math.random(100) > 95 then
+    id = floor(math.random(8) % 8)
+    r = 0
+  end
+  self.tiles[world_y][world_x] = {tile = id, rot = r, index = 1, is_ore = false}
 end
 
 function TileMgr:draw(player, screenWidth, screenHeight)
@@ -75,10 +80,14 @@ function TileMgr:draw(player, screenWidth, screenHeight)
     for screenX = 1, screenWidth do
       local worldX = startX + screenX
       local worldY = startY + screenY
-      local index = self.tiles[worldY][worldX]
+      local tile = self.tiles[worldY][worldX]
       local sx = (screenX - 1) * 8 - subTileX
       local sy = (screenY - 1) * 8 - subTileY
-      sspr(index.tile, sx, sy, -1, 1, 0, index.rot)
+      if tile.is_ore then
+        sspr(ores[tile.index].tile_id, sx, sy, -1, 1, 0, tile.rot)
+      else
+        sspr(tile.tile, sx, sy, -1, 1, 0, tile.rot)
+      end
     end
   end
 end

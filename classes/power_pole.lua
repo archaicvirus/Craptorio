@@ -23,7 +23,7 @@ POWER_POLE_ANCHOR_POINTS = {
   --tiles to check around self for other poles or powered objects
 POWER_POLE_CONNECT_MAP = {}
 
-local pole = {
+local Pole = {
   pos = {x = 0, y = 0},
   cables = {
     ['power'] = {},
@@ -36,7 +36,13 @@ local pole = {
   item_id = 12
 }
 
-function pole.draw(self, show_area)
+function Pole.draw_hover_widget(self)
+  local sx, sy = cursor.x, cursor.y
+  rectb(sx, sy, 50, 50, 13)
+  rect(sx + 1, sy + 1, 48, 48, 0)
+end
+
+function Pole.draw(self, show_area)
   show_area = show_area or false
   local loc_x, loc_y = world_to_screen(self.pos.x, self.pos.y)
   spr(POWER_POLE_TOP_ID, loc_x, loc_y - 16, 0)
@@ -58,16 +64,16 @@ function pole.draw(self, show_area)
   end
 end
 
-function pole.update(self)
+function Pole.update(self)
 
 end
 
-function pole.connect(self, other)
+function Pole.connect(self, other)
   local other_pwr, other_red, other_grn = other:get_sockets()
 
 end
 
-function pole.get_sockets(self)
+function Pole.get_sockets(self)
   local pwr = POWER_POLE_ANCHOR_POINTS['power'][1]
   local red = POWER_POLE_ANCHOR_POINTS['red'][1]
   local grn = POWER_POLE_ANCHOR_POINTS['green'][1]
@@ -79,6 +85,6 @@ end
 
 return function(pos)
   local new_pole = {pos = pos}
-  setmetatable(new_pole, {__index = pole})
+  setmetatable(new_pole, {__index = Pole})
   return new_pole
 end

@@ -19,10 +19,10 @@ SPLITTER_OUTPUT_MAP = {
 }
 
 SPLITTER_ITEM_MAP = {
-  [0] = {a = {x = 0, y = 0}, b = {x = 0, y = 4}, c = {x = 0, y = 8}, d = {x = 0, y = 12}},
-  [1] = {a = {x = 13, y = 0}, b = {x = 9, y = 0}, c = {x = 5, y = 0}, d = {x = 1, y = 0}},
-  [2] = {a = {x = 5, y = 13}, b = {x = 5, y = 9}, c = {x = 5, y = 5}, d = {x = 5, y = 1}},
-  [3] = {a = {x = 0, y = 5}, b = {x = 4, y = 5}, c = {x = 8, y = 5}, d = {x = 12, y = 5}},
+  [0] = {a = {x =  0, y =  0}, b = {x = 0, y = 4}, c = {x = 0, y = 8}, d = {x =  0, y = 12}},
+  [1] = {a = {x = 13, y =  0}, b = {x = 9, y = 0}, c = {x = 5, y = 0}, d = {x =  1, y =  0}},
+  [2] = {a = {x =  5, y = 13}, b = {x = 5, y = 9}, c = {x = 5, y = 5}, d = {x =  5, y =  1}},
+  [3] = {a = {x =  0, y =  5}, b = {x = 4, y = 5}, c = {x = 8, y = 5}, d = {x = 12, y =  5}},
 }
 
 SPLITTER_BELT_OUTPUT_MAP = {
@@ -64,6 +64,12 @@ local Splitter = {
   drawn = false,
   item_id = 10
 }
+
+function Splitter.draw_hover_widget(self)
+  local sx, sy = cursor.x, cursor.y
+  rectb(sx, sy, 50, 50, 13)
+  rect(sx + 1, sy + 1, 48, 48, 0)
+end
 
 function Splitter.get_info(self)
   local world_key = self.x .. '-' .. self.y
@@ -415,27 +421,44 @@ function Splitter.draw_items(self)
     local a, b, c, d = item_map.a, item_map.b, item_map.c, item_map.d
     local wx, wy = world_to_screen(self.x, self.y)
 
+    -- for i = 1, 2 do
+    --   for j = 1, 8 do
+    --     if self.lanes.right[i][j] ~= 0 then
+    --       local sprite_id = ITEMS[self.lanes[i][j]].sprite_id
+    --       sspr(sprite_id)
+    --     end
+    --   end
+    -- end
+  local function get_id(side, lane, slot)
+    if side == 1 then --left
+      return ITEMS[self.lanes.left[lane][slot]].sprite_id
+    else
+      return ITEMS[self.lanes.right[lane][slot]].sprite_id
+    end
+  end
+
+
     for k = 1, 8 do
       if self.rot == 0 then
-        if self.lanes.right[1][k] ~= 0 then sspr(297, wx + a.x + (k - 1), wy + a.y, 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(297, wx + b.x + (k - 1), wy + b.y, 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(297, wx + c.x + (k - 1), wy + c.y, 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(297, wx + d.x + (k - 1), wy + d.y, 0) end
+        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x + (k - 1), wy + a.y, 0) end
+        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x + (k - 1), wy + b.y, 0) end
+        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x + (k - 1), wy + c.y, 0) end
+        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x + (k - 1), wy + d.y, 0) end
       elseif self.rot == 1 then
-        if self.lanes.right[1][k] ~= 0 then sspr(297, wx + a.x, wy + a.y + (k - 1), 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(297, wx + b.x, wy + b.y + (k - 1), 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(297, wx + c.x, wy + c.y + (k - 1), 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(297, wx + d.x, wy + d.y + (k - 1), 0) end
+        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x, wy + a.y + (k - 1), 0) end
+        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x, wy + b.y + (k - 1), 0) end
+        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x, wy + c.y + (k - 1), 0) end
+        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x, wy + d.y + (k - 1), 0) end
       elseif self.rot == 2 then
-        if self.lanes.right[1][k] ~= 0 then sspr(297, wx + a.x - (k - 1), wy + a.y, 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(297, wx + b.x - (k - 1), wy + b.y, 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(297, wx + c.x - (k - 1), wy + c.y, 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(297, wx + d.x - (k - 1), wy + d.y, 0) end
+        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x - (k - 1), wy + a.y, 0) end
+        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x - (k - 1), wy + b.y, 0) end
+        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x - (k - 1), wy + c.y, 0) end
+        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x - (k - 1), wy + d.y, 0) end
       else
-        if self.lanes.right[1][k] ~= 0 then sspr(297, wx + a.x, wy + a.y - (k - 1), 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(297, wx + b.x, wy + b.y - (k - 1), 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(297, wx + c.x, wy + c.y - (k - 1), 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(297, wx + d.x, wy + d.y - (k - 1), 0) end
+        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x, wy + a.y - (k - 1), 0) end
+        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x, wy + b.y - (k - 1), 0) end
+        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x, wy + c.y - (k - 1), 0) end
+        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x, wy + d.y - (k - 1), 0) end
       end
     end
 
