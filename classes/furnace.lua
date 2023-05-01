@@ -72,15 +72,30 @@ end
 function Furnace.open(self)
   return {
     x = cursor.x + 5,
-    y = cursor.y + 5,
+    y = 3,
     width = 100,
-    height = 50,
+    height = 100,
+    close = function(self, sx, sy)
+      -- 5x5 close button sprite
+      local cx, cy, cw, ch = self.x + self.width - 7, self.y + 2, 5, 5
+      if sx >= cx and sx < sx + cw and sy >= cy and sy < cy + ch then
+        return true
+      end
+      return false
+    end,
     ent_key = self.x .. '-' .. self.y,
+    click = function(self, sx, sy)
+      if sx >= self.x and sx < self.x + self.width and sy >= self.y and sy < self.y + self.height then
+        if self:close(sx, sy) then window = nil; return true end
+      end
+      return false
+    end,
     is_hovered = function(self, x, y)
       return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height and true or false
     end,
     draw = function(self)
       local ent = ENTS[self.ent_key]
+      if not ent then return end
       local input, output, fuel = ent.input_buffer, ent.output_buffer, ent.fuel_buffer
       local x, y, w, h = self.x, self.y, self.width, self.height
       --background window and border
@@ -88,35 +103,46 @@ function Furnace.open(self)
       rect(x + 1, y + 1, w - 2, h - 2, 0)
 
       --input slots icon, and item count------------------------------------------
-      local text = #input .. '/' .. FURNACE_BUFFER_INPUT
-      local text_width = print(text, 0, -10, 0, true, 1, true)
-      local sprite_id = 311
-      print('Input - ', x + 3, y + 3, 11, true, 1, true)
-      print(text, x + w - 2 - text_width, y + 3, 4, true, 1, true)
-      if #input > 0 then sprite_id = ITEMS[input[1]].sprite_id end
-      sspr(sprite_id, x + w - 12 - text_width, y + 2, 4)
+      -- local text = #input .. '/' .. FURNACE_BUFFER_INPUT
+      -- local text_width = print(text, 0, -10, 0, true, 1, true)
+      -- local sprite_id = 311
+      -- print('Input - ', x + 3, y + 3, 11, true, 1, true)
+      -- print(text, x + w - 2 - text_width, y + 3, 4, true, 1, true)
+      -- if #input > 0 then sprite_id = ITEMS[input[1]].sprite_id end
+      -- sspr(sprite_id, x + w - 12 - text_width, y + 2, 4)
 
       --output slots icon and item count---------------------------------------------
-      local text = #output .. '/' .. FURNACE_BUFFER_OUTPUT
-      local text_width = print(text, 0, -10, 0, true, 1, true)
-      local sprite_id = 311
-      print('Output - ', x + 3, y + 15, 11, true, 1, true)
-      print(text, x + w - 2 - text_width, y + 15, 4, true, 1, true)
-      if #output > 0 then sprite_id = ITEMS[output[1]].sprite_id end
-      sspr(sprite_id, x + w - 12 - text_width, y + 13, 4)
+      -- local text = #output .. '/' .. FURNACE_BUFFER_OUTPUT
+      -- local text_width = print(text, 0, -10, 0, true, 1, true)
+      -- local sprite_id = 311
+      -- print('Output - ', x + 3, y + 15, 11, true, 1, true)
+      -- print(text, x + w - 2 - text_width, y + 15, 4, true, 1, true)
+      -- if #output > 0 then sprite_id = ITEMS[output[1]].sprite_id end
+      -- sspr(sprite_id, x + w - 12 - text_width, y + 13, 4)
       
       --fuel buffer slot icon etc-----------------------------------------------------
-      local text = #fuel .. '/' .. FURNACE_BUFFER_FUEL
-      local text_width = print(text, 0, -10, 0, true, 1, true)
-      local sprite_id = 311
-      print('Fuel - ', x + 3, y + 24, 11, true, 1, true)
-      print(text, x + w - 2 - text_width, y + 24, 4, true, 1, true)
-      if #fuel > 0 then sprite_id = ITEMS[fuel[1]].sprite_id end
-      sspr(sprite_id, x + w - 12 - text_width, y + 24, 4)
+      -- local text = #fuel .. '/' .. FURNACE_BUFFER_FUEL
+      -- local text_width = print(text, 0, -10, 0, true, 1, true)
+      -- local sprite_id = 311
+      -- print('Fuel - ', x + 3, y + 24, 11, true, 1, true)
+      -- print(text, x + w - 2 - text_width, y + 24, 4, true, 1, true)
+      -- if #fuel > 0 then sprite_id = ITEMS[fuel[1]].sprite_id end
+      -- sspr(sprite_id, x + w - 12 - text_width, y + 24, 4)
       --large stone furnace graphic------------------------------------------------
       local sprite_id = FURNACE_SPRITE_INACTIVE_ID
+      local fx, fy = x + (w / 2) - 8, y + 22 --furnace icon screen pos
       if ent.is_smelting then sprite_id = FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2) end
-      sspr(sprite_id, x + (w / 2) - 8, y + 5, 0, 1, 0, 0, 2, 2)
+      for i = -2, 3 do
+        for j = -4, 5 do
+          local tile = TileMan.tiles[ent.y + i][ent.x + j]
+          local tile_id = tile.tile
+          if tile.is_ore then tile_id = ores[tile.index].tile_id end
+          sspr(tile_id, fx + (j*8), fy + (i*8), 0, 1, 0, tile.rot)
+        end
+      end
+      rectb(fx - 33, fy - 17, w - 18, 50, 14)
+      sspr(sprite_id, fx, fy, 0, 1, 0, 0, 2, 2)
+      sspr(437, x + w - 7, y + 2, 0)
     end
   }
 end
