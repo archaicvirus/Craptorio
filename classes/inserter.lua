@@ -132,7 +132,7 @@ function Inserter.update(self)
           if ENTS[self.to_key].type == 'dummy_furnace' then
             self.to_key = ENTS[self.to_key].other_key
           end
-          if ENTS[self.to_key]:deposit(self.held_item_id) then
+          if ENTS[self.to_key]:deposit(self.held_item_id, nil) then
             self.held_item_id = 0
             self.state = 'return'
           end

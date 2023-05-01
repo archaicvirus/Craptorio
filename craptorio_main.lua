@@ -178,7 +178,10 @@ function get_world_cell(mouse_x, mouse_y)
 end
 --------------------------------------------------------------------------------------
 
-function can_accept() end
+function remap(n, a, b, c, d)
+  return c + (n - a) * (d - c) / (b - a)
+end
+
 
 function is_water(x, y)
   local tile = get_world_cell(x, y)
@@ -596,6 +599,9 @@ function draw_cursor()
     --check around cursor to attach temp cables to other poles
   elseif cursor.type == 'pointer' then
     local key = get_key(cursor.x, cursor.y)
+    if window and window:is_hovered(cursor.x, cursor.y) then
+      
+    end
     if ENTS[key] then
       -- local ent = ENTS[key].type
       -- if ent == 'dummy' or ent == 'dummy_drill' or ent == 'dummy_furnace' then
@@ -781,14 +787,16 @@ function dispatch_input()
     if ENTS[k].type == 'dummy_furnace' then k = ENTS[k].other_key end
     window = ENTS[k]:open()
   end
-
+  if window and window:is_hovered(x, y) and left and not cursor.left then
+    if window:click(x, y) then return end
+  end
   --begin mouse-over priority dispatch
 
   --check crafting menu
   if craft_menu.vis and craft_menu:is_hovered(x, y) then
-    if left and not cursor.last_left then
+    if left and not cursor.left then
       craft_menu:click(x, y, 'left')
-    elseif right and cursor.last_right then
+    elseif right and cursor.right then
       craft_menu:click(x, y, 'right')
     end
     --check inventory
@@ -811,7 +819,7 @@ function dispatch_input()
       end
     else
     --if item is placeable, run callback for item type
-      if left and not cursor.last_left then
+      if left and not cursor.left then
         DEFS.callbacks[cursor.item](x, y)
       elseif cursor.item == 'transport_belt' and left then 
         DEFS.callbacks[cursor.item](x, y)
@@ -878,115 +886,6 @@ function dispatch_input()
   cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, cursor.left, cursor.middle, cursor.right
   cursor.x, cursor.y = x, y
 end
-
--- function handle_input()
---   local x, y, left, middle, right, scroll_x, scroll_y = mouse()
---   if scroll_y ~= 0 then cycle_hotbar(scroll_y*-1) end
---   move_cursor('mouse', x, y)
-
---   if not left and cursor.last_left and cursor.drag then
---     local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
---     cursor.drag = false
---     if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
---       cursor.tile_y = sy
---     else      
---       cursor.tile_x = sx
---     end
---   end
-
---   local tile, tile_x, tile_y = get_world_cell(x, y)
---   local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
---   local k = get_key(x, y)
-
---   if cursor.item == 'transport_belt' and not cursor.drag and left and cursor.last_left then
---     --drag locking/placing belts
---     cursor.drag = true
---     local screen_x, screen_y = get_screen_cell(x, y)
---     local tile, wx, wy = get_world_cell(x, y)
---     cursor.drag_loc = {x = wx, y = wy}
---     cursor.drag_dir = cursor.rot
---   end
-
---   if cursor.item == 'transport_belt' and cursor.drag then
---     local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
---     if cursor.drag_dir == 0 or cursor.drag_dir == 2 and screen_tile_x ~= cursor.last_tile_x then
---       place_tile(x, dy, cursor.drag_dir)
---     elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and screen_tile_y ~= cursor.last_tile_y then
---       place_tile(dx, y, cursor.drag_dir)
---     end
---   end
-
---   if left and not cursor.last_left then place_tile(x, y, cursor.rot) end
---   if right then remove_tile(x, y) end
---   if ENTS[k] then ENTS[k].is_hovered = true end
-
---   -- if keyp(18) and not keyp(63) then rotate_cursor()end --r
---   -- if keyp(17) then pipette()            end --q
---   -- if key(6)   then add_item(x, y, 1)          end --f
---   -- if key(7)   then add_item(x, y, 2)          end --g
---   -- if keyp(9) or keyp(49) then toggle_inventory() end --i or tab
---   -- if keyp(8) then toggle_hotbar() end
---   -- if keyp(3) then toggle_crafting() end
---   -- if keyp(25) then debug = debug == false and true or false end
---   -- if keyp(28) then set_active_slot(1) end
---   -- if keyp(29) then set_active_slot(2) end
---   -- if keyp(30) then set_active_slot(3) end
---   -- if keyp(31) then set_active_slot(4) end
---   -- if keyp(32) then set_active_slot(5) end
---   -- if keyp(33) then set_active_slot(6) end
---   -- if keyp(34) then set_active_slot(7) end
---   -- if keyp(35) then set_active_slot(8) end
---   -- if keyp(36) then set_active_slot(9) end
---   -- if keyp(27) then set_active_slot(10) end
-
---       --F
---       if key(6) then add_item(x, y, 1) end
---       --G
---       if key(7) then add_item(x, y, 2) end
---       --R
---       if keyp(18) and not keyp(63) then rotate_cursor() end
---       --Q
---       if keyp(17) then pipette() end
---       --I or TAB
---       if keyp(9) or keyp(49) then toggle_inventory() end
---       --H
---       if keyp(8) then toggle_hotbar() end
---       --C
---       if keyp(3) then toggle_crafting() end
---       --Y
---       if keyp(25) then debug = debug == false and true or false end
---       --0-9
---       for i = 1, 10 do
---         local key = 27 + i
---         if i == 10 then key = 27 end
---         if keyp(key) then set_active_slot(i) end
---       end
-
---   if craft_menu.vis and not cursor.panel_drag and left and not cursor.last_left and craft_menu:is_hovered(x, y) == true then
---     if craft_menu:click(x, y) then
---     elseif not craft_menu.docked then
---       cursor.panel_drag = true
---       cursor.drag_offset.x = craft_menu.x - x
---       cursor.drag_offset.y = craft_menu.y - y
---     end
---   end
---   if not left then cursor.panel_drag = false end
---   if craft_menu.vis and cursor.panel_drag then
---     craft_menu.x = math.max(1, math.min(x + cursor.drag_offset.x, 239 - craft_menu.w))
---     craft_menu.y = math.max(1, math.min(y + cursor.drag_offset.y, 135 - craft_menu.h))
---   end
-
---   if left and not cursor.last_left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
---     local slot = inv:get_hovered_slot(x, y)
---     inv.slots[slot.index]:callback()
---   end
-
---   cursor.last_tile_x, cursor.last_tile_y = cursor.tile_x, cursor.tile_y
---   cursor.tile_x, cursor.tile_y = screen_tile_x, screen_tile_y
---   cursor.last_rotation = cursor.rot
---   cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, left, middle, right
---   cursor.x, cursor.y = x, y
--- end
 
 function toggle_hotbar()
   if not inv.hotbar_vis then
@@ -1193,7 +1092,13 @@ function TIC()
   inv:draw()
   --inv:draw_hotbar()
   craft_menu:draw()
-  if window then window:draw() end
+  if window then
+    if ENTS[window.ent_key] then
+      window:draw()
+    else
+      window = nil
+    end
+  end
   local dc_time = lapse(draw_cursor)
 
   --draw_cursor()
@@ -1272,7 +1177,7 @@ end
 -- 023:6666666666666676666667666666676667666666667666666676666666666666
 -- 024:6666666666666666666666666666666666666666666666666666666666666666
 -- 036:4ce4ce44cdd4edc4dec44cf4444444444ecd4de4edf44ece4ee4ecdc444444e4
--- 037:444442344424243f23342323324444244444434433f432443434332442243244
+-- 037:442342244233434344234f33443444444244442332324332f342424443244444
 -- 038:4ce4cf448bd4fdb48ee448f444444444edcb4ff4fc8e48cf4ff4ffbc44444ef4
 -- 039:4400400440fe40ef400f44f0440444444044440f000e40f00ef040e44f044444
 -- 040:45745f44f654f654f77447f44444444475754f74f677475f4ff4ff65444445f4
@@ -1542,7 +1447,7 @@ end
 -- 024:6560000034500000654000000000000000000000000000000000000000000000
 -- 025:656002213450034265400124000000000000000099800bbd3490034b89400db4
 -- 026:003000d003430cec003000d0000000000000000004330bcc03330ccc03340ccd
--- 027:1ff111f010ff10ff11f01f011111111111111111100111f11f0f1f0f10f110f0
+-- 027:44444444444ef04444f000444400f0044f000004400f00f444f00fe444444444
 -- 028:0000000004300980032408fd003300e800000000003300ed03240efe04300dd0
 -- 029:000000000e0d00000eff00000de0000000000000000000000000000000000000
 -- 031:0000000000300000034000003433333344444444040000000040000000000000
@@ -1557,6 +1462,7 @@ end
 -- 041:0ed00000efe00000dd0000000000000000000000000000000000000000000000
 -- 042:fe000000efd000000ef000000000000000000000000000000000000000000000
 -- 043:bcc00000ccc00000ccd000000000000000000000000000000000000000000000
+-- 044:4330000033300000334000000000000000000000000000000000000000000000
 -- 045:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
 -- 046:000fffff00fcdfee0fe21fcdfd21dfd2fc21cfd2fdc21fcdfcdcfeee0fffffff
 -- 047:000fffff00fcdfee0fea9fcdfda9dfd9fca9cfd9fdca9fcdfcdcfeee0fffffff
@@ -1566,6 +1472,7 @@ end
 -- 051:0000e0000000de00dddddde0f4eff4de4eff4efef4eff4dedddddde00000de00
 -- 052:0001100000011000000110000001100000011000000110000001100000011000
 -- 053:5252525020000000500000002000000050000000200000005000000000000000
+-- 054:000000000fcccc000fc0fc000fccccf00fccccf00fcccc00fcccccc000000000
 -- 055:0ffffff0feeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeef0ffffff0
 -- 056:3030303000000000300000000000000030000000000000003000000000000000
 -- 057:3000000003000000000000000300000000000000030000000000000003000000
@@ -1656,10 +1563,12 @@ end
 -- 172:1edddef1edddddf1eddddf111eddf11111ed1111111111111111111111111111
 -- 173:fddd11111fde1111111111111111111111111111111111111111111111111111
 -- 174:1111111111111111111111111111111111111111111111111111111111111111
+-- 176:000000000ecddce00cbdddc00dddddd00dddddd00cddddc00ecddce000000000
 -- 179:eeeee000eecee000ecdce000edede000edede000eddde000eddde000eeeee000
 -- 180:eeeee000eedee000edede000ecede000ecede000eddde000eddde000eeeee000
--- 192:000cf00000ddcf000cbdddf0cdddddcf0ddddcf000cddf00000cf00000000000
--- 193:0003f00000333f0003b333f03333333f033333f000333f000003f00000000000
+-- 181:222220002f2f200022f220002f2f200022222000000000000000000000000000
+-- 192:00fdf0000fdddf00fdbdddf0dddddddffdddddf00fdddf0000fdf000000f0000
+-- 193:00f3f0000f333f00f3b333f03333333ff33333f00f333f0000f3f000000f0000
 -- 194:00df00000dcdf000dedcdf000dedcdf000dedcdf000dedf00000df0000000000
 -- 195:0ffffff003334430034434400ffffff003334430043443400000000000000000
 -- 196:0000000000bcdf000becebf00ccbccf00becebf000dcbf000000000000000000
