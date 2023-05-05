@@ -261,6 +261,7 @@ function TileMgr:draw_terrain(player, screenWidth, screenHeight)
       local worldX = startX + screenX
       local worldY = startY + screenY
       local tile = self.tiles[worldY][worldX]
+      local tile = self.tiles[worldY][worldX]
       local sx = (screenX - 1) * 8 - subTileX
       local sy = (screenY - 1) * 8 - subTileY
 

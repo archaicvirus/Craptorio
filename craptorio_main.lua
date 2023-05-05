@@ -35,6 +35,7 @@ TICK = 0
 ENTS = {}
 ORES = {}
 window = nil
+window = nil
 STATE = 'main'
 CURSOR_POINTER = 341
 CURSOR_HIGHLIGHT = 312
@@ -343,6 +344,7 @@ function add_drill(x, y)
     tile_keys[k] = tile.tile
     field_keys[i] = k
     if tile.is_ore then
+    if tile.is_ore then
       table.insert(found_ores, tile.tile)
 
       if not ORES[k] then
@@ -350,6 +352,8 @@ function add_drill(x, y)
           type = ores[tile.index].name,
           tile_id = ores[tile.index].tile_id,
           sprite_id = ores[tile.index].sprite_id,
+          id = ores[tile.index].id,
+          ore_remaining = 100,
           id = ores[tile.index].id,
           ore_remaining = 100,
           wx = wx,
@@ -382,6 +386,7 @@ end
 function remove_drill(x, y)
   local key = get_key(x, y)
   local _, wx, wy = get_world_cell(x, y)
+  local _, wx, wy = get_world_cell(x, y)
   if ENTS[key].type == 'dummy_drill' then
     key = ENTS[key].other_key
   end
@@ -400,10 +405,22 @@ function add_furnace(x, y)
   if not ENTS[key1] and not ENTS[key2] and not ENTS[key3] and not ENTS[key4] then
     local wx, wy = screen_to_world(x, y)
     ENTS[key1] = new_furnace(wx, wy, {key2, key3, key4})
+    ENTS[key1] = new_furnace(wx, wy, {key2, key3, key4})
     ENTS[key2] = {type = 'dummy_furnace', other_key = key1}
     ENTS[key3] = {type = 'dummy_furnace', other_key = key1}
     ENTS[key4] = {type = 'dummy_furnace', other_key = key1}
   end
+end
+
+function remove_furnace(x, y)
+  local key = get_key(x, y)
+  if ENTS[key].type == 'dummy_furnace' then
+    key = ENTS[key].other_key
+  end
+  for k, v in ipairs(ENTS[key].dummy_keys) do
+    if ENTS[v] then ENTS[v] = nil end
+  end
+    ENTS[key] = nil
 end
 
 function remove_furnace(x, y)
@@ -572,6 +589,12 @@ function draw_cursor()
     --   sspr(sprite_id, cursor.tile_x, cursor.tile_y, 0)
     -- elseif cursor.type == 'pointer' then
     --   sspr(CURSOR_POINTER, cursor.x, cursor.y, 0)
+    -- elseif cursor.item_stack.id ~= 0 then
+    --   local sprite_id = ITEMS[cursor.item_stack.id].sprite_id
+    --   sspr(312, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+    --   sspr(sprite_id, cursor.tile_x, cursor.tile_y, 0)
+    -- elseif cursor.type == 'pointer' then
+    --   sspr(CURSOR_POINTER, cursor.x, cursor.y, 0)
   else
     --sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
   end
@@ -617,6 +640,17 @@ function draw_cursor()
       -- end
       -- ENTS[key]:draw_hover_widget()
     end
+    local key = get_key(cursor.x, cursor.y)
+    if window and window:is_hovered(cursor.x, cursor.y) then
+      
+    end
+    if ENTS[key] then
+      -- local ent = ENTS[key].type
+      -- if ent == 'dummy' or ent == 'dummy_drill' or ent == 'dummy_furnace' then
+      --   key = ENTS[key].other_key
+      -- end
+      -- ENTS[key]:draw_hover_widget()
+    end
     sspr(CURSOR_POINTER, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
     sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
     pix(cursor.x, cursor.y, 2)
@@ -637,6 +671,7 @@ function draw_cursor()
       local sx, sy = cursor.tile_x + (pos.x * 8), cursor.tile_y + (pos.y * 8)
       local tile, wx, wy = get_world_cell(sx, sy)
       --table.insert(found_ores, tile)
+      if not tile.is_ore or ENTS[key] then
       if not tile.is_ore or ENTS[key] then
         color_keys[i] = {0, 5}
       end
@@ -746,6 +781,8 @@ function remove_tile(x, y)
       remove_drill(x, y)
     elseif ent.type == 'stone_furnace' or ent.type == 'dummy_furnace' then
       remove_furnace(x, y)
+    elseif ent.type == 'stone_furnace' or ent.type == 'dummy_furnace' then
+      remove_furnace(x, y)
     end
   else
     TileMan:set_tile(wx, wy)
@@ -783,6 +820,7 @@ function dispatch_input()
   if scroll_y ~= 0 then cycle_hotbar(scroll_y*-1) end
 
   if not left and cursor.left and cursor.drag then
+  if not left and cursor.left and cursor.drag then
     local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     cursor.drag = false
     if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
@@ -799,12 +837,21 @@ function dispatch_input()
   if window and window:is_hovered(x, y) and left and not cursor.left then
     if window:click(x, y) then return end
   end
+  if left and not cursor.left and ENTS[k] and (ENTS[k].type == 'stone_furnace' or ENTS[k].type == 'dummy_furnace') then
+    if ENTS[k].type == 'dummy_furnace' then k = ENTS[k].other_key end
+    window = ENTS[k]:open()
+  end
+  if window and window:is_hovered(x, y) and left and not cursor.left then
+    if window:click(x, y) then return end
+  end
   --begin mouse-over priority dispatch
 
   --check crafting menu
   if craft_menu.vis and craft_menu:is_hovered(x, y) then
     if left and not cursor.left then
+    if left and not cursor.left then
       craft_menu:click(x, y, 'left')
+    elseif right and cursor.right then
     elseif right and cursor.right then
       craft_menu:click(x, y, 'right')
     end
@@ -828,6 +875,7 @@ function dispatch_input()
       end
     else
     --if item is placeable, run callback for item type
+      if left and not cursor.left then
       if left and not cursor.left then
         DEFS.callbacks[cursor.item](x, y)
       elseif cursor.item == 'transport_belt' and left then 
@@ -870,6 +918,7 @@ function dispatch_input()
   if ENTS[k] then ENTS[k].is_hovered = true end
 
   if craft_menu.vis and not cursor.panel_drag and left and not cursor.left and craft_menu:is_hovered(x, y) == true then
+  if craft_menu.vis and not cursor.panel_drag and left and not cursor.left and craft_menu:is_hovered(x, y) == true then
     if craft_menu:click(x, y) then
     elseif not craft_menu.docked then
       cursor.panel_drag = true
@@ -884,6 +933,7 @@ function dispatch_input()
     craft_menu.y = math.max(1, math.min(y + cursor.drag_offset.y, 135 - craft_menu.h))
   end
 
+  if left and not cursor.left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
   if left and not cursor.left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
     local slot = inv:get_hovered_slot(x, y)
     --trace('returning: slot_pos_x = ' .. slot.x .. ', slot_pos_y = ' .. slot.y .. ', slot_index = ' .. slot.index)
@@ -1055,6 +1105,12 @@ function TIC()
     if DRILL_ANIM_TICK > 2 then DRILL_ANIM_TICK = 0 end
   end
 
+  if TICK % FURNACE_ANIM_TICKRATE == 0 then
+    FURNACE_ANIM_TICK = FURNACE_ANIM_TICK + 1
+    if FURNACE_ANIM_TICK > FURNACE_ANIM_TICKS then
+      FURNACE_ANIM_TICK = 0
+    end
+  end
   if TICK % FURNACE_ANIM_TICKRATE == 0 then
     FURNACE_ANIM_TICK = FURNACE_ANIM_TICK + 1
     if FURNACE_ANIM_TICK > FURNACE_ANIM_TICKS then
@@ -1446,8 +1502,10 @@ end
 -- 022:0000000000000000000000000000000000000000000000000000000020000000
 -- 023:02f00f2002f00f20002ff2000002200000033000000220000002200000022000
 -- 024:6560000034500000654000000000000000000000000000000000000000000000
+-- 024:6560000034500000654000000000000000000000000000000000000000000000
 -- 025:656002213450034265400124000000000000000099800bbd3490034b89400db4
 -- 026:003000d003430cec003000d0000000000000000004330bcc03330ccc03340ccd
+-- 027:44444444444ef04444f000444400f0044f000004400f00f444f00fe444444444
 -- 027:44444444444ef04444f000444400f0044f000004400f00f444f00fe444444444
 -- 028:0000000004300980032408fd003300e800000000003300ed03240efe04300dd0
 -- 029:000000000e0d00000eff00000de0000000000000000000000000000000000000
@@ -1460,8 +1518,11 @@ end
 -- 038:2200000022200000022200000023200000023000000000000000000000000000
 -- 039:0002200000022000000220000002200000022000000220000002300000032000
 -- 040:2210000034200000124000000000000000000000000000000000000000000000
+-- 040:2210000034200000124000000000000000000000000000000000000000000000
 -- 041:0ed00000efe00000dd0000000000000000000000000000000000000000000000
 -- 042:fe000000efd000000ef000000000000000000000000000000000000000000000
+-- 043:bcc00000ccc00000ccd000000000000000000000000000000000000000000000
+-- 044:4330000033300000334000000000000000000000000000000000000000000000
 -- 043:bcc00000ccc00000ccd000000000000000000000000000000000000000000000
 -- 044:4330000033300000334000000000000000000000000000000000000000000000
 -- 045:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
@@ -1473,6 +1534,8 @@ end
 -- 051:0000e0000000de00dddddde0f4eff4de4eff4efef4eff4dedddddde00000de00
 -- 052:0001100000011000000110000001100000011000000110000001100000011000
 -- 053:5252525020000000500000002000000050000000200000005000000000000000
+-- 054:000000000fcccc000fc0fc000fccccf00fccccf00fcccc00fcccccc000000000
+-- 055:0ffffff0feeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeef0ffffff0
 -- 054:000000000fcccc000fc0fc000fccccf00fccccf00fcccc00fcccccc000000000
 -- 055:0ffffff0feeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeef0ffffff0
 -- 056:3030303000000000300000000000000030000000000000003000000000000000
@@ -1570,8 +1633,12 @@ end
 -- 173:fddd11111fde1111111111111111111111111111111111111111111111111111
 -- 174:1111111111111111111111111111111111111111111111111111111111111111
 -- 176:000000000ecddce00cbdddc00dddddd00dddddd00cddddc00ecddce000000000
+-- 176:000000000ecddce00cbdddc00dddddd00dddddd00cddddc00ecddce000000000
 -- 179:eeeee000eecee000ecdce000edede000edede000eddde000eddde000eeeee000
 -- 180:eeeee000eedee000edede000ecede000ecede000eddde000eddde000eeeee000
+-- 181:222220002f2f200022f220002f2f200022222000000000000000000000000000
+-- 192:00fdf0000fdddf00fdbdddf0dddddddffdddddf00fdddf0000fdf000000f0000
+-- 193:00f3f0000f333f00f3b333f03333333ff33333f00f333f0000f3f000000f0000
 -- 181:222220002f2f200022f220002f2f200022222000000000000000000000000000
 -- 192:00fdf0000fdddf00fdbdddf0dddddddffdddddf00fdddf0000fdf000000f0000
 -- 193:00f3f0000f333f00f3b333f03333333ff33333f00f333f0000f3f000000f0000
@@ -1630,6 +1697,8 @@ end
 -- 251:cccee000ffceee0023fcee00343fcee0432fcce0ffffcce0dcccccc000000000
 -- 252:000ddddd00ddddff00dddf3200ddf3430dddf4340dddffff0ddddddd00000000
 -- 253:ddcce000ffccee0034fcce00432fcee0234fcce0ffffcce0ddddcce000000000
+-- 254:000ddddd00ddddff00dddf4300ddf4340dddf4320dddffff0ddddddd00000000
+-- 255:ddcce000ffdcee0043fdce00234fcee0343fdce0ffffdce0dddddce000000000
 -- 254:000ddddd00ddddff00dddf4300ddf4340dddf4320dddffff0ddddddd00000000
 -- 255:ddcce000ffdcee0043fdce00234fcee0343fdce0ffffdce0dddddce000000000
 -- </SPRITES>
