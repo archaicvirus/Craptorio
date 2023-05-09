@@ -9,7 +9,6 @@ FURNACE_BUFFER_OUTPUT = 100
 FURNACE_BUFFER_FUEL = 50
 FURNACE_SMELT_TIME = 3 * 60
 
---git test 'remote-stone_furnace' checkout
 
 local Furnace = {
   x = 0,
@@ -22,7 +21,7 @@ local Furnace = {
   output_slots = FURNACE_BUFFER_SIZE,
   output_buffer = {},
   input_buffer = {},
-  fuel_buffer = {6,6,6,6,6,6,6,6,6},
+  fuel_buffer = {},
   dummy_keys = {},
   fuel_time = 0,
   smelt_timer = 0,
@@ -59,14 +58,11 @@ function Furnace.draw_hover_widget(self)
   --fuel buffer slot icon etc-----------------------------------------------------
   local text = #self.fuel_buffer .. '/' .. FURNACE_BUFFER_FUEL
   local text_width = print(text, 0, -10, 0, true, 1, true)
-  local sprite_id = 311
+  local sprite_id = 283
   print('Fuel - ', sx + 3, sy + 24, 11, true, 1, true)
   print(text, sx + width - 2 - text_width, sy + 24, 4, true, 1, true)
   if #self.fuel_buffer > 0 then sprite_id = ITEMS[self.fuel_buffer[1]].sprite_id end
   sspr(sprite_id, sx + width - 12 - text_width, sy + 24, 4)
-
-
-
 end
 
 function Furnace.open(self)
@@ -129,7 +125,8 @@ function Furnace.open(self)
       --fuel slot
       rectb(x + 9, y + 80, 10, 10, 14)
       if #fuel > 0 then
-        sspr(ITEMS[fuel[1]].sprite_id, x + 10, y + 81, -1)
+        --rect(x + 10, y + 81, 8, 8, )
+        sspr(ITEMS[fuel[1]].sprite_id, x + 10, y + 81, 4)
       else
         sspr(310, x + 10, y + 81, -1)
       end
@@ -166,14 +163,23 @@ function Furnace.open(self)
       for i = -2, 3 do
         for j = -4, 5 do
           local tile = TileMan.tiles[ent.y + i][ent.x + j]
-          local tile_id = tile.tile
-          if tile.is_ore then tile_id = ores[tile.index].tile_id end
-          sspr(tile_id, fx + (j*8), fy + (i*8), 0, 1, 0, tile.rot)
+          local tile_id = tile.sprite_id
+          if tile.ore then
+            sspr(biomes[tile.biome].tile_id_offset, fx + (j*8), fy + (i*8), -1, 1, 0, tile.rot)
+            sspr(ores[tile.ore].tile_id, fx + (j*8), fy + (i*8), 4, 1, 0, tile.rot)
+          elseif tile.is_border and tile.biome > 1 then
+            sspr(biomes[tile.biome - 1].tile_id_offset, fx + (j*8), fy + (i*8), -1, 1, 0, tile.rot)
+            sspr(tile.sprite_id, fx + (j*8), fy + (i*8), 9, 1, 0, tile.rot)
+          else
+            sspr(tile.sprite_id, fx + (j*8), fy + (i*8), -1, 1, 0, tile.rot)
+          end
         end
       end
       rectb(fx - 33, fy - 17, w - 18, 50, 14)
       sspr(sprite_id, fx, fy, 0, 1, 0, 0, 2, 2)
       sspr(437, x + w - 7, y + 2, 0)
+      print('Stone Furnace', fx - 17, y + 7, 0, true, 1, true)
+      print('Stone Furnace', fx - 18, y + 7, 4, true, 1, true)
     end
   }
 end
@@ -216,8 +222,8 @@ function Furnace.update(self)
     self.is_smelting = true
     self.smelt_timer = FURNACE_SMELT_TIME
   end
-  trace('#FURNACE INPUT BUFFER: ' .. #self.input_buffer)
-  trace('#FURNACE OUTPUT BUFFER: ' .. #self.output_buffer)
+  --trace('#FURNACE INPUT BUFFER: ' .. #self.input_buffer)
+  --trace('#FURNACE OUTPUT BUFFER: ' .. #self.output_buffer)
   if #self.input_buffer == 0 and #self.output_buffer == 0 then
     self.ore_type = false
   end
@@ -235,6 +241,7 @@ end
 function Furnace.deposit(self, item_id, keep)
   keep = keep or false
   local item = ITEMS[item_id]
+  if item.type ~= 'ore' and item.type ~= 'fuel' then return false end
   --trace(item.type)
   if item.type == 'fuel' then
     if #self.fuel_buffer < 5 then
@@ -242,18 +249,19 @@ function Furnace.deposit(self, item_id, keep)
       return true
     end
   end
-  if item.type ~= 'ore' then return end
-  trace('try deposit ore')
-  trace('FURNACE ORE TYPE: ' .. tostring(self.ore_type))
-  trace('ITEM ORE TYPE: ' .. item.name)
-  trace('#FURNACE INPUT BUFFER: ' .. #self.input_buffer)
-  trace('#FURNACE OUTPUT BUFFER: ' .. #self.output_buffer)
+  --trace('try deposit ore')
+  --trace('FURNACE ORE TYPE: ' .. tostring(self.ore_type))
+  --trace('ITEM ORE TYPE: ' .. item.name)
+  --trace('#FURNACE INPUT BUFFER: ' .. #self.input_buffer)
+  --trace('#FURNACE OUTPUT BUFFER: ' .. #self.output_buffer)
   -- if not self.ore_type then
   --   if not keep then
   --     self.ore_type = item.name
   --     table.insert(self.input_buffer, item_id)
   --   end
   --   return true
+  if item.type ~= 'ore' then return false end
+
   if #self.input_buffer < FURNACE_BUFFER_INPUT
   and self.ore_type == item.name or not self.ore_type then
 
@@ -268,8 +276,44 @@ function Furnace.deposit(self, item_id, keep)
   return false
 end
 
+function Furnace.request(self)
+  if #self.fuel_buffer < 5 then
+    local desired_fuel = 'any'
+    if #self.fuel_buffer > 0 then
+      desired_fuel = ITEMS[self.fuel_buffer[1]].name
+    end
+    return 'fuel', desired_fuel
+  elseif #self.input_buffer < 5 then
+    local desired_ore = 'any'
+    if #self.input_buffer > 0 then
+      desired_ore = ITEMS[self.input_buffer[1]].name
+    end
+    return 'ore', desired_ore
+  end
+  return false
+end
+
 function NewFurnace(x, y, keys)
-  local new_furnace = {x = x, y = y, dummy_keys = keys}
+  local new_furnace = --{x = x, y = y, dummy_keys = keys}
+  {
+  x = x,
+  y = y,
+  type = 'stone_furnace',
+  is_hovered = false,
+  updated = false,
+  drawn = false,
+  fuel_slots = FURNACE_BUFFER_FUEL,
+  output_slots = FURNACE_BUFFER_SIZE,
+  output_buffer = {},
+  input_buffer = {},
+  fuel_buffer = {},
+  dummy_keys = keys,
+  fuel_time = 0,
+  smelt_timer = 0,
+  ore_type = false,
+  is_smelting = false,
+  item_id = 14,
+}
   setmetatable(new_furnace, {__index = Furnace})
   return new_furnace
 end

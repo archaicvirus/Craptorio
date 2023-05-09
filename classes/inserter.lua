@@ -84,9 +84,9 @@ function Inserter.can_deposit(self, other, item_id)
     if ENTS[other].type == 'transport_belt' then
       return true
     elseif ENTS[other].type == 'stone_furnace' then
-      if ENTS[other].deposit(item_id) then return true end
+      if ENTS[other].deposit(item_id, true) then return true end
     elseif ENTS[other].type == 'splitter' then
-      if ENTS[other].deposit(item_id) then return true end
+      if ENTS[other].deposit(item_id, true) then return true end
     end
   end
   return false
@@ -132,7 +132,7 @@ function Inserter.update(self)
           if ENTS[self.to_key].type == 'dummy_furnace' then
             self.to_key = ENTS[self.to_key].other_key
           end
-          if ENTS[self.to_key]:deposit(self.held_item_id, nil) then
+          if ENTS[self.to_key]:deposit(self.held_item_id, false) then
             self.held_item_id = 0
             self.state = 'return'
           end
@@ -164,14 +164,20 @@ function Inserter.update(self)
   elseif self.state == 'wait' then
     if ENTS[self.from_key] then
       if ENTS[self.from_key].type == 'transport_belt' then
-        if ENTS[self.to_key] and ENTS[self.to_key].type == 'stone_furnace' then
+        if ENTS[self.to_key] and ENTS[self.to_key].type == 'stone_furnace' or ENTS[self.to_key].type == 'dummy_furnace' then
+          if ENTS[self.to_key].type == 'dummy_furnace' then self.to_key = ENTS[self.to_key].other_key end
           --check if output destination can take an item
           --before we pick it up from the belt
           --to prevent inserter stuck holding item
-          local item_id = ENTS[self.from_key]:request_item(true)
+          local desired_type, sub_type = ENTS[self.to_key]:request()
+          local item_id = ENTS[self.from_key]:request_item_furnace(true, desired_type, sub_type)
+
+
+
+
           if item_id and ENTS[self.to_key]:deposit(item_id, true) then
-            ENTS[self.to_key]:deposit(item_id, false)
-            self.held_item_id = item_id
+            --ENTS[self.to_key]:deposit(item_id, false)
+            self.held_item_id = ENTS[self.from_key]:request_item_furnace(false, desired_type, sub_type)
             self.state = 'send'
           end
           return
@@ -183,6 +189,8 @@ function Inserter.update(self)
           self.state = 'send'
           return
         end
+
+
         -- for i = 1, 8 do
         --   local lane = 0
         --   if ENTS[self.from_key].lanes[1][i] ~= 0 then
