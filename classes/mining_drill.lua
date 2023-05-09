@@ -120,7 +120,7 @@ function Drill.yield(self)
         --trace('ore depleted')
         local wx, wy = ORES[ore_key].wx, ORES[ore_key].wy
         --trace('WX = ' .. wx .. ', WY = ' .. wy)
-        TileMan:set_tile(0, wx, wy)
+        TileMan:set_tile(wx, wy)
         ORES[ore_key] = nil
       end
       

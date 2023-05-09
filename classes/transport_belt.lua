@@ -282,6 +282,23 @@ function Belt:has_items()
   return false
 end
 
+function Belt.request_item_furnace(self, keep, desired_type, sub_type)
+  for i = 1, 2 do
+    for j = 1, 8 do
+      if self.lanes[i][j] ~= 0 then
+        local item = ITEMS[self.lanes[i][j]]
+        if item.type == desired_type then
+          if sub_type == item.name or sub_type == 'any' then
+            item_id = self.lanes[i][j]
+            if not keep then self.lanes[i][j] = 0 end
+            return item_id
+          end
+        end
+      end
+    end
+  end
+end
+
 function Belt.request_item(self, keep, lane, slot)
   if not lane and not slot then
     for i = 1, 2 do

@@ -87,6 +87,22 @@ function ui.NewPanel(x, y, w, h, fg, bg, border, children, on_click)
   return new_panel
 end
 
+function ui.draw_text_window(data, x, y, border, background, text)
+  border, background, text = border or 10, background or 8, text or 11
+  local width = 4
+  local height = #data * 7 + 3
+  for i = 1, #data do
+    local string_width = print(data[i], 0, -10, 0, true, 1, true)
+    if string_width > width then width = string_width end
+  end
+  width = width + 4
+  rectb(x, y, width, height, border)
+  rect(x + 1, y + 1, width - 2, height - 2, background)
+  for i = 1, #data do
+    print(data[i], x + 2, y - 5 + i*7, text, true, 1, true)
+  end
+end
+
 local CraftPanel = {
   x = x,
   y = y,

@@ -431,9 +431,9 @@ function Splitter.draw_items(self)
     -- end
   local function get_id(side, lane, slot)
     if side == 1 then --left
-      return ITEMS[self.lanes.left[lane][slot]].sprite_id
+      return ITEMS[self.lanes.left[lane][slot]].belt_id
     else
-      return ITEMS[self.lanes.right[lane][slot]].sprite_id
+      return ITEMS[self.lanes.right[lane][slot]].belt_id
     end
   end
 
