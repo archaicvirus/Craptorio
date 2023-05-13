@@ -94,41 +94,49 @@ function Splitter.set_output(self)
   self.output_key_r = self.x + output_map.right.x .. '-' .. self.y + output_map.right.y
   self.input_key_l = self.x + output_map.left_in.x .. '-' .. self.y + output_map.left_in.y
   self.input_key_r = self.x + output_map.right_in.x .. '-' .. self.y + output_map.right_in.y
-  if ENTS[self.output_key_l] then
-    if ENTS[self.output_key_l].type == 'transport_belt' then
-      local rot_key = self.rot .. ENTS[self.output_key_l].rot
+  local l, r = ENTS[self.output_key_l], ENTS[self.output_key_r]
+  if l then
+    if l.type == 'transport_belt' then
+      local rot_key = self.rot .. l.rot
       self.output_l = SPLITTER_BELT_OUTPUT_MAP[rot_key]
       -- if rot_key == '02' or rot_key == 13 or rot_key == 20 or rot_key == 31 then
       --   self.output_l = nil
       -- end
-      --ENTS[self.output_key_l]:update_neighbors(self.x ..  '-' .. self.y)
+      --l:update_neighbors(self.x ..  '-' .. self.y)
 
       --trace('SPLITTER - setting belt at ' .. self.output_key_l .. ' to curved')
       ENTS[self.output_key_l]:set_curved()
       
-      --elseif ENTS[self.output_key_l].type == 'splitter' then
+      --elseif l.type == 'splitter' then
       
-    elseif ENTS[self.output_key_l].type == 'dummy' then
-      self.output_key_l = ENTS[self.output_key_l].other_key
-      local rot_key = self.rot .. ENTS[self.output_key_l].rot
+    elseif l.type == 'dummy_splitter' then
+      self.output_key_l = l.other_key
+      local rot_key = self.rot .. l.rot
       self.output_l = SPLITTER_BELT_OUTPUT_MAP[rot_key]
       -- if rot_key == '02' or rot_key == '13' or rot_key == '20' or rot_key == '31' then
       --   self.output_l = nil
       -- end
-    elseif ENTS[self.output_key_l].type == 'splitter' then
-      local rot_key = self.rot .. ENTS[self.output_key_l].rot
+    elseif l.type == 'splitter' then
+      local rot_key = self.rot .. l.rot
       self.output_l = SPLITTER_BELT_OUTPUT_MAP[rot_key]
       -- if rot_key == '02' or rot_key == '13' or rot_key == '20' or rot_key == '31' then
       --   self.output_l = nil
       -- end
+    elseif l.type == 'underground_belt' then
+      trace('UB detected LEFT')
+      local rot_key = self.rot .. l.rot
+      self.output_l = SPLITTER_BELT_OUTPUT_MAP[rot_key]
+    elseif l.type == 'underground_belt_exit' then
+      local rot_key = self.rot .. l.rot
+      self.output_l = SPLITTER_BELT_OUTPUT_MAP[rot_key]
     end
   else
     self.output_l = nil
   end
 
-  if ENTS[self.output_key_r] then
-    if ENTS[self.output_key_r].type == 'transport_belt' then
-      local rot_key = self.rot .. ENTS[self.output_key_r].rot
+  if r then
+    if r.type == 'transport_belt' then
+      local rot_key = self.rot .. r.rot
       self.output_r = SPLITTER_BELT_OUTPUT_MAP[rot_key]
       -- if rot_key == '02' or rot_key == '13' or rot_key == '20' or rot_key == '31' then
       --   self.output_r = nil
@@ -136,19 +144,26 @@ function Splitter.set_output(self)
       --trace('SPLITTER - setting belt at ' .. self.output_key_r .. ' to curved')
       ENTS[self.output_key_r]:set_curved()
       --ENTS[self.output_key_r]:update_neighbors(self.x .. '-' .. self.y)
-    elseif ENTS[self.output_key_r].type == 'dummy' then
-      self.output_key_r = ENTS[self.output_key_r].other_key
-      local rot_key = self.rot .. ENTS[self.output_key_r].rot
+    elseif r.type == 'dummy_splitter' then
+      self.output_key_r = r.other_key
+      local rot_key = self.rot .. r.rot
       self.output_r = SPLITTER_BELT_OUTPUT_MAP[rot_key]
       -- if rot_key == '02' or rot_key == '13' or rot_key == '20' or rot_key == '31' then
       --   self.output_r = nil
       -- end
-    elseif ENTS[self.output_key_r].type == 'splitter' then
-      local rot_key = self.rot .. ENTS[self.output_key_r].rot
+    elseif r.type == 'splitter' then
+      local rot_key = self.rot .. r.rot
       self.output_r = SPLITTER_BELT_OUTPUT_MAP[rot_key]
       -- if rot_key == '02' or rot_key == '13' or rot_key == '20' or rot_key == '31' then
       --   self.output_r = nil
       -- end
+    elseif r.type == 'underground_belt' then
+      trace('UB detected RIGHT')
+      local rot_key = self.rot .. r.rot
+      self.output_r = SPLITTER_BELT_OUTPUT_MAP[rot_key]
+    elseif r.type == 'underground_belt_exit' then
+      local rot_key = self.rot .. r.rot
+      self.output_r = SPLITTER_BELT_OUTPUT_MAP[rot_key]
     end
   else
     self.output_r = nil
@@ -157,7 +172,7 @@ function Splitter.set_output(self)
   if ENTS[self.input_key_l] then
     if ENTS[self.input_key_l].type == 'splitter' then
       ENTS[self.input_key_l]:set_output()
-    elseif ENTS[self.input_key_l].type == 'dummy' then
+    elseif ENTS[self.input_key_l].type == 'dummy_splitter' then
       local key = ENTS[self.input_key_l].other_key
       ENTS[key]:set_output()
     elseif ENTS[self.input_key_l].type == 'transport_belt' then
@@ -168,7 +183,7 @@ function Splitter.set_output(self)
   if ENTS[self.input_key_r] then
     if ENTS[self.input_key_r].type == 'splitter' then
       ENTS[self.input_key_r]:set_output()
-    elseif ENTS[self.input_key_r].type == 'dummy' then
+    elseif ENTS[self.input_key_r].type == 'dummy_splitter' then
       local key = ENTS[self.input_key_r].other_key
       ENTS[key]:set_output()
     elseif ENTS[self.input_key_r].type == 'transport_belt' then
@@ -178,7 +193,7 @@ function Splitter.set_output(self)
 
 end
 
-function Splitter.input(self, item_id, lane)
+function Splitter:input(item_id, lane)
   -- if self.shift then
   --   if self.lanes.right[lane][8] == 0 then
   --     self.lanes.right[lane][8] = item_id
@@ -237,117 +252,84 @@ function Splitter.update(self)
 
           local l, r = ENTS[self.output_key_l], ENTS[self.output_key_r]
 
-          if self.output_l ~= nil and ENTS[self.output_key_l] and self.lanes.left[i][1] ~= 0 then
-            if ENTS[self.output_key_l].type == 'splitter' or ENTS[self.output_key_l].type == 'dummy' then
+          if self.output_l ~= nil and l and self.lanes.left[i][1] ~= 0 then
+            if l.type == 'splitter' or l.type == 'dummy_splitter' then
               local key = self.output_key_l
-              if ENTS[self.output_key_l].type == 'dummy' then key = ENTS[self.output_key_l].other_key end
+              if ENTS[key].type == 'dummy_splitter' then key = ENTS[self.output_key_l].other_key end
               if not ENTS[key].updated then ENTS[key]:update() end
               if ENTS[key]:input(self.lanes.left[i][1], 2) then
                 self.lanes.left[i][1] = 0
               end
 
-            elseif ENTS[self.output_key_l].type == 'transport_belt' then
-              if not ENTS[self.output_key_l].updated then ENTS[self.output_key_l]:update() end
+            elseif l.type == 'transport_belt' then
+              if not l.updated then ENTS[self.output_key_l]:update() end
 
-
-              -- if self.output_l ~= nil and ENTS[self.output_key_l].lanes[self.output_l[i].lane][self.output_l[i].slot] == 0 then
-              -- --if self.output_l ~= nil and ENTS[self.output_key_l].lanes[i][8] == 0 then
-              --   --trace('SPLITTER: belt output detected LEFT')
-              --   --ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
-              --   ENTS[self.output_key_l].lanes[self.output_l[i].lane][self.output_l[i].slot] = self.lanes.left[i][1]
-              --   --ENTS[self.output_key_l].idle = false
-              --   self.lanes.left[i][1] = 0
-              -- end
-
-
-
-              if ENTS[self.output_key_l].id == BELT_ID_CURVED and ENTS[self.output_key_l].lanes[i][8] == 0 then
+              if l.id == BELT_ID_CURVED and l.lanes[i][8] == 0 then
                 --add item to other belt
                 ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
                 --remove item from self
                 self.lanes.left[i][1] = 0
-              elseif ENTS[self.output_key_l].lanes[self.output_l[i].lane][self.output_l[i].slot] == 0 then
+              elseif l.lanes[self.output_l[i].lane][self.output_l[i].slot] == 0 then
                 ENTS[self.output_key_l].lanes[self.output_l[i].lane][self.output_l[i].slot] = self.lanes.left[i][1]
                 --ENTS[self.output_key].idle = false
                 self.lanes.left[i][1] = 0
               end
+            elseif l.type == 'underground_belt' then
+              if not l.updated then ENTS[self.output_key_l]:update() end
 
-
+              -- if l.lanes[i][8] == 0 then
+              --   --add item to other belt
+              --   ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
+              --   --remove item from self
+              --   self.lanes.left[i][1] = 0
+              if l.lanes[self.output_l[i].lane][self.output_l[i].slot] == 0 then
+                ENTS[self.output_key_l].lanes[self.output_l[i].lane][self.output_l[i].slot] = self.lanes.left[i][1]
+                --ENTS[self.output_key].idle = false
+                self.lanes.left[i][1] = 0
+              end
+            elseif l.type == 'underground_belt_exit' then
 
             end
           end
 
-          if self.output_r ~= nil and ENTS[self.output_key_r] and self.lanes.right[i][1] ~= 0 then
-            if ENTS[self.output_key_r].type == 'splitter' or ENTS[self.output_key_r].type == 'dummy' then
+          if self.output_r ~= nil and r and self.lanes.right[i][1] ~= 0 then
+            if r.type == 'splitter' or r.type == 'dummy_splitter' then
               local key = self.output_key_r
-              if ENTS[self.output_key_r].type == 'dummy' then key = ENTS[self.output_key_r].other_key end
+              if r.type == 'dummy_splitter' then key = r.other_key end
               if not ENTS[key].updated then ENTS[key]:update() end
               if ENTS[key]:input(self.lanes.right[i][1], 2) then
                 self.lanes.right[i][1] = 0
               end
 
-            elseif ENTS[self.output_key_r].type == 'transport_belt' and ENTS[self.output_key_r].lanes[i][8] == 0 then
-              if not ENTS[self.output_key_r].updated then ENTS[self.output_key_r]:update() end
-
-
-
-              -- if self.output_r ~= nil and ENTS[self.output_key_r].lanes[self.output_r[i].lane][self.output_r[i].slot] == 0 then
-              -- --if self.output_l ~= nil and ENTS[self.output_key_l].lanes[i][8] == 0 then
-              --   --trace('SPLITTER: belt output detected LEFT')
-              --   --ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
-              --   ENTS[self.output_key_r].lanes[self.output_r[i].lane][self.output_r[i].slot] = self.lanes.right[i][1]
-              --   --ENTS[self.output_key_l].idle = false
-              --   self.lanes.right[i][1] = 0
-              -- end
-
-              if ENTS[self.output_key_r].id == BELT_ID_CURVED and ENTS[self.output_key_r].lanes[i][8] == 0 then
+            elseif r.type == 'transport_belt' and r.lanes[i][8] == 0 then
+              if not r.updated then ENTS[self.output_key_r]:update() end
+              if r.id == BELT_ID_CURVED and r.lanes[i][8] == 0 then
                 --add item to other belt
                 ENTS[self.output_key_r].lanes[i][8] = self.lanes.right[i][1]
                 --remove item from self
                 self.lanes.right[i][1] = 0
-              elseif ENTS[self.output_key_r].lanes[self.output_r[i].lane][self.output_r[i].slot] == 0 then
+              elseif r.lanes[self.output_r[i].lane][self.output_r[i].slot] == 0 then
                 ENTS[self.output_key_r].lanes[self.output_r[i].lane][self.output_r[i].slot] = self.lanes.right[i][1]
                 --ENTS[self.output_key].idle = false
                 self.lanes.right[i][1] = 0
               end
+            elseif r.type == 'underground_belt' then
+              if not r.updated then ENTS[self.output_key_r]:update() end
 
+              -- if l.lanes[i][8] == 0 then
+              --   --add item to other belt
+              --   ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
+              --   --remove item from self
+              --   self.lanes.left[i][1] = 0
+              if r.lanes[self.output_r[i].lane][self.output_r[i].slot] == 0 then
+                ENTS[self.output_key_r].lanes[self.output_r[i].lane][self.output_r[i].slot] = self.lanes.right[i][1]
+                --ENTS[self.output_key].idle = false
+                self.lanes.right[i][1] = 0
+              end
+            elseif r.type == 'underground_belt_exit' then
 
             end
           end
-
-          -- if self.lanes.left[i][j] ~= 0 and l and l.type == 'transport_belt' and l.lanes[i][8] == 0 then
-          --   --trace('SPLITTER: belt output detected LEFT')
-          --   ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][j]
-          --   ENTS[self.output_key_l].idle = false
-          --   self.lanes.left[i][j] = 0
-          -- end
-
-          -- if self.lanes.right[i][j] ~= 0 and ENTS[self.output_key_r] and ENTS[self.output_key_r].type == 'transport_belt' and ENTS[self.output_key_r].lanes[i][8] == 0 then
-          --   --trace('SPLITTER: belt output detected RIGHT')
-          --   ENTS[self.output_key_r].lanes[i][8] = self.lanes.right[i][j]
-          --   ENTS[self.output_key_r].idle = false
-          --   self.lanes.right[i][j] = 0
-          -- end
-
-
-          --left
-          -- if self.lanes.left[i][j] ~= 0 and
-          -- ENTS[self.output_key_l] and
-          -- ENTS[self.output_key_l].type == 'transport_belt' and
-          -- ENTS[self.output_key_l].lanes[i][8] == 0 then          
-          --     ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][j]
-          --     self.lanes.left[i][j] = 0
-          -- end
-          -- --right
-          -- if self.lanes.right[i][j] ~= 0 and
-          -- ENTS[self.output_key_l] and
-          -- ENTS[self.output_key_l].type == 'transport_belt' and
-          -- ENTS[self.output_key_l].lanes[i][8] == 0 then
-            
-          --   ENTS[self.output_key_l].lanes[i][8] = self.lanes.right[i][j]
-          --   self.lanes.right[i][j] = 0
-          -- end
-
         else
           --left
           if self.lanes.left[i][j] ~= 0 and self.lanes.left[i][j - 1] == 0 then
@@ -379,7 +361,7 @@ function Splitter.draw(self)
     --     if not ENTS[self.output_key_l].drawn then ENTS[self.output_key_l]:draw_items() end
     --   elseif ENTS[self.output_key_l].type == 'splitter' then
     --     if not ENTS[self.output_key_l].drawn then ENTS[self.output_key_l]:draw() end
-    --   elseif ENTS[self.output_key_l].type == 'dummy' then
+    --   elseif ENTS[self.output_key_l].type == 'dummy_splitter' then
     --     local key = ENTS[self.output_key_l].other_key
     --     if not ENTS[key].drawn then ENTS[key]:draw() end
     --   end
@@ -391,7 +373,7 @@ function Splitter.draw(self)
     --     if not ENTS[self.output_key_r].drawn then ENTS[self.output_key_r]:draw_items() end
     --   elseif ENTS[self.output_key_r].type == 'splitter' then
     --     if not ENTS[self.output_key_r].drawn then ENTS[self.output_key_r]:draw() end
-    --   elseif ENTS[self.output_key_r].type == 'dummy' then
+    --   elseif ENTS[self.output_key_r].type == 'dummy_splitter' then
     --     local key = ENTS[self.output_key_r].other_key
     --     if not ENTS[key].drawn then ENTS[key]:draw() end
     --   end
