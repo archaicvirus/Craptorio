@@ -112,8 +112,10 @@ function Inserter.update(self)
       self.anim_frame = 1
       --try to deposit item
       --trace('looking for output')
-      if ENTS[self.to_key] then 
-        if ENTS[self.to_key].type == 'transport_belt' then
+      if ENTS[self.to_key] then
+        local key = self.to_key
+        local ent = ENTS[key]
+        if ent.type == 'transport_belt' then
           ENTS[self.to_key].idle = false
           --trace('FOUND belt')
           for i = 8, 1, -1 do
@@ -127,16 +129,36 @@ function Inserter.update(self)
             end
           end
           --return
-        elseif ENTS[self.to_key].type == 'stone_furnace' or ENTS[self.to_key].type == 'dummy_furnace' then
+        elseif ent.type == 'stone_furnace' or ent.type == 'dummy_furnace' then
           --trace('furnace detected')
-          if ENTS[self.to_key].type == 'dummy_furnace' then
-            self.to_key = ENTS[self.to_key].other_key
+          if ent.type == 'dummy_furnace' then
+            self.to_key = ent.other_key
+            key = ent.other_key
           end
-          if ENTS[self.to_key]:deposit(self.held_item_id, false) then
+          if ENTS[key]:deposit(self.held_item_id, false) then
             self.held_item_id = 0
             self.state = 'return'
           end
-          return
+          --return
+        elseif ent.type == 'underground_belt' then
+          if ENTS[key]:deposit(self.held_item_id, 0) then
+            self.held_item_id = 0
+            self.state = 'return'
+          end
+        elseif ent.type == 'underground_belt_exit' then
+          if ENTS[key]:deposit(self.held_item_id, 1) then
+            self.held_item_id = 0
+            self.state = 'return'
+          end
+        elseif ent.type == 'splitter' or ent.type == 'dummy_splitter' then
+          if ent.type == 'dummy_splitter' then
+            self.to_key = ent.other_key
+            key = ent.other_key
+          end
+          if ENTS[key]:input(self.held_item_id, 2) then
+            self.held_item_id = 0
+            self.state = 'return'
+          end
         end
       end
       -- if not ENTS[self.to_key].type == 'ground-items' or (ENTS[self.to_key].type == 'ground-items' and ENTS[self.to_key][1] == 0) then
@@ -164,8 +186,8 @@ function Inserter.update(self)
   elseif self.state == 'wait' then
     if ENTS[self.from_key] then
       if ENTS[self.from_key].type == 'transport_belt' then
-        if ENTS[self.to_key] and ENTS[self.to_key].type == 'stone_furnace' or ENTS[self.to_key].type == 'dummy_furnace' then
-          if ENTS[self.to_key].type == 'dummy_furnace' then self.to_key = ENTS[self.to_key].other_key end
+        if ENTS[self.to_key] and ENTS[self.to_key].type == 'dummy_furnace' then self.to_key = ENTS[self.to_key].other_key end
+        if ENTS[self.to_key] and ENTS[self.to_key].type == 'stone_furnace' then
           --check if output destination can take an item
           --before we pick it up from the belt
           --to prevent inserter stuck holding item
@@ -206,16 +228,16 @@ function Inserter.update(self)
         --     --break
         --   end
         -- end
-      elseif ENTS[self.from_key].type == 'splitter' or ENTS[self.from_key].type == 'dummy' then
-        if ENTS[self.from_key].type == 'dummy' then
-          local item = ENTS[ENTS[self.from_key].other_key]:give_inserter('right')
+      elseif ENTS[self.from_key].type == 'splitter' or ENTS[self.from_key].type == 'dummy_splitter' then
+        if ENTS[self.from_key].type == 'dummy_splitter' then
+          local item = ENTS[ENTS[self.from_key].other_key]:give_inserter('left')
           if item then
             self.held_item_id = item
             self.state = 'send'
             return
           end
         else
-          local item = ENTS[self.from_key]:give_inserter('left')
+          local item = ENTS[self.from_key]:give_inserter('right')
           if item then
             self.held_item_id = item
             self.state = 'send'
@@ -228,6 +250,20 @@ function Inserter.update(self)
         if ENTS[key].type == 'dummy_furnace' then key = ENTS[key].other_key end
         if #ENTS[key].output_buffer > 0 then
           self.held_item_id = table.remove(ENTS[key].output_buffer, #ENTS[key].output_buffer)
+          self.state = 'send'
+          return
+        end
+      elseif ENTS[self.from_key].type == 'underground_belt' then
+        local result = ENTS[self.from_key]:request_item(false, 2, 8)
+        if result then
+          self.held_item_id = result
+          self.state = 'send'
+          return
+        end
+      elseif ENTS[self.from_key].type == 'underground_belt_exit' then
+        local result = ENTS[ENTS[self.from_key].other_key]:request_item_exit(false, 2, 8)
+        if result then
+          self.held_item_id = result
           self.state = 'send'
           return
         end

@@ -3,11 +3,12 @@ TileMgr.__index = TileMgr
 
 function ore_sample(x, y, tile)
   local biome = tile.biome
+  --if
   for i = 1, #ores do
     local scale = ores[i].scale -- ((4 - biome)/100)
     local noise = (simplex.Noise2D(x * scale + ((ores[i].offset * biome) * scale) + offset * scale, (y * scale) + ((ores[i].offset * biome) * scale) + (offset * scale)) / 2 + 0.5) * 16
     --if noise >= ores[i].min and noise <= ores[i].max and ores[i].biome_id == biome then return i end
-    if noise >= ores[i].min and noise <= ores[i].max then return i end
+    if noise >= ores[i].min and noise <= ores[i].max and tile.noise >= ores[i].bmin and tile.noise <= ores[i].bmax then return i end
   end
   return false
 end
@@ -44,7 +45,10 @@ function AutoMap(x, y)
 
   TileMan.tiles[y][x].sprite_id = new_tile.sprite_id + 11 + biomes[tile.biome].tile_id_offset
   TileMan.tiles[y][x].is_border = true
+  TileMan.tiles[y][x].is_tree  = false
   TileMan.tiles[y][x].ore = false
+  TileMan.tiles[y][x].flip = 0
+  --TileMan.tiles[y][x].is_tree = false
   TileMan.tiles[y][x].rot = new_tile.rot
 end
 
@@ -78,49 +82,72 @@ end
 function TileMgr.create_tile(x, y)
   --Replace with your own function, this gets called once whenever a 'new' tile is indexed
 
-  local scale  = 0.003
-  local scale2 = 0.07
+  local scale  = 0.0005
+  local scale2 = 0.025
   --Here we sample 2 noise values and blend them together
   local base_noise = (simplex.Noise2D(x * scale + offset * scale, (y * scale) + (offset * scale)) / 2 + 0.5) * 100
-  local addl_noise = (simplex.Noise2D(x * scale2 + offset * scale2, (y * scale2) + (offset * scale2))) * 50
+  local addl_noise = (simplex.Noise2D(x * scale2 + offset * scale2, (y * scale2) + (offset * scale2))) * 100
 
   --Now base_noise is used to determine biome and land/water
-  base_noise = ((base_noise * 3) + addl_noise) / 4
+  --base_noise = ((base_noise * 3) + addl_noise) / 4
+  base_noise = lerp(base_noise, addl_noise, 0.05)
 
   local tile = {
     noise = base_noise,
     is_land = base_noise > 20 and true or false,
-    biome = base_noise < 30 and 1 or base_noise < 45 and 2 or 3,
+    biome = 1,
+    --biome = base_noise < 30 and 1 or base_noise < 45 and 2 or 3,
     is_border = false,
+    is_tree = false,
     visited = false,
     b_visited = false,
-    rot = math.random(4) % 4,
+    rot = 0,
     flip = math.random() > 0.5 and 1 or 0,
-    offset = {x = math.random(-2, 2), y = math.random(-2, 2)},
+    offset = {x = math.random(-3, 3), y = math.random(-3, 3)},
   }
+
+  for i = 1, #biomes do
+    if base_noise > biomes[i].min and base_noise < biomes[i].max then
+      tile.biome = i
+      break
+    end
+  end
 
   --If base_noise value is high enough, then try to generate an ore type
   tile.ore = tile.is_land and base_noise > 40 and ore_sample(x, y, tile) or false
   
-  --Water tile by default
-  tile.color = floor(math.random(2)) + 8
-  tile.sprite_id = 79
+  if not tile.is_land then
+    --Water tile
+    tile.color = floor(math.random(2)) + 8
+    tile.sprite_id = 79
+  else
+    tile.sprite_id = biomes[tile.biome].tile_id_offset
+    tile.color = biomes[tile.biome].map_col
+  end
 
   --If ore-generation was successful, then set sprite_id and color
   if tile.ore then
     tile.color = ores[tile.ore].map_cols[floor(math.random(#ores[tile.ore].map_cols))]
-    tile.sprite_id = ores[tile.ore].tile_idd
-  elseif tile.is_land then
-    tile.color = biomes[tile.biome].map_col
-    tile.sprite_id = biomes[tile.biome].tile_id_offset
-
-    --Generate clutter based on biome clutter scale, ex grass, rocks, trees, etc
-    if math.random(100) < biomes[tile.biome].clutter * 100 then
-      tile.sprite_id = biomes[tile.biome].tile_id_offset + floor(math.random(10))
-      tile.rot = 0
-    end
-
+    tile.rot = math.random(4) % 4
   end
+
+  if tile.is_land and not tile.ore then
+    --Generate clutter based on biome clutter scale, ex grass, rocks, trees, etc
+    scale = 0.001
+    local tree = (simplex.Noise2D(x * scale + offset * scale, (y * scale) + (offset * scale)) / 2 + 0.5) * 100
+    local tmin = biomes[tile.biome].t_min
+    local tmax = biomes[tile.biome].t_max
+    if tree >= tmin and tree <= tmax and math.random(100) <= (biomes[tile.biome].tree_density * 100) then
+      --trace('trying to spawn a tree')
+      tile.is_tree = true
+      tile.flip = math.random(1) > 0.5 and 1 or 0
+    elseif math.random(100) <= (biomes[tile.biome].clutter * 100) then
+      tile.sprite_id = biomes[tile.biome].tile_id_offset + floor(math.random(10))
+      tile.flip = math.random(1) > 0.5 and 1 or 0
+      --tile.rot = 0
+    end
+  end
+
   return tile
 end
 
@@ -129,9 +156,11 @@ function TileMgr:set_tile(x, y, tile_id)
   tile_id = tile_id or biomes[tile.biome].tile_id_offset
   if tile.is_land and not tile.ore and not tile.is_border then
     tile.sprite_id = tile_id
+    tile.is_tree = false
   end
   if tile.ore then
     tile.ore = false
+    tile.is_tree = false
     tile.sprite_id = biomes[tile.biome].tile_id_offset
   end
 end
@@ -156,31 +185,34 @@ function TileMgr:draw_terrain(player, screenWidth, screenHeight)
       --AutoMap is what sets the 'border' or edge tiles
       if not tile.visited and tile.is_land then AutoMap(worldX, worldY) end
 
-      --If I'm a border tile, recolor to match neighboring biome
-      if tile.is_border and tile.biome > 1 then
-        sspr(biomes[tile.biome - 1].tile_id_offset, sx, sy, -1, 1, 0, tile.rot)
-        sspr(tile.sprite_id, sx, sy, 9, 1, 0, tile.rot)
+      sspr(tile.sprite_id, sx, sy, -1, 1, tile.flip, tile.rot)
+      if tile.ore then sspr(ores[tile.ore].tile_id, sx, sy, 4, 1, tile.flip, tile.rot) end
+      
+      -- --If I'm a border tile, recolor to match neighboring biome
+      -- if not tile.is_tree and tile.is_border and tile.biome > 1 then
+      --   sspr(biomes[tile.biome - 1].tile_id_offset, sx, sy, -1, 1, 0, tile.rot)
+      --   sspr(tile.sprite_id, sx, sy, 9, 1, 0, tile.rot)
 
-      --Normal terrain, not a border, water or ore
-      elseif not tile.ore then
-        local x, y, color_key, flip = sx, sy, -1, not tile.is_border and tile.flip or 0
-        if tile.is_land and not tile.is_border then
-          x, y, color_key, flip = sx + tile.offset.x, sy + tile.offset.y, biomes[tile.biome].map_col, tile.flip
-          --Optionally draw grass everywhere else
-          --sspr(biomes[tile.biome].tile_id_offset, sx, sy)
-          rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
-        end
-        --Draw tile's set sprite_id
-        sspr(tile.sprite_id, x, y, color_key, 1, flip, tile.rot)
-      end
+      -- --Normal terrain, not a border, water or ore
+      -- elseif not tile.ore then
+      --   local x, y, color_key, flip = sx, sy, -1, not tile.is_border and tile.flip or 0
+      --   if tile.is_land and not tile.is_border then
+      --     x, y, color_key, flip = sx + tile.offset.x, sy + tile.offset.y, biomes[tile.biome].map_col, tile.flip
+      --     --Optionally draw grass everywhere else
+      --     --sspr(biomes[tile.biome].tile_id_offset, sx, sy)
+      --     rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
+      --   end
+      --   --Draw tile's set sprite_id
+      --   sspr(tile.sprite_id, x, y, color_key, 1, flip, tile.rot)
+      -- end
 
-      --If tile is an ore, we need to set the color_key to 'erase' the ore background, to overlay on terrain
-      if tile.ore then
-        if not tile.is_border then
-          rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
-        end
-        sspr(ores[tile.ore].tile_id, sx, sy, 4, 1, 0, tile.rot)
-      end
+      -- --If tile is an ore, we need to set the color_key to 'erase' the ore background, to overlay on terrain
+      -- if tile.ore then
+      --   if not tile.is_border then
+      --     rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
+      --   end
+      --   sspr(ores[tile.ore].tile_id, sx, sy, 4, 1, 0, tile.rot)
+      -- end
 
     end
   end
@@ -204,14 +236,17 @@ function TileMgr:draw_clutter(player, screenWidth, screenHeight)
 
       --Here, the 19, 25, and 41 are just randomly chosen biome tiles
       --picked to spawn trees on, but you can use any tiles to limit trees to certain biomes
-
-      if tile.sprite_id == 19 then
-        sspr(201, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
-      elseif tile.sprite_id == 25 then
-        sspr(198, sx - 6 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
-      elseif tile.sprite_id == 41 then
-        sspr(204, sx - 8 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
+      if tile.is_tree then
+        --trace('drawing tree')
+        sspr(biomes[tile.biome].tree_id, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
       end
+      -- if tile.sprite_id == 19 then
+      --   sspr(201, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
+      -- elseif tile.sprite_id == 25 then
+      --   sspr(198, sx - 6 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
+      -- elseif tile.sprite_id == 41 then
+      --   sspr(201, sx - 8 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
+      -- end
     end
   end
 end
@@ -224,10 +259,10 @@ function TileMgr:draw_worldmap(player, width, height)
   rect(20, 18, width, height, 0)
   for y = 0, height - 1 do
     for x = 0, width - 1 do
-      if rawget(self.tiles, startY + y - 1) and rawget(self.tiles[startY + y - 1], startX + x - 1) then
+      --if rawget(self.tiles, startY + y - 1) and rawget(self.tiles[startY + y - 1], startX + x - 1) then
         --local tile = self.tiles[startY + y - 1][startX + x - 1]
         pix(x + 20, y + 18, self.tiles[startY + y - 1][startX + x - 1].color)
-      end
+      --end
     end
   end
 end
