@@ -16,9 +16,23 @@ imposed by TIC80. This is the point obviously, (or perhaps not so obvious to som
 I do intend to add as many features and mechanics from the original as technically feasible.
 
 # Updates - Will post development and progress updates here
+![screen2](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/088a6b57-7863-4003-8cd3-11ccaf7e8413)
+![worldgen_demo](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/4a151e15-a226-4ce3-966a-7de3ef9d6062)
+![worldgen_update3](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/343df362-d373-4240-b7f6-7974bcab28c4)
+![f4rt-1](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/989fa482-22f1-4b12-9b68-caa3deed29ae)
+![worldmap_discovery](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/dc3e7129-e8bc-41cd-8257-d36b8ea812f1)
+
+https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/70c8f314-06e7-440b-a499-d8056371f6d4
+
+
+- Added trees
+- Big updates to worldgen system
+- Added burner mining drill
+- Added stone furnace
+- Added underground belts
 - Research will include upgrades to the player robot, such as increased fly speed, further range, etc
 - You now play as an advanced logistics robot, capable of flying over any terrain or obstacles
-- Working on finishing new splitters
+- ~Working on finishing new splitters~
 - ~Currently working on crafting mechanics, inventory, and item systems.~
 ![becoming_the_bot](https://user-images.githubusercontent.com/25288625/233747874-5dfce2ab-9124-4e01-b493-294773ee6e85.gif)
 ![crafting_menu_test](https://user-images.githubusercontent.com/25288625/229274215-6586e950-eccf-4b99-a30b-f95d4678e94b.gif)
