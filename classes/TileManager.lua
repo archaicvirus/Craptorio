@@ -90,7 +90,7 @@ function TileMgr.create_tile(x, y)
 
   --Now base_noise is used to determine biome and land/water
   --base_noise = ((base_noise * 3) + addl_noise) / 4
-  base_noise = lerp(base_noise, addl_noise, 0.05)
+  base_noise = lerp(base_noise, addl_noise, 0.02)
 
   local tile = {
     noise = base_noise,
@@ -114,7 +114,7 @@ function TileMgr.create_tile(x, y)
   end
 
   --If base_noise value is high enough, then try to generate an ore type
-  tile.ore = tile.is_land and base_noise > 40 and ore_sample(x, y, tile) or false
+  tile.ore = tile.is_land and base_noise > 21 and ore_sample(x, y, tile) or false
   
   if not tile.is_land then
     --Water tile
@@ -185,35 +185,41 @@ function TileMgr:draw_terrain(player, screenWidth, screenHeight)
       --AutoMap is what sets the 'border' or edge tiles
       if not tile.visited and tile.is_land then AutoMap(worldX, worldY) end
 
-      sspr(tile.sprite_id, sx, sy, -1, 1, tile.flip, tile.rot)
-      if tile.ore then sspr(ores[tile.ore].tile_id, sx, sy, 4, 1, tile.flip, tile.rot) end
-      
-      -- --If I'm a border tile, recolor to match neighboring biome
-      -- if not tile.is_tree and tile.is_border and tile.biome > 1 then
-      --   sspr(biomes[tile.biome - 1].tile_id_offset, sx, sy, -1, 1, 0, tile.rot)
-      --   sspr(tile.sprite_id, sx, sy, 9, 1, 0, tile.rot)
-
-      -- --Normal terrain, not a border, water or ore
-      -- elseif not tile.ore then
-      --   local x, y, color_key, flip = sx, sy, -1, not tile.is_border and tile.flip or 0
-      --   if tile.is_land and not tile.is_border then
-      --     x, y, color_key, flip = sx + tile.offset.x, sy + tile.offset.y, biomes[tile.biome].map_col, tile.flip
-      --     --Optionally draw grass everywhere else
-      --     --sspr(biomes[tile.biome].tile_id_offset, sx, sy)
-      --     rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
-      --   end
-      --   --Draw tile's set sprite_id
-      --   sspr(tile.sprite_id, x, y, color_key, 1, flip, tile.rot)
-      -- end
-
-      -- --If tile is an ore, we need to set the color_key to 'erase' the ore background, to overlay on terrain
-      -- if tile.ore then
-      --   if not tile.is_border then
-      --     rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
-      --   end
-      --   sspr(ores[tile.ore].tile_id, sx, sy, 4, 1, 0, tile.rot)
-      -- end
-
+      if tile.ore then
+        sspr(biomes[tile.biome].tile_id_offset, sx, sy)
+        --rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
+        sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, 0, tile.rot)
+      elseif not tile.is_border then
+        local id, rot, flip = tile.sprite_id, tile.rot, tile.flip
+        if not tile.is_land then
+          if worldX % 2 == 1 and worldY % 2 == 1 then
+              flip = 3 -- Both horizontal and vertical flip
+          elseif worldX % 2 == 1 then
+              flip = 1 -- Horizontal flip
+          elseif worldY % 2 == 1 then
+              flip = 2 -- Vertical flip
+          end
+          sspr(224, sx, sy, 0, 1, flip, rot)
+        else
+          sspr(id, sx, sy, -1, 1, flip, rot)
+        end
+      else
+        if tile.biome == 1 then
+          local flip = 0
+          if worldX % 2 == 1 and worldY % 2 == 1 then
+            flip = 3 -- Both horizontal and vertical flip
+          elseif worldX % 2 == 1 then
+            flip = 1 -- Horizontal flip
+          elseif worldY % 2 == 1 then
+            flip = 2 -- Vertical flip
+          end
+          sspr(224, sx, sy, -1, 1, flip)
+          sspr(tile.sprite_id, sx, sy, 0, 1, 0, tile.rot)
+        else
+          sspr(tile.sprite_id, sx, sy, -1, 1, 0, tile.rot)
+        end
+        --if tile.ore then sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, tile.flip, tile.rot) end
+      end
     end
   end
 end
@@ -253,18 +259,27 @@ end
 
 function TileMgr:draw_worldmap(player, width, height)
   --Simple pixel map, using the tile's assigned biome in - biome[i].map_col
-  local startX, startY = math.floor(player.x/8 - 96), math.floor(player.y/8 - 46)
-  width, height = width or 200, height or 100
-  rectb(19, 17, width + 2, height + 2, 11)
-  rect(20, 18, width, height, 0)
+  width, height = width or 201, height or 101
+  local map_x, map_y = 120 - (width/2) + 1, 68 - (height/2) + 2
+  local startX, startY = floor(player.x/8 - (width/2) + 1), floor(player.y/8 - (height/2) + 2)
+  local biome_col = biomes[self.tiles[startY][startY].biome].map_col
+  rectb(map_x - 1, map_y - 1, width + 2, height + 2, 11)
+  --rect(map_x, map_y, width, height, biome_col)
   for y = 0, height - 1 do
     for x = 0, width - 1 do
       --if rawget(self.tiles, startY + y - 1) and rawget(self.tiles[startY + y - 1], startX + x - 1) then
         --local tile = self.tiles[startY + y - 1][startX + x - 1]
-        pix(x + 20, y + 18, self.tiles[startY + y - 1][startX + x - 1].color)
+        --if self.tiles[startY + y - 1][startX + x - 1].ore then
+          pix(x + map_x, y + map_y, self.tiles[startY + y - 1][startX + x - 1].color)
+        --dsend
       --end
     end
   end
 end
+
+-- local biome_count
+-- for i = 1, #biomes do
+--   biome_count[i] = {}
+-- end
 
 return TileMgr
