@@ -73,7 +73,7 @@ cursor = {
   item_stack = {id = 5, count = 100}
 }
 player = {
-  x = 37, y = 288,
+  x = 0 * 8, y = 0 * 8,
   spr = 362,
   lx = 0, ly = 0,
   shadow = 382,
@@ -103,6 +103,7 @@ inv.slots[97].item_id = 18
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
 show_mini_map = false
+show_tile_widget = false
 debug = false
 last_num_ents = 0
 local TILE_SIZE = 8
@@ -146,6 +147,55 @@ for i = 0, 1 do
   end
 end
 
+function get_sprite_pixel(sprite_id, x, y)
+  local byte = peek(0x04000 + sprite_id * 32 + y * 4 + math.floor(x / 2))
+  return x % 2 == 0 and byte % 16 or byte // 16
+end
+
+-- Function to set a pixel color in a sprite
+-- Arguments: sprite_id (0-511), x (0-7), y (0-7), color (palette index 0-15)
+function set_sprite_pixel(sprite_id, x, y, color)
+  local addr = 0x04000 + sprite_id * 32 + y * 4 + math.floor(x / 2)
+  local byte = peek(addr)
+  if x % 2 == 0 then poke(addr, (byte - byte % 16) + color) else poke(addr, (color * 16) + byte % 16) end
+end
+
+-- Set the size of the tiling texture
+local num_colors = 3
+local start_color = 8
+local tileSize = 8
+local tileCount = 1
+
+-- Set the water effect parameters
+local amplitude = num_colors
+local frequency = 0.22
+local speed = 0.005
+
+-- Function to update the water effect
+function update_water_effect(time)
+  for sprite_id = 0, (tileCount * tileCount) - 1 do
+    for y = 0, tileSize - 1 do
+      for x = 0, tileSize - 1 do
+        -- Get the world coordinates for the current pixel
+        local worldX = (sprite_id % tileCount) * tileSize + x
+        local worldY = math.floor(sprite_id / tileCount) * tileSize + y
+        
+        -- Apply modulo operation to create a tiling texture
+        local tileX = worldX % (tileSize * tileCount)
+        local tileY = worldY % (tileSize * tileCount)
+        
+        -- Calculate the noise value using world coordinates and time
+        local noiseValue = simplex.Noise2D(tileX * frequency, (tileY + time * speed) * frequency)
+        
+        -- Convert the noise value to a pixel color (palette index 0-15)
+        local color = math.floor(((noiseValue + 1) / 2) * amplitude) + start_color
+        
+        -- Set the pixel color in the sprite
+        set_sprite_pixel(224, x, y, color)
+      end
+    end
+  end
+end
 
 function get_visible_ents()
   vis_ents = {['transport_belt'] = {}, ['inserter'] = {}, ['power_pole'] = {}, ['splitter'] = {}, ['mining_drill'] = {}, ['stone_furnace'] = {}, ['underground_belt'] = {}, ['underground_belt_exit'] = {}}
@@ -568,14 +618,16 @@ function update_player()
   elseif TICK % 24 == 0 then
     new_dust(120, 76 + player.anim_frame, 2, (math.random(-1, 1)/2) + (0.75 * -x_dir), (math.random(1, 1)/2) + (0.75 * -y_dir))
   end
-  move_player(x_dir * player.move_speed, y_dir * player.move_speed)
+  move_player(x_dir * (not show_mini_map and player.move_speed or player.move_speed * 8), y_dir * (not show_mini_map and player.move_speed or player.move_speed * 8))
   player.last_dir = x_dir .. ',' .. y_dir
 end
 
 function draw_player()
+  local sx, sy = world_to_screen(player.x//8 + 1, player.y//8 + 2)
+  --sspr(CURSOR_HIGHLIGHT, sx, sy, 0, 1, 0, 0, 2, 2)
   local sprite = player.directions[player.last_dir] or player.directions['0,0']
-  sspr(player.shadow - player.anim_frame, 116, 76, 0)
-  sspr(sprite.id, 116, 64 + player.anim_frame, 0, 1, sprite.flip)
+  sspr(player.shadow - player.anim_frame, 240/2 - 4, 136/2 + 8, 0)
+  sspr(sprite.id, 240/2 - 4, 136/2 - 4 + player.anim_frame, 0, 1, sprite.flip)
 end
 
 function cycle_hotbar(dir)
@@ -738,7 +790,7 @@ function draw_cursor()
       -- ENTS[key]:draw_hover_widget()
     end
     sspr(CURSOR_POINTER, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
-    sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+    if show_tile_widget then sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2) end
     pix(cursor.x, cursor.y, 2)
   elseif cursor.type == 'item' and cursor.item == 'splitter' then
     local loc = SPLITTER_ROTATION_MAP[cursor.rot]
@@ -1021,6 +1073,8 @@ function dispatch_input()
   if keyp(3) then toggle_crafting() end
   --Y
   if keyp(25) then debug = not debug end
+  --SHIFT
+  if key(64) then show_tile_widget = true else show_tile_widget = false end
   --0-9
   for i = 1, 10 do
     local key = 27 + i
@@ -1157,8 +1211,22 @@ function draw_belt_items()
   end
 end
 
-function draw_map()
+function draw_terrain()
   TileMan:draw_terrain(player, 31, 18)
+end
+
+function draw_tile_widget()
+  local x, y = cursor.x, cursor.y
+  local tile, wx, wy = get_world_cell(x, y)
+  local tile_type = tile.ore and ores[tile.ore].name or tile.is_land and 'Land' or 'Water'
+  local biome = tile.is_land and biomes[tile.biome].name or 'Ocean'
+  local info = {
+    [1] = 'Biome: ' .. biome,
+    [2] = 'Type: ' .. tile_type,
+    [3] = 'X,Y: ' .. wx .. ',' .. wy,
+    [4] = 'Noise: '  .. tile.noise
+  }
+  ui.draw_text_window(info, x + 5, y + 5)
 end
 
 function lapse(fn, ...)
@@ -1170,13 +1238,14 @@ spawn_player()
 function TIC()
   local start = time()
   TICK = TICK + 1
+  update_water_effect(time())
   --change mouse cursor
   poke(0x3FFB, 341)
   cls(0)
 
   local gv_time = lapse(get_visible_ents)
-  --local m_time = lapse(draw_map)
-  local m_time = lapse(draw_map)
+  --local m_time = lapse(draw_terrain)
+  local m_time = lapse(draw_terrain)
   --update_player()
   local up_time = lapse(update_player)
   --handle_input()
@@ -1218,7 +1287,12 @@ function TIC()
     if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
   end
   --TileMan:draw_clutter(player, 31, 18)
-  if not show_mini_map then TileMan:draw_clutter(player, 31, 18) end
+  local dcl_time = 0
+  if not show_mini_map then
+    local st_time = time()
+    TileMan:draw_clutter(player, 31, 18)
+    dcl_time = floor(time() - st_time)
+  end
   --draw dust
   particles()
   for i,d in pairs(dust) do
@@ -1236,6 +1310,7 @@ function TIC()
   --   line(x, y, 119, 66 + player.anim_frame, 4 + BELT_TICK)
   -- end
 
+if show_tile_widget then draw_tile_widget() end
 
   inv:draw()
   --inv:draw_hotbar()
@@ -1250,17 +1325,19 @@ function TIC()
 
   --draw_cursor()
 
-  --   local info = {
-  --   [1] = 'nil',
-  --   [2] = 'draw_map: ' .. m_time,
-  --   [3] = 'update_player: ' .. up_time,
-  --   [4] = 'handle_input: ' .. hi_time,
-  --   [5] = 'draw_ents: ' .. de_time,
-  --   [6] = 'update_ents:' .. ue_time,
-  --   [7] = 'draw_cursor: ' .. dc_time,
-  --   [8] = 'draw_belt_items: ' ..db_time,
-  --   [9] = 'get_vis_ents: ' .. gv_time,
-  -- }
+    local info = {
+    [1] = 'draw_clutter: ' .. dcl_time,
+    [2] = 'draw_terrain: ' .. m_time,
+    [3] = 'update_player: ' .. up_time,
+    [4] = 'handle_input: ' .. hi_time,
+    [5] = 'draw_ents: ' .. de_time,
+    [6] = 'update_ents:' .. ue_time,
+    [7] = 'draw_cursor: ' .. dc_time,
+    
+    --[8] = 'draw_belt_items: ' .. db_time,
+    [8] = 'get_vis_ents: ' .. gv_time,
+  }
+  --draw_debug2(info)
   local ents = 0
   for k, v in pairs(vis_ents) do
     for _, ent in ipairs(v) do
@@ -1268,23 +1345,29 @@ function TIC()
     end
   end
 
+  info[9] = 0
   if show_mini_map then
+    local st_time = time()
     TileMan:draw_worldmap(player)
+    pix(121, 69, 2)
+    info[9] = 'draw_worldmap: ' .. floor(time() - st_time) .. 'ms'
+--    info[10] = 'map_rects: ' .. TileMan:optimize_minimap(player, 0, 0, 238, 134)
+ -- info[10] = 'map_rects: ' .. TileMan:draw_worldmap(player, 240, 136)
   end
 
   local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
   local sx, sy = get_screen_cell(cursor.x, cursor.y)
   local key = get_key(cursor.x, cursor.y)
-  local info = {
-    [1] = 'World X-Y: ' .. wx ..',' .. wy,
-    [2] = 'Player X-Y: ' .. player.x ..',' .. player.y,
-    [3] = 'Tile: ' .. tostring(tile.sprite_id),
-    [4] = 'Sx,Sy: ' .. sx .. ',' .. sy,
-    [5] = 'Key: ' .. key,
-    [6] = '#Ents: ' .. ents,
-    [7] = 'Frame Time: ' .. floor(time() - start) .. 'ms',
-    [8] = 'Seed: ' ..seed,
-  }
+  -- local info = {
+  --   [1] = 'World X-Y: ' .. wx ..',' .. wy,
+  --   [2] = 'Player X-Y: ' .. player.x ..',' .. player.y,
+  --   [3] = 'Tile: ' .. tostring(tile.sprite_id),
+  --   [4] = 'Sx,Sy: ' .. sx .. ',' .. sy,
+  --   [5] = 'Key: ' .. key,
+  --   [6] = '#Ents: ' .. ents,
+  --   [7] = 'Frame Time: ' .. floor(time() - start) .. 'ms',
+  --   [8] = 'Seed: ' ..seed,
+  -- }
   -- local info
   -- local ent = ENTS[key]
   -- if ent then
@@ -1306,6 +1389,7 @@ function TIC()
   --   }
   -- end
   --draw_debug2(info)
+  info[10] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
   if debug then ui.draw_text_window(info, 2, 2) end
 end
 
@@ -1321,11 +1405,11 @@ end
 -- 008:44444444444444444444de444444cdc444444cd4444444444444444444444444
 -- 009:4444444d44b444444bbd4444444bd4444444bd444d444bb444444b4444444444
 -- 010:4444444444bbbb444bbbbbb44b0b0bb44bbebbb444bbbb4444dbcb4444444444
--- 011:9999999999944999994444999444444994444449994444999994499999999999
--- 012:9999999944999494944444444444944444444444444444444444444444444444
--- 013:9999999999999944999994449999449499994444994444449494444494444444
--- 014:9999999999999999999999999999999999999999994444999444444944444444
--- 015:9494444994444449994444944944449999494499944444499944449494444449
+-- 011:0000000000044000004444000444444004444440004444000004400000000000
+-- 012:0000000044000404044444444444044444444444444444444444444444444444
+-- 013:0000000000000044000004440000440400004444004444440404444404444444
+-- 014:0000000000000000000000000000000000000000004444000444444044444444
+-- 015:0404444004444440004444044044440000404400044444400044440404444440
 -- 016:6666666666666666666666666666666666666666666666666666666666666666
 -- 017:6666636666667666766476666767766767677676676776766666666666666666
 -- 018:6666666666d666666d2d66d666d66d2d667666d6667666766666666666666666
@@ -1360,10 +1444,10 @@ end
 -- 047:6777767667777776767777666677776766776766677777767677776667777776
 -- 079:9999999999899989999999999999999999999999999899999899989999999999
 -- 160:4ce4ce44cdd4edc4dec44cf4444444444ecd4de4edf44ece4ee4ecdc444444e4
--- 161:442342244233434344234f33443444444244442332324332f342424443244444
+-- 161:c2111121342f331133f144f112c142f1111111111431142ff323132f1d2f1f11
 -- 162:4ce4cf448bd4fdb48ee448f444444444edcb4ff4fc8e48cf4ff4ffbc44444ef4
 -- 163:4400400440fe40ef400f44f0440444444044440f000e40f00ef040e44f044444
--- 164:45745f44f654f654f77447f44444444475754f74f677475f4ff4ff65444445f4
+-- 164:45646f44f75457f4f66f45f4444444444f544f546575456ff7764f754ff444f4
 -- 165:41f40f440114f114410141f4444444440f104104f11f411f410411f0444440f4
 -- 176:dc000000ccd000000ee000000000000000000000000000000000000000000000
 -- 177:0340000044200000230000000000000000000000000000000000000000000000
@@ -1371,6 +1455,10 @@ end
 -- 179:ffe00000eff00000fe0000000000000000000000000000000000000000000000
 -- 180:0570000077500000f70000000000000000000000000000000000000000000000
 -- 181:0ff0000011100000ff0000000000000000000000000000000000000000000000
+-- 194:0000000700000076000000660007676700076673000766660060777706706276
+-- 195:76000000706000006600000011676000066672e0707676002766206061702600
+-- 196:0000002100002112001c122402442cc301222bd2212d222d122222221221dc21
+-- 197:111000002cc100002222210022122210212dd111222de1212221211112121210
 -- 198:0000000000000000000000000000000000000006000006660000556600005556
 -- 199:0000000000000000000000000665500066665566666566666666666566676666
 -- 200:0000000000000000000000000000000050000000550000005550000066550000
@@ -1380,6 +1468,10 @@ end
 -- 204:0000000000000000000000000000000b00000022000002b200002bd200022222
 -- 205:0000000000000000022d2220222222bd22bb2222222db22222222222b2222222
 -- 206:0000000000000000000000002000000022000000b2200000db2200002d22b000
+-- 210:6766000706776076676763770676036700000023000000010000000200000003
+-- 211:61728000777e0267676066777200277762032606223200603100000032000000
+-- 212:0114c312022122120002221100002111000000ef000000010000000c0000000c
+-- 213:21121110212111101111110011221000fe00000018000000f8000000c0000000
 -- 214:0006666500666666077676667776776677777777007772770000772000000002
 -- 215:6677666667777666777277667727777772777776722277767233077702337777
 -- 216:6665000066550000765555006666655066667600666677006667700037770000
@@ -1389,6 +1481,11 @@ end
 -- 220:002d222200222243000003110000000f00000000000000000000000000000000
 -- 221:243443424eceece4f1cdec1f1fcddcf100cddc00000bd000000bb000000db000
 -- 222:222222003422220011300000f000000000000000000000000000000000000000
+-- 224:9999999999899989999999999999999999999999999899999899989999999999
+-- 226:0000000300000003000000030000000300000003000000030000000300000003
+-- 227:2100000032000000320000002200000031000000320000002200000023000000
+-- 228:0000000c0000000c0000000c0000000c0000000c0000000c0000000c0000000c
+-- 229:d0000000d0000000d0000000c0000000d0000000d0000000d0000000d0000000
 -- 230:0000000200000000000000000000000000000000000000000000000000000000
 -- 231:2233777322330037022333000233300002330000023300000233000002330000
 -- 232:7770000070000000000000000000000000000000000000000000000000000000
@@ -1396,6 +1493,10 @@ end
 -- 234:2202330702223300000223330002333000023300000233000002330000023300
 -- 235:7376660037777000000000000000000000000000000000000000000000000000
 -- 237:000bb000000db000000bb000000bb000000bb000000bd000000bb000000bb000
+-- 242:0000000300000003000000130000042300000002000000040000000000000000
+-- 243:1200000032200000220000003220000020330000200000003000000000000000
+-- 244:0000000c0000000c0000000c000000cc00000ccc000000cc0000000c00000000
+-- 245:c0000000d0000000de000000dc000000dec00000ddd00000d000000000000000
 -- 246:0000000000000000000000000000000000000000000000000000000000000002
 -- 247:0223000002330000023300000233000002330000023300002233300022333300
 -- 250:0002330000023300000223000002330000023300000233000022333002223333
@@ -2036,11 +2137,11 @@ end
 -- </TRACKS>
 
 -- <FLAGS>
--- 000:00000000000000001000000000000000000000000000100010000000000000000000000010101010101000000000000000000000001010101010100010101010000000000000000000000000101010100000000000101000000000001010101000000000101010101010101010101010101010100000101010101010101010100000000000000010101010100000000000000000001010000000000000000000000000000000101010100000000000000000000000001010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 000:00000000000000001000000000000000000000000000100010000000000000000000000010101010101000000000000000000000001010101010100010101010000000000000000000000000101010100000000000101000000000001010101000000000101010101010101010101010101010100000101010101010101010100000000000000010101010100000000000000000001010000000000000000000000000000000101010100000000000000000000000001010101000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000
 -- </FLAGS>
 
 -- <PALETTE>
--- 000:1c1c1c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f6eaeaea919191b2b2b2656c79333434
+-- 000:1c1c1c5d245db13e53ef7d57ffcd75a7f07038b76444850029366f3b5dc941a6f6eaeaea919191b2b2b2656c79333434
 -- </PALETTE>
 
 -- <PALETTE1>

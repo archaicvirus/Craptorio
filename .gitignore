@@ -6,3 +6,4 @@ bat_scripts/
 lore/
 screenshots/
 *.nil
+classes/double_buffering.lua
