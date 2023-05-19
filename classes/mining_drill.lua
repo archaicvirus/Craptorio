@@ -79,7 +79,7 @@ DRILL_BELT_OUTPUT_MAP = {
     [3] = {lane = 1, slot = 8}},
 }
 
-local drill = {
+local Drill = {
   pos = {x = 0, y = 0},
   rot = 0,
   --output = {},
@@ -101,19 +101,26 @@ local drill = {
   item_id = 13,
 }
 
-function drill.yield(self)
+function Drill.draw_hover_widget(self)
+  local sx, sy = cursor.x, cursor.y
+  rectb(sx, sy, 50, 50, 13)
+  rect(sx + 1, sy + 1, 48, 48, 0)
+end
+
+function Drill.yield(self)
   if #self.output < self.output_slots then
     --trace('current key: ' .. self.current_tile)
     local ore_key = self.field_keys[self.current_tile]
     local ore_id
     if ORES[ore_key] then
-      ore_id = ORES[ore_key].sprite_id
+      --ore_id = ORES[ore_key].sprite_id
+      ore_id = ORES[ore_key].id
       ORES[ore_key].ore_remaining = ORES[ore_key].ore_remaining - 1
       if ORES[ore_key].ore_remaining < 1 then
         --trace('ore depleted')
         local wx, wy = ORES[ore_key].wx, ORES[ore_key].wy
         --trace('WX = ' .. wx .. ', WY = ' .. wy)
-        TileMan:set_tile(0, wx, wy)
+        TileMan:set_tile(wx, wy)
         ORES[ore_key] = nil
       end
       
@@ -127,7 +134,7 @@ function drill.yield(self)
   end
 end
 
-function drill.update(self)
+function Drill.update(self)
   if self.is_powered and not self.idle then
 
     --self:consume_electric()
@@ -164,7 +171,7 @@ function drill.update(self)
   end
 end
 
-function drill.draw(self)
+function Drill.draw(self)
   if not self.idle then
     --draw main drill body
     local sx, sy = world_to_screen(self.pos.x, self.pos.y)
@@ -204,7 +211,7 @@ function newDrill(pos, rot, tiles)
   local output_key = pos.x + out_pos.x .. '-' .. pos.y + out_pos.y
   trace(output_key)
   local newdrill = {pos = pos, rot = rot, field_keys = tiles, output_key = output_key, output = {}}
-  setmetatable(newdrill, {__index = drill})
+  setmetatable(newdrill, {__index = Drill})
   return newdrill
 end
 

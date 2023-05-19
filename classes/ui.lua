@@ -87,6 +87,22 @@ function ui.NewPanel(x, y, w, h, fg, bg, border, children, on_click)
   return new_panel
 end
 
+function ui.draw_text_window(data, x, y, border, background, text)
+  border, background, text = border or 10, background or 8, text or 11
+  local width = 4
+  local height = #data * 7 + 3
+  for i = 1, #data do
+    local string_width = print(data[i], 0, -10, 0, true, 1, true)
+    if string_width > width then width = string_width end
+  end
+  width = width + 4
+  rectb(x, y, width, height, border)
+  rect(x + 1, y + 1, width - 2, height - 2, background)
+  for i = 1, #data do
+    print(data[i], x + 2, y - 5 + i*7, text, true, 1, true)
+  end
+end
+
 local CraftPanel = {
   x = x,
   y = y,
@@ -220,19 +236,21 @@ function CraftPanel.draw(self)
   end
 end
 
-function CraftPanel.click(self, x, y)
-  local cx, cy, w, h = self.x + self.w - 6, self.y + 1, 5, 6
-  if x >= cx and x < cx + w and y >= cy and y < cy + h then
-    self.vis = false
-  end
-  local cx, cy, w, h = self.x + self.w - 6, self.y + 8, 5, 8
-  if x >= cx and x < cx + w and y >= cy and y < cy + h then
-    self.docked = self.docked == false and true or false
-  end
-  for i = 0, 3 do
-    if x >= self.x + self.tab[i].x - 1 and x < self.x + self.tab[i].x + self.tab[i].w and y >= self.y + self.tab[i].y - 1 and y < self.y + self.tab[i].y - 1 + self.tab[i].h then
-      self.active_tab = i
-      return true
+function CraftPanel.click(self, x, y, side)
+  if side == 'left' then
+    local cx, cy, w, h = self.x + self.w - 6, self.y + 1, 5, 6
+    if x >= cx and x < cx + w and y >= cy and y < cy + h then
+      self.vis = false
+    end
+    local cx, cy, w, h = self.x + self.w - 6, self.y + 8, 5, 8
+    if x >= cx and x < cx + w and y >= cy and y < cy + h then
+      self.docked = self.docked == false and true or false
+    end
+    for i = 0, 3 do
+      if x >= self.x + self.tab[i].x - 1 and x < self.x + self.tab[i].x + self.tab[i].w and y >= self.y + self.tab[i].y - 1 and y < self.y + self.tab[i].y - 1 + self.tab[i].h then
+        self.active_tab = i
+        return true
+      end
     end
   end
   return false
