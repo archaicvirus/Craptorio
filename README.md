@@ -19,6 +19,8 @@ imposed by TIC80. This is the point obviously, (or perhaps not so obvious to som
 I do intend to add as many features and mechanics from the original as technically feasible.
 
 # Updates - Will post development and progress updates here
+- Updated palette
+- Added assembly machine
 - Added trees
 - Big updates to worldgen system
 - Added burner mining drill
@@ -28,6 +30,7 @@ I do intend to add as many features and mechanics from the original as technical
 - You now play as an advanced logistics robot, capable of flying over any terrain or obstacles
 - ~Working on finishing new splitters~
 - ~Currently working on crafting mechanics, inventory, and item systems.~
+- ![new_furnace_ui](https://github.com/archaicvirus/Craptorio/assets/25288625/6ed8d134-03e4-4e61-b566-973309a34b36)
 - ![assembly_ui_layout_4](https://github.com/archaicvirus/Craptorio/assets/25288625/7f3aef5d-6e93-4471-95db-4b4932bc33be)
 - ![assembly_recipie_overlay_demo](https://github.com/archaicvirus/Craptorio/assets/25288625/53389950-9337-43ef-aa96-f9320457ea73)
 - ![screen2](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/088a6b57-7863-4003-8cd3-11ccaf7e8413)
