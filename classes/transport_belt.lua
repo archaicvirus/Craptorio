@@ -1,5 +1,6 @@
-BELT_ID_CURVED    = 260
-BELT_ID_STRAIGHT  = 256
+BELT_ID_STRAIGHT  = 339
+BELT_ID_CURVED    = 357
+BELT_ARROW_ID     = 287
 BELT_TICKRATE     = 5
 BELT_MAXTICK      = 3
 BELT_TICK         = 0
@@ -269,16 +270,16 @@ end
 function Belt.is_facing(self, other)
   if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and ENTS[self.output_key] == other then return true end
   local exit = BELT_ROTATION_MAP[other.rot]
-  local key = get_world_key(other.pos.x + exit.x, other.pos.y + exit.y)
-  if ENTS[key] and ENTS[key] == self then return true end
+  local k = get_world_key(other.pos.x + exit.x, other.pos.y + exit.y)
+  if ENTS[k] and ENTS[k] == self then return true end
   return false
 end
 
 function Belt.set_output(self)
   self.exit = BELT_ROTATION_MAP[self.rot]
-  local key = self.pos.x + self.exit.x .. '-' .. self.pos.y + self.exit.y
-  self.output_key = key
-  local ent = ENTS[key]
+  local k = self.pos.x + self.exit.x .. '-' .. self.pos.y + self.exit.y
+  self.output_key = k
+  local ent = ENTS[k]
   if ent then
 
     if ent.type == 'dummy_splitter' or ent.type == 'underground_belt_exit' then
@@ -287,7 +288,7 @@ function Belt.set_output(self)
     end
 
     if ent.type == 'transport_belt'
-    or ent.type == 'splitter' and ENTS[key].rot == self.rot
+    or ent.type == 'splitter' and ENTS[k].rot == self.rot
     or ent.type == 'underground_belt' then
 
       self.output = BELT_OUTPUT_MAP[self.rot .. ent.rot]
@@ -349,7 +350,7 @@ function Belt:request_item(keep, lane, slot)
   return false
 end
 
-function Belt.update_neighbors(self, key)
+function Belt.update_neighbors(self, k)
   local cell_x, cell_y = self.pos.x, self.pos.y
   local tiles = {
     [1] = {x = cell_x, y = cell_y - 1},
@@ -358,7 +359,7 @@ function Belt.update_neighbors(self, key)
     [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
     local k = tiles[i].x .. '-' .. tiles[i].y
-    if ENTS[k] or (key and ENTS[key] and ENTS[k] ~= ENTS[key]) then
+    if ENTS[k] or (ENTS[k] and ENTS[k] ~= self) then
       if ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
       if ENTS[k].type == 'splitter' then ENTS[k]:set_output() end
       if ENTS[k].type == 'dummy_splitter' then ENTS[ENTS[k].other_key]:set_output() end
@@ -462,6 +463,7 @@ function Belt.update(self)
                 self.lanes[i][j] = 0
               end
             elseif ENTS[self.output_key].type == 'underground_belt' then
+              if not ENTS[self.output_key].updated then ENTS[self.output_key]:update() end
               if ENTS[self.output_key].lanes[self.output[i].a][self.output[i].b] == 0 then
                 ENTS[self.output_key].lanes[self.output[i].a][self.output[i].b] = id
                 --ENTS[self.output_key].idle = false
@@ -469,6 +471,7 @@ function Belt.update(self)
               end
             elseif ENTS[self.output_key].type == 'underground_belt_exit' then
               self.output_key = ENTS[self.output_key].other_key
+              if not ENTS[self.output_key].updated then ENTS[self.output_key]:update() end
               if ENTS[self.output_key].exit_lanes[self.output[i].a][self.output[i].b] == 0 then
                 ENTS[self.output_key].exit_lanes[self.output[i].a][self.output[i].b] = id
                 --ENTS[self.output_key].idle = false

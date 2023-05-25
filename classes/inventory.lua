@@ -23,7 +23,7 @@ local inventory = {
   hotbar_vis = true,
 }
 
-function inventory.draw(self)
+function inventory:draw()
   local x, y = mouse()
   local slot = self:get_hovered_slot(x, y)
   if self.vis then
@@ -70,7 +70,7 @@ function inventory.draw(self)
   end
 end
 
-function inventory.draw_hotbar(self)
+function inventory:draw_hotbar()
   if self.hotbar_vis and not self.vis then
     rectb(self.x, 136 - 2 - (INVENTORY_SLOT_SIZE + 4), self.w, INVENTORY_SLOT_SIZE + 4, INVENTORY_FG_COL)
     rect(self.x + 1, 136 - 2 - (INVENTORY_SLOT_SIZE + 3), self.w - 2, INVENTORY_SLOT_SIZE + 2, INVENTORY_BG_COL)
@@ -86,19 +86,19 @@ function inventory.draw_hotbar(self)
   end
 end
 
-function inventory.update(self)
+function inventory:update()
 
 end
 
-function inventory.add_item(self, item)
+function inventory:add_item(item)
 
 end
 
-function inventory.remove_item(self, slot)
+function inventory:remove_item(slot)
 
 end
 
-function inventory.clicked(self, x, y)
+function inventory:clicked(x, y)
   --local x, y, l, m, r, scrx, scryy = mouse()
   if self.vis and self:is_hovered(x, y) then
     local result = self:get_hovered_slot(x, y)
@@ -112,7 +112,7 @@ function inventory.clicked(self, x, y)
   return false
 end
 
-function inventory.is_hovered(self, x, y)
+function inventory:is_hovered(x, y)
   if self.vis then
     return x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h and true or false
   elseif self.hotbar_vis then
@@ -121,7 +121,7 @@ function inventory.is_hovered(self, x, y)
   return false
 end
 
-function inventory.get_hovered_slot(self, x, y)
+function inventory:get_hovered_slot(x, y)
   local inv_x, inv_y = self.x, self.y
   local start_x = inv_x + 2
   local start_y = inv_y + 2

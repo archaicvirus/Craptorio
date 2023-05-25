@@ -1,4 +1,4 @@
-SPLITTER_ID       = 343
+SPLITTER_ID       = 322
 SPLITTER_ID_TOP   = 409
 SPLITTER_ID_BTM   = 425
 SPLITTER_TICKRATE = 5
@@ -249,6 +249,7 @@ function Splitter.update(self)
     for i = 1, 2 do
       for j = 1, 8 do
         if j == 1 then
+          self.shift = not self.shift
 
           local l, r = ENTS[self.output_key_l], ENTS[self.output_key_r]
 
@@ -272,7 +273,7 @@ function Splitter.update(self)
               elseif l.lanes[self.output_l[i].lane][self.output_l[i].slot] == 0 then
                 ENTS[self.output_key_l].lanes[self.output_l[i].lane][self.output_l[i].slot] = self.lanes.left[i][1]
                 --ENTS[self.output_key].idle = false
-                self.lanes.left[i][1] = 0
+                self.lanes.left[i][1] = 0                
               end
             elseif l.type == 'underground_belt' then
               if not l.updated then ENTS[self.output_key_l]:update() end
@@ -291,7 +292,7 @@ function Splitter.update(self)
 
             end
           end
-
+          
           if self.output_r ~= nil and r and self.lanes.right[i][1] ~= 0 then
             if r.type == 'splitter' or r.type == 'dummy_splitter' then
               local key = self.output_key_r
@@ -336,6 +337,8 @@ function Splitter.update(self)
             self.lanes.left[i][j - 1] = self.lanes.left[i][j]
             self.lanes.left[i][j] = 0
           end
+          --flip
+
           --right
           if self.lanes.right[i][j] ~= 0 and self.lanes.right[i][j - 1] == 0 then
             self.lanes.right[i][j - 1] = self.lanes.right[i][j]

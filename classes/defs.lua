@@ -160,16 +160,14 @@ auto_map = {
 --main cursor/input function needs to check for ents under cursor FIRST, for quick-depositing held items
 --as some placeable items are also accepted as input items in other ents (ex: assembly machines)
 --else run callback for held item here, giving mouse coords as parameters
-local defs = {
-
-  callbacks = {
+callbacks = {
     ['transport_belt'] = function(x, y)
-      if is_water(x, y) then return end
       local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
       local screen_x, screen_y = get_screen_cell(x, y)
       local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then sound('deny') return end
       local key = wx .. '-' .. wy
-      if not cursor.drag and cursor.left and cursor.last_left then
+      if not cursor.drag and cursor.l and cursor.ll then
         --drag locking/placing belts
         cursor.drag = true
 
@@ -180,18 +178,12 @@ local defs = {
       if cursor.drag then
         local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
         if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
-          -- trace('tile_x: ' .. screen_x)
-          -- trace('tile_y: ' .. screen_y)
-          -- trace('last_tile_x: ' .. cursor.last_tile_x)
-          --trace('last_tile_y: ' .. cursor.last_tile_y)
           add_belt(x, dy, cursor.drag_dir)
         elseif (cursor.drag_dir == 1 or cursor.drag_dir == 3) then
           add_belt(dx, y, cursor.drag_dir)
-          -- trace('tile_x: ' .. screen_x)
-          -- trace('tile_y: ' .. screen_y)
-          -- trace('last_tile_x: ' .. cursor.last_tile_x)
-          -- trace('last_tile_y: ' .. cursor.last_tile_y)
         end
+      elseif cursor.l and not cursor.ll then
+        add_belt(x, y, cursor.rot)
       end
     end,
 
@@ -221,7 +213,8 @@ local defs = {
     ['underground_belt'] = function(x, y)
       add_underground_belt(x, y)
     end,
-  },
-}
 
-return defs
+    ['assembly_machine'] = function(x, y)
+      add_assembly_machine(x, y)
+    end,
+  }

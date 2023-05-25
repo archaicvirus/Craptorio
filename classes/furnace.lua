@@ -1,5 +1,6 @@
 FURNACE_SPRITE_ACTIVE_ID = 490
 FURNACE_SPRITE_INACTIVE_ID = 488
+FURNACE_FUEL_ICON = 291
 FURNACE_ANIM_TICK = 0
 FURNACE_ANIM_TICKRATE = 9
 FURNACE_ANIM_TICKS = 2
@@ -8,6 +9,7 @@ FURNACE_BUFFER_INPUT = 50
 FURNACE_BUFFER_OUTPUT = 100
 FURNACE_BUFFER_FUEL = 50
 FURNACE_SMELT_TIME = 3 * 60
+FURNACE_COLORKEY = 6
 
 
 local Furnace = {
@@ -90,48 +92,49 @@ function Furnace.open(self)
       return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height and true or false
     end,
     draw = function(self)
+      local bg, fg = 8, 9
       local ent = ENTS[self.ent_key]
       if not ent then return end
       local input, output, fuel = ent.input_buffer, ent.output_buffer, ent.fuel_buffer
       local x, y, w, h = self.x, self.y, self.width, self.height
       --background window and border
-      rectb(x, y, w, h, 13)
-      rect(x + 1, y + 1, w - 2, h - 2, 15)
+      rectb(x, y, w, h, fg)
+      rect(x + 1, y + 1, w - 2, h - 2, bg)
 
       --input slots icon, and item count------------------------------------------
 
       --input slot
-      rectb(x + 9, y + 58, 10, 10, 14)
+      rectb(x + 9, y + 58, 10, 10, fg)
       rect(x + 10, y + 59, 8, 8, 0)
       print(#input .. '/' .. FURNACE_BUFFER_INPUT, x + 9, y + 70, 4, true, 1, true)
       if #input > 0 then sspr(ITEMS[input[1]].sprite_id, x + 10, y + 59, 4) end
 
       --smelting progress bar
-      rectb(x + 20, y + 61, 60, 5, 14)
+      rectb(x + 20, y + 61, 60, 5, fg)
       rect(x + 21, y + 62, 58, 3, 0)
       if ent.smelt_timer > 0 then
         rect(x + 21, y + 62, 58 - remap(ent.smelt_timer, 0, FURNACE_SMELT_TIME, 0, 58), 3, 6)
       end
       --output slot
-      rectb(x + w - 19, y + 58, 10, 10, 14)
+      rectb(x + w - 19, y + 58, 10, 10, fg)
       rect(x + w - 18, y + 59, 8, 8, 0)
       local text_width = print(#output .. '/' .. FURNACE_BUFFER_OUTPUT, 0, -10, 0, true, 1, true)
       print(#output .. '/' .. FURNACE_BUFFER_OUTPUT, x + w - 8 - text_width, y + 70, 4, true, 1, true)
       if #output > 0 then sspr(ITEMS[output[1]].sprite_id, x + w - 18, y + 59, 0) end
 
       --divider
-      line(x + 9, y + 77, x + w - 10, y + 77, 13)
+      line(x + 9, y + 77, x + w - 10, y + 77, fg)
 
       --fuel slot
-      rectb(x + 9, y + 80, 10, 10, 14)
+      rectb(x + 9, y + 80, 10, 10, fg)
       if #fuel > 0 then
         --rect(x + 10, y + 81, 8, 8, )
         sspr(ITEMS[fuel[1]].sprite_id, x + 10, y + 81, 4)
       else
-        sspr(310, x + 10, y + 81, -1)
+        sspr(FURNACE_FUEL_ICON, x + 10, y + 81, -1)
       end
       --fuel progress bar
-      rectb(x + 20, y + 84, 60, 5, 14)
+      rectb(x + 20, y + 84, 60, 5, fg)
       rect(x + 21, y + 85, 58, 3, 0)
       if ent.fuel_time > 0 then
         rect(x + 21, y + 85, remap(ent.fuel_time, 0, ITEMS[6].smelting_time, 0, 58), 3, 2)
@@ -175,8 +178,8 @@ function Furnace.open(self)
           end
         end
       end
-      rectb(fx - 33, fy - 17, w - 18, 50, 14)
-      sspr(sprite_id, fx, fy, 0, 1, 0, 0, 2, 2)
+      rectb(fx - 33, fy - 17, w - 18, 50, fg)
+      sspr(sprite_id, fx, fy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
       sspr(437, x + w - 7, y + 2, 0)
       print('Stone Furnace', fx - 17, y + 7, 0, true, 1, true)
       print('Stone Furnace', fx - 18, y + 7, 4, true, 1, true)
@@ -231,10 +234,11 @@ end
 
 function Furnace.draw(self)
   local sx, sy = world_to_screen(self.x, self.y)
+  --if self.is_hovered then self:draw_hover_widget() end
   if self.is_smelting then
-    sspr(FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2), sx, sy, 0, 1, 0, 0, 2, 2)
+    sspr(FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2), sx, sy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
   else
-    sspr(FURNACE_SPRITE_INACTIVE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
+    sspr(FURNACE_SPRITE_INACTIVE_ID, sx, sy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
   end  
 end
 

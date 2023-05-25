@@ -4,7 +4,7 @@ UBELT_TICKRATE     = 5
 UBELT_MAXTICK      = 3
 UBELT_TICK         = 0
 
-local uBelt = {
+local underground_belt = {
   x = 0, y = 0,
   rot = 0,
   flip = 0,
@@ -29,7 +29,7 @@ UBELT_ROT_MAP = {
   [3] = {in_flip = 0, out_flip = 0, search_dir = {x =  0, y = -1}},
 }
 
-function uBelt:draw()
+function underground_belt:draw()
   self.drawn = true
   local sx, sy = world_to_screen(self.x, self.y)
   self.screen_pos = {x = sx, y = sy}
@@ -47,7 +47,8 @@ function uBelt:draw()
   end
 end
 
-function uBelt:draw_items()
+function underground_belt:draw_items()
+  --main head unit
   local item_locations = BELT_CURVED_ITEM_MAP[self.rot .. self.rot]
   for i = 1, 2 do
     for j = 5, 8 do
@@ -60,6 +61,7 @@ function uBelt:draw_items()
     end
   end
 
+  --output head
   if self.exit_lanes then
     --trace('try draw exit items')
     local sx, sy = world_to_screen(ENTS[self.other_key].x, ENTS[self.other_key].y)
@@ -75,14 +77,14 @@ function uBelt:draw_items()
   end
 end
 
-function uBelt:update()
+function underground_belt:update()
   self.updated = true
-  --trace('UPDATED UBELT @TICK ' .. TICK)
+  --trace('UPDATED underground_belt @TICK ' .. TICK)
     --update exit 'belt'
     if self.exit_lanes then
       for i = 1, 2 do
         for j = 1, 8 do
-          if j == 1 then
+          if j == 1 and self.output_key and ENTS[self.output_key] then
             -- local exit = ENTS[self.other_key]
             -- local sx, sy = world_to_screen(exit.x, exit.y)
             -- local wx, wy = screen_to_world(exit.x - 8, exit.y)
@@ -97,48 +99,53 @@ function uBelt:update()
             --   if ENTS[self.output_key] and ENTS[self.output_key].lanes[i][8]
             -- end
 
-            if self.exit_lanes[i][1] ~= 0 and self.output_key and self.exit_output and ENTS[self.output_key] then
+            if self.output_key and ENTS[self.output_key] and self.exit_lanes[i][1] ~= 0 then
               local ent = ENTS[self.output_key]
-              local key = self.output_key
-              if ent.type == 'transport_belt' and self.exit_lanes[i][1] ~= 0 then
-                --trace('try depositing [' .. tostring(self.exit_lanes[i][1]) .. '] to transport_belt')
-                ENTS[key].idle = false
-                --if i am facing another belt, update that belt first
-                if not ent.updated then ENTS[key]:update() end
-                --if we find a belt, and the ENTS nearest slot is empty (equals 0) then
-                --move item to that belt
-                if ent.id == BELT_ID_CURVED and ent.lanes[i][8] == 0 then
-                  --add item to other belt
-                  ENTS[key].lanes[i][8] = self.exit_lanes[i][1]
-                  --remove item from self
-                  self.exit_lanes[i][1] = 0
-                elseif ent.lanes[self.exit_output[i].a][self.exit_output[i].b] == 0 then
-                  ENTS[key].lanes[self.exit_output[i].a][self.exit_output[i].b] = self.exit_lanes[i][1]
-                  --ENTS[self.output_key].idle = false
-                  self.exit_lanes[i][1] = 0
+              local k = self.output_key
+              if ent.type == 'transport_belt' then
+                if not ent.updated then ENTS[k]:update() end
+                if self.exit_lanes[i][1] ~= 0 then
+                  --trace('try depositing [' .. tostring(self.exit_lanes[i][1]) .. '] to transport_belt')
+                  ENTS[k].idle = false
+                  --if i am facing another belt, update that belt first
+                  if not ent.updated then ENTS[k]:update() end
+                  --if we find a belt, and the ENTS nearest slot is empty (equals 0) then
+                  --move item to that belt
+                  if ent.id == BELT_ID_CURVED and ent.lanes[i][8] == 0 then
+                    --add item to other belt
+                    ENTS[k].lanes[i][8] = self.exit_lanes[i][1]
+                    --remove item from self
+                    self.exit_lanes[i][1] = 0
+                  elseif ent.lanes[self.exit_output[i].a][self.exit_output[i].b] == 0 then
+                    ENTS[k].lanes[self.exit_output[i].a][self.exit_output[i].b] = self.exit_lanes[i][1]
+                    --ENTS[self.output_key].idle = false
+                    self.exit_lanes[i][1] = 0
+                  end
                 end
+
+
               elseif ent.type == 'underground_belt' or ent.type == 'underground_belt_exit' then
                 if ent.type == 'underground_belt_exit' then
                   self.output_key = ENTS[key].other_key
                   key = self.output_key
                 end
-                if ENTS[key].lanes[self.output[i].a][self.output[i].b] == 0 then
-                  ENTS[key].lanes[self.output[i].a][self.output[i].b] = self.exit_lanes[i][j]
+                if ENTS[k].lanes[self.output[i].a][self.output[i].b] == 0 then
+                  ENTS[k].lanes[self.output[i].a][self.output[i].b] = self.exit_lanes[i][j]
                   --ENTS[self.output_key].idle = false
                   self.exit_lanes[i][j] = 0
                 end
               --------------------------------------------------------------------------------------------------
-              elseif ENTS[key].type == 'splitter' or ENTS[key].type == 'dummy_splitter' then
+              elseif ENTS[k].type == 'splitter' or ENTS[k].type == 'dummy_splitter' then
                 --if key is a dummy splitter, then get the parent splitter's key
-                if ENTS[key].type == 'dummy_splitter' then
-                  self.output_key = ENTS[key].other_key
-                  key = ENTS[key].other_key
+                if ENTS[k].type == 'dummy_splitter' then
+                  self.output_key = ENTS[k].other_key
+                  k = ENTS[k].other_key
                 end
-                --if not ENTS[key].updated then ENTS[key]:update() end
-                if ENTS[key]:input(self.exit_lanes[i][1], i) then
+                --if not ENTS[k].updated then ENTS[key]:update() end
+                if ENTS[k]:input(self.exit_lanes[i][1], i) then
                   self.exit_lanes[i][1] = 0
                 end
-                --if should_shift then ENTS[key].shift = not ENTS[key].shift end
+                --if should_shift then ENTS[k].shift = not ENTS[k].shift end
               end
             ------------------------------------------------------------------------------------------------------
             end
@@ -186,7 +193,7 @@ function uBelt:update()
 
 end
 
-function uBelt:connect(world_x, world_y, distance)
+function underground_belt:connect(world_x, world_y, distance)
   self.u_lanes = {}
   self.exit_lanes = {}
   for i = 1, 2 do
@@ -208,13 +215,13 @@ function uBelt:connect(world_x, world_y, distance)
   self:set_output()
 end
 
-function uBelt:set_output()
+function underground_belt:set_output()
   if not ENTS[self.other_key] then return end
   local exit = BELT_ROTATION_MAP[self.rot]
-  local key = ENTS[self.other_key].x + exit.x .. '-' .. ENTS[self.other_key].y + exit.y
-  self.output_key = key
+  local k = ENTS[self.other_key].x + exit.x .. '-' .. ENTS[self.other_key].y + exit.y
+  self.output_key = k
 
-  local ent = ENTS[key]
+  local ent = ENTS[k]
   if ent then
 
     if ent.type == 'dummy_splitter' or ent.type == 'underground_belt_exit' then
@@ -223,7 +230,7 @@ function uBelt:set_output()
     end
 
     if ent.type == 'transport_belt'
-    or ent.type == 'splitter' and ENTS[key].rot == self.rot
+    or ent.type == 'splitter' and ENTS[k].rot == self.rot
     or ent.type == 'underground_belt' then
 
       self.exit_output = BELT_OUTPUT_MAP[self.rot .. ent.rot]
@@ -236,7 +243,7 @@ function uBelt:set_output()
   end
 end
 
-function uBelt:request_item(keep, lane, slot)
+function underground_belt:request_item(keep, lane, slot)
   if not lane and not slot then
     for i = 1, 2 do
       for j = 1, 8 do
@@ -256,7 +263,7 @@ function uBelt:request_item(keep, lane, slot)
   return false
 end
 
-function uBelt:request_item_exit(keep, lane, slot)
+function underground_belt:request_item_exit(keep, lane, slot)
   if not lane and not slot then
     for i = 1, 2 do
       for j = 1, 8 do
@@ -286,19 +293,19 @@ function get_ubelt_connection(x, y, rot)
 
     --Tier-1 belts can span 4 tiles, 5 being the entrance/exit
     for i = 1, 5 do
-      local key = wx + (dir.x * i) .. '-' .. wy + (dir.y * i)
-      local ent = ENTS[key]
+      local k = wx + (dir.x * i) .. '-' .. wy + (dir.y * i)
+      local ent = ENTS[k]
       if ent and (ent.type == 'underground_belt' or ent.type == 'underground_belt_exit') then
-        if ent.type == 'underground_belt_exit' then key = ent.other_key end
-        if ENTS[key].rot == rot then
-          --found another ubelt, that is facing our same direction
+        if ent.type == 'underground_belt_exit' then k = ent.other_key end
+        if ENTS[k].rot == rot then
+          --found another underground_belt, that is facing our same direction
           --trace('found suitable connection')
           local cells = {}
           for j = 1, i do
             local sx, sy = world_to_screen(wx + (dir.x * j), wy + (dir.y * j))
             cells[j] = {x = sx, y = sy}
           end
-          return true, key, cells
+          return true, k, cells
         end
       end
     end
@@ -308,7 +315,7 @@ function get_ubelt_connection(x, y, rot)
   return false
 end
 
-function uBelt:deposit(id, side)
+function underground_belt:deposit(id, side)
   --side 0 is entrance, 1 is exit
   if side == 1 then
     if self.exit_lanes[1][8] == 0 then
@@ -332,6 +339,6 @@ end
 
 return function (x, y, rot)
   local new_belt = {x = x, y = y, lanes = {[1] = {0,0,0,0,0,0,0,0}, [2] = {0,0,0,0,0,0,0,0}}, rot = rot, flip = UBELT_ROT_MAP[rot].in_flip}
-  setmetatable(new_belt, {__index = uBelt})
+  setmetatable(new_belt, {__index = underground_belt})
   return new_belt
 end

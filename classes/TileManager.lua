@@ -257,10 +257,14 @@ function TileMgr:draw_clutter(player, screenWidth, screenHeight)
   end
 end
 
-function TileMgr:draw_worldmap(player, width, height)
+function TileMgr:draw_worldmap(player, x, y, width, height, center)
   --Simple pixel map, using the tile's assigned biome in - biome[i].map_col
-  width, height = width or 201, height or 101
-  local map_x, map_y = 120 - (width/2) + 1, 68 - (height/2) + 2
+  x, y, width, height = x or 0, y or 0, width or 240, height or 136
+  if center then
+    x = (240/2) - (width/2)
+    y = (136/2) - (height/2)
+  end
+  local map_x, map_y = x or 120 - (width/2) + 1, y or 68 - (height/2) + 2
   local startX, startY = floor(player.x/8 - (width/2) + 1), floor(player.y/8 - (height/2) + 2)
   local biome_col = biomes[self.tiles[startY][startY].biome].map_col
   rectb(map_x - 1, map_y - 1, width + 2, height + 2, 11)
