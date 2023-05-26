@@ -1,5 +1,5 @@
-BELT_ID_STRAIGHT  = 339
-BELT_ID_CURVED    = 357
+BELT_ID_STRAIGHT  = 256
+BELT_ID_CURVED    = 260
 BELT_ARROW_ID     = 287
 BELT_TICKRATE     = 5
 BELT_MAXTICK      = 3
@@ -223,10 +223,41 @@ BELT_TO_UBELT_MAP = {
   }
 }
 
-function Belt.draw_hover_widget(self)
+function Belt:draw_hover_widget()
   local sx, sy = cursor.x, cursor.y
-  rectb(sx, sy, 50, 50, 13)
-  rect(sx + 1, sy + 1, 48, 48, 0)
+  local offset = {x = 3, y = 3}
+  local w, h = print('Transport Belt', 0, -10, 0, false, 1, true) + 4, 50
+  local x, y = clamp(sx + offset.x, 0, 240 - w - offset.x), clamp(sy + offset.y, 0, 136 - h - offset.y)
+  rectb(x, y, w, h, 9)
+  rect(x + 1, y + 1, w - 2, h - 2, 0)
+  rect(x + 1, y + 1, w - 2, 8, 9)
+  prints('Transport Belt', x + 2, y + 2, 0, 4)
+  --rect(x + w/2 - 5, y + 10, 9, 9, 9)
+  sspr(self.id, x + w/2 - 17, y + 11, 0, 4, self.flip, self.sprite_rot)
+  -- for i = 1, 2 do
+  --   for j = 1, 8 do
+  --     if self.lanes[i][j] ~= 0 then
+  --       local x, y = x + w/2 - 17 + ((j - 1) * 4), y + 18 + ((i - 1) * 12)
+  --       sspr(ITEMS[self.lanes[i][j]].belt_id, x, y, ITEMS[self.lanes[i][j]].color_key, 1)
+  --     end
+  --   end
+  -- end
+
+
+  local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
+  for i = 1, 2 do
+    for j = 1, 8 do
+      if self.lanes[i][j] > 0 then
+        --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
+        local xx = x + w/2 - 17 + (item_locations[j][i].x * 4)
+        local yy = y + 15 + (item_locations[j][i].y * 3)
+        local sprite_id = ITEMS[self.lanes[i][j]].belt_id
+        sspr(sprite_id, xx, yy, ITEMS[self.lanes[i][j]].color_key, 1)
+      end
+    end
+  end    
+
+  -- print('Transport Belt', x + 2, y + 1, 0, true, 1, true)
 end
 
 function Belt.get_info(self)
@@ -262,6 +293,7 @@ function Belt.rotate(self, rotation)
   --self.exit = BELT_ROTATION_MAP[rotation]
   if rotation > 3 then rotation = 0 end
   self.rot = rotation
+  self.sprite_rot = rotation
   --self:set_output()
   self:set_curved()
   --self:update_neighbors()
@@ -549,11 +581,15 @@ function Belt.draw_items(self)
           --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
           local x, y = item_locations[j][i].x + self.screen_pos.x, item_locations[j][i].y + self.screen_pos.y
           local sprite_id = ITEMS[self.lanes[i][j]].belt_id
-          sspr(sprite_id, x, y, 0)
+          sspr(sprite_id, x, y, ITEMS[self.lanes[i][j]].color_key)
         end
       end
     end    
   end
+
+  -- if self.is_hovered then
+  --   self:draw_hover_widget()
+  -- end
 end
 
 return function(pos, rotation, children)

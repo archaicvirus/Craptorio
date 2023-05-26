@@ -53,9 +53,9 @@ local Inserter = {
 }
 
 function Inserter.draw_hover_widget(self)
-  local sx, sy = cursor.x, cursor.y
-  rectb(sx, sy, 50, 50, 13)
-  rect(sx + 1, sy + 1, 48, 48, 0)
+  -- local sx, sy = cursor.x, cursor.y
+  -- rectb(sx, sy, 50, 50, 13)
+  -- rect(sx + 1, sy + 1, 48, 48, 0)
 end
 
 function Inserter.get_info(self)
@@ -77,7 +77,7 @@ function Inserter.draw(self)
   spr(config.id, x, y, self.color_keys, 1, 0, config.rot, 1, 1)
   if self.held_item_id > 0 then
     local sprite_id = ITEMS[self.held_item_id].belt_id
-    local ck = {ITEMS[self.held_item_id].color_key, 15}
+    local ck = {ITEMS[self.held_item_id].color_key}
     spr(sprite_id, x + config.item_offset.x, y + config.item_offset.y, ck)
   end
 end
@@ -269,8 +269,10 @@ function Inserter.update(self)
         if ENTS[k].type == 'dummy_furnace' then
           k = ENTS[k].other_key
         end
-        if #ENTS[k].output_buffer > 0 then
-          self.held_item_id = table.remove(ENTS[k].output_buffer, #ENTS[k].output_buffer)
+
+        --if ENTS[k].output_buffer.count > 0 then
+        if ENTS[k]:request_output(true) then
+          self.held_item_id = ENTS[k]:request_output(false)
           self.state = 'send'
           return
         end

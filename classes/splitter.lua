@@ -60,12 +60,12 @@ local Splitter = {
   input_key_l  = 'nil',
   input_key_r  = 'nil',
   updated = false,
-  other_key = 'nil',
+  --other_key = 'nil',
   drawn = false,
   item_id = 10
 }
 
-function Splitter.draw_hover_widget(self)
+function Splitter:draw_hover_widget()
   local sx, sy = cursor.x, cursor.y
   rectb(sx, sy, 50, 50, 13)
   rect(sx + 1, sy + 1, 48, 48, 0)

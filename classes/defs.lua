@@ -161,60 +161,117 @@ auto_map = {
 --as some placeable items are also accepted as input items in other ents (ex: assembly machines)
 --else run callback for held item here, giving mouse coords as parameters
 callbacks = {
-    ['transport_belt'] = function(x, y)
-      local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
-      local screen_x, screen_y = get_screen_cell(x, y)
-      local tile, wx, wy = get_world_cell(x, y)
-      if not tile.is_land then sound('deny') return end
-      local key = wx .. '-' .. wy
-      if not cursor.drag and cursor.l and cursor.ll then
-        --drag locking/placing belts
-        cursor.drag = true
+  ['transport_belt'] = function(x, y)
+    local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
+    local screen_x, screen_y = get_screen_cell(x, y)
+    local tile, wx, wy = get_world_cell(x, y)
+    if not tile.is_land then sound('deny') return end
+    local key = wx .. '-' .. wy
+    if not cursor.drag and cursor.l and cursor.ll then
+      --drag locking/placing belts
+      cursor.drag = true
 
-        cursor.drag_loc = {x = wx, y = wy}
-        cursor.drag_dir = cursor.rot
+      cursor.drag_loc = {x = wx, y = wy}
+      cursor.drag_dir = cursor.rot
+    end
+  
+    if cursor.drag then
+      local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
+      if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
+        add_belt(x, dy, cursor.drag_dir)
+      elseif (cursor.drag_dir == 1 or cursor.drag_dir == 3) then
+        add_belt(dx, y, cursor.drag_dir)
       end
-    
-      if cursor.drag then
-        local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
-        if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
-          add_belt(x, dy, cursor.drag_dir)
-        elseif (cursor.drag_dir == 1 or cursor.drag_dir == 3) then
-          add_belt(dx, y, cursor.drag_dir)
-        end
-      elseif cursor.l and not cursor.ll then
-        add_belt(x, y, cursor.rot)
-      end
-    end,
+    elseif cursor.l and not cursor.ll then
+      add_belt(x, y, cursor.rot)
+    end
+  end,
 
-    ['splitter'] = function(x, y)
-      if is_water(x, y) then return end
-      add_splitter(x, y)
-    end,
+  ['splitter'] = function(x, y)
+    if is_water(x, y) then return end
+    add_splitter(x, y)
+  end,
 
-    ['inserter'] = function(x, y)
-      if is_water(x, y) then return end
-      add_inserter(x, y, cursor.rot)
-    end,
+  ['inserter'] = function(x, y)
+    if is_water(x, y) then return end
+    add_inserter(x, y, cursor.rot)
+  end,
 
-    ['power_pole'] = function(x, y)
-      if is_water(x, y) then return end
-      add_pole(x, y)
-    end,
+  ['power_pole'] = function(x, y)
+    if is_water(x, y) then return end
+    add_pole(x, y)
+  end,
 
-    ['mining_drill'] = function(x, y)
-      if is_water(x, y) then return end
-      add_drill(x, y)
-    end,
+  ['mining_drill'] = function(x, y)
+    if is_water(x, y) then return end
+    add_drill(x, y)
+  end,
 
-    ['stone_furnace'] = function(x, y)
-      add_furnace(x, y)
-    end,
-    ['underground_belt'] = function(x, y)
-      add_underground_belt(x, y)
-    end,
+  ['stone_furnace'] = function(x, y)
+    add_furnace(x, y)
+  end,
+  ['underground_belt'] = function(x, y)
+    add_underground_belt(x, y)
+  end,
 
-    ['assembly_machine'] = function(x, y)
-      add_assembly_machine(x, y)
-    end,
-  }
+  ['assembly_machine'] = function(x, y)
+    add_assembly_machine(x, y)
+  end,
+}
+--Item entry Template
+-- [] = {
+--  name = '',
+--  fancy_name = '',
+--  id = ,
+--  sprite_id = ,
+--  belt_id = ,
+--  color_key = 0,
+--  type = '',
+--  sub_type = '',
+--  stack_size = ,
+--  recipe = {
+--  id = 20,
+--  crafting_time = 120,
+--  count = 1,
+--  ingredients = {
+--    [1] = {id = 15, count = 2}
+--  }
+-- }
+
+----ITEMS----
+-- 3  = 'iron_ore'
+-- 4  = 'copper_ore'
+-- 6  = 'coal_ore'
+-- 5  = 'stone_ore'
+-- 8  = 'oil_shale'
+-- 7  = 'uranium'
+-- 0  = 'raw_wood'
+-- 15 = 'iron_plate'
+-- 20 = 'gear'
+-- 16 = 'copper_plate'
+-- 21 = 'copper_cable'
+-- 17 = 'stone_brick'
+-- 0  = 'plastic_bar'
+-- 0  = 'iron_stick'
+-- 14 = 'stone_furnace'
+-- 13 = 'mining_drill'
+-- 9  = 'transport_belt'
+-- 18 = 'underground_belt'
+-- 10 = 'splitter'
+-- 11 = 'inserter'
+-- 2  = 'electronic_circuit'
+-- 1  = 'advanced_circuit'
+-- 0  = 'processing_unit'
+-- 12 = 'power_pole'
+-- 19 = 'assembly_machine'
+-- 0  = 'wooden_chest'
+-- 0  = 'iron_chest'
+-- 0  = 'steel_chest'
+-- 0  = 'lab'
+-- 0  = ''
+-- 0  = ''
+-- 0  = ''
+-- 0  = ''
+-- 0  = ''
+-- 0  = ''
+-- 0  = ''

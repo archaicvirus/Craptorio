@@ -1,7 +1,7 @@
 INVENTORY_SLOT_SIZE = 8
-INVENTORY_BG_COL    = 14
-INVENTORY_FG_COL    = 12
-INVENTORY_SLOT_COL  = 15
+INVENTORY_BG_COL    = 8
+INVENTORY_FG_COL    = 9
+INVENTORY_SLOT_COL  = 0
 INVENTORY_COLS      = 10
 INVENTORY_ROWS      = 10
 
@@ -50,6 +50,7 @@ function inventory:draw()
   end
 
   if self.hotbar_vis and not self.vis then
+    rect(self.x + 1, 136 - 2 - (INVENTORY_SLOT_SIZE + 3) + 2, self.w, INVENTORY_SLOT_SIZE + 2, 15)
     rectb(self.x, 136 - 2 - (INVENTORY_SLOT_SIZE + 4), self.w, INVENTORY_SLOT_SIZE + 4, INVENTORY_FG_COL)
     rect(self.x + 1, 136 - 2 - (INVENTORY_SLOT_SIZE + 3), self.w - 2, INVENTORY_SLOT_SIZE + 2, INVENTORY_BG_COL)
     for col = 1, INVENTORY_COLS do
