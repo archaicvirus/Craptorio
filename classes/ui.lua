@@ -217,13 +217,13 @@ function CraftPanel:draw()
     end
     
     --item sprites
-    if self.active_tab == 0 then
-      for i = 1, #recipes['logistics'] do
-        for j = 1, #recipes['logistics'][i] do
-          spr(ITEMS[recipes['logistics'][i][j]].sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, 0)
-        end
+
+    for i = 1, #recipes[self.active_tab] do
+      for j = 1, #recipes[self.active_tab][i] do
+        spr(ITEMS[recipes[self.active_tab][i][j]].sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, 0)
       end
     end
+
 
     --Hovered-item recipe widget
     if self:is_hovered(x, y) then
@@ -232,8 +232,8 @@ function CraftPanel:draw()
         local row = math.ceil(slot_index / 10)
         local col = ((slot_index - 1) % 10) + 1
         spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
-        if row <= #recipes['logistics'] and col <= #recipes['logistics'][row] then
-          draw_recipe_widget(mouse_x + 8, mouse_y, recipes['logistics'][row][col])
+        if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
+          draw_recipe_widget(mouse_x + 8, mouse_y, recipes[self.active_tab][row][col])
         end
         --print(slot_index, mouse_x + 8, mouse_y - 3, 12, false, 1, true)
       end
@@ -249,10 +249,10 @@ function CraftPanel:click(x, y, side)
       local row = math.ceil(index / 10)
       local col = ((index - 1) % 10) + 1
       --spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
-      if row <= #recipes['logistics'] and col <= #recipes['logistics'][row] then
+      if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
         if self.current_output ~= 'player' then
           if ENTS[self.current_output] then
-            ENTS[self.current_output]:set_recipe(ITEMS[recipes['logistics'][row][col]])
+            ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
             toggle_crafting()
             window = ENTS[self.current_output]:open()
             self.current_output = 'player'
@@ -338,6 +338,10 @@ function CraftPanel:get_hovered_slot_dyn(x, y)
 end
 
 function ui.assembly_recipe_widget(crafter)
+  
+end
+
+function ui:furnace_widget(ent)
   
 end
 
