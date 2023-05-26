@@ -4,11 +4,6 @@ LISCENSE
 .local/
 bat_scripts/
 lore/
-
 *.nil
 screenshots/
-
-
-
-
 classes/double_buffering.lua
