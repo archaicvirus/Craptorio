@@ -4,58 +4,70 @@
 -- site:    website link
 -- license: MIT License
 -- version: 0.3
--- script: --testne--test
-new_belt        = require('\\classes\\transport_belt')
-new_splitter    = require('\\classes\\splitter')
-new_inserter    = require('\\classes\\inserter')
-ITEMS           = require('\\classes\\item_definitions')
-DEFS            = require('\\classes\\defs')
-draw_cable      = require('\\classes\\cable')
-new_pole        = require('\\classes\\power_pole')
-make_inventory  = require('\\classes\\inventory')
-new_drill       = require('\\classes\\mining_drill')
-new_furnace     = require('\\classes\\furnace')
-ui              = require('\\classes\\ui')
-recipies        = require('\\classes\\crafting_definitions')
-simplex         = require('\\classes\\open_simplex_noise')
-TileManager     = require('\\classes\\TileManager')
+-- script: lua
+new_underground_belt = require('\\classes\\underground_belt')
+new_belt             = require('\\classes\\transport_belt')
+new_splitter         = require('\\classes\\splitter')
+new_inserter         = require('\\classes\\inserter')
+ITEMS                = require('\\classes\\item_definitions')
+DEFS                 = require('\\classes\\defs')
+draw_cable           = require('\\classes\\cable')
+new_pole             = require('\\classes\\power_pole')
+make_inventory       = require('\\classes\\inventory')
+new_drill            = require('\\classes\\mining_drill')
+new_furnace          = require('\\classes\\furnace')
+new_assembly_machine = require('\\classes\\assembly_machine')
+ui                   = require('\\classes\\ui')
+                       require('\\classes\\crafting_definitions')
+simplex              = require('\\classes\\open_simplex_noise')
+TileManager          = require('\\classes\\TileManager')
 
---math.randomseed(53264)
 math.randomseed(tstamp())
+--local seed = math.random(-1000000000, 1000000000)
+local seed = 902404786
+--math.randomseed(53264)
+math.randomseed(seed)
 offset = math.random(100000, 500000)
 simplex.seed()
 TileMan = TileManager:new()
 floor = math.floor
 sspr = spr
---image           = require('\\assets\\fullscreen_images')
+--image = require('\\assets\\fullscreen_images')
 --------------------COUNTERS--------------------------
 TICK = 0
-
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 ENTS = {}
 ORES = {}
-STATE = 'main'
-CURSOR_POINTER = 341
-CURSOR_HIGHLIGHT = 312
-CURSOR_HIGHLIGHT_CORNER = 309
-CURSOR_HAND_ID = 356
-CURSOR_GRAB_ID = 357
+window = nil
+CURSOR_POINTER = 286
+CURSOR_HIGHLIGHT = 309
+CURSOR_HIGHLIGHT_CORNER = 307
+CURSOR_HIGHLIGHT_CORNER_S = 336
+CURSOR_HAND_ID = 320
+CURSOR_GRAB_ID = 321
 cursor = {
   x = 8,
   y = 8,
   id = 352,
-  last_x = 8,
-  last_y = 8,
-  last_tile_x = 8,
-  last_tile_y = 8,
-  left = false,
-  last_left = false,
-  middle = false,
-  last_mid = false,
-  right = false,
-  last_right = false,
+  lx = 8,
+  ly = 8,
+  tx = 8,
+  ty = 8,
+  wx = 0,
+  wy = 0,
+  sx = 0,
+  sy = 0,
+  lsx = 0,
+  lsy = 0,
+  l = false,
+  ll = false,
+  m = false,
+  lm = false,
+  r = false,
+  lr = false,
   rot = 0,
   last_rotation = 0,
+  hold_time = 0,
   type = 'pointer',
   item = 'transport_belt',
   drag = false,
@@ -64,22 +76,28 @@ cursor = {
   drag_loc = {x = 0, y = 0},
   hand_item = {id = 0, count = 0},
   drag_offset = {x = 0, y = 0},
-  item_stack = {id = 5, count = 100}
+  item_stack = {id = 9, count = 100}
 }
-player = {x = 0, y = 0, spr = 362, lx = 0, ly = 0, shadow = 382, anim_frame = 0, anim_speed = 8, anim_dir = 0, anim_max = 4, last_dir = '0,0'}
-player.directions = {
-  ['0,0'] = {id = 362, flip = 0, rot = 0},  --straight
-  ['0,-1'] = {id = 365, flip = 0, rot = 0},  --up
-  ['0,1'] = {id = 365, flip = 2, rot = 0},  --down
-  ['-1,0'] = {id = 363, flip = 1, rot = 0},  --left
-  ['1,0'] = {id = 363, flip = 0, rot = 0},  --right
-  ['1,-1'] = {id = 364, flip = 0, rot = 0},  --up-right
-  ['-1,-1'] = {id = 364, flip = 1, rot = 0},  --up-left
-  ['-1,1'] = {id = 364, flip = 3, rot = 0},  --down-left
-  ['1,1'] = {id = 364, flip = 2, rot = 0}   --down-right
+player = {
+  x = 0 * 8, y = 0 * 8,
+  spr = 362,
+  lx = 0, ly = 0,
+  shadow = 382,
+  anim_frame = 0, anim_speed = 8, anim_dir = 0, anim_max = 4,
+  last_dir = '0,0', move_speed = 2,
+  directions = {
+    ['0,0'] = {id = 362, flip = 0, rot = 0},  --straight
+    ['0,-1'] = {id = 365, flip = 0, rot = 0},  --up
+    ['0,1'] = {id = 365, flip = 2, rot = 0},  --down
+    ['-1,0'] = {id = 363, flip = 1, rot = 0},  --left
+    ['1,0'] = {id = 363, flip = 0, rot = 0},  --right
+    ['1,-1'] = {id = 364, flip = 0, rot = 0},  --up-right
+    ['-1,-1'] = {id = 364, flip = 1, rot = 0},  --up-left
+    ['-1,1'] = {id = 364, flip = 3, rot = 0},  --down-left
+    ['1,1'] = {id = 364, flip = 2, rot = 0}   --down-right
+  },
 }
-cam = {x = 120, y = 64, ccx = 0, ccy = 0}
-mcx, mcy, mw, mh, msx, msy = 15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8, (cam.y % 8) - 8
+
 inv = make_inventory()
 inv.slots[91].item_id = 9
 inv.slots[92].item_id = 10
@@ -87,47 +105,138 @@ inv.slots[93].item_id = 11
 inv.slots[94].item_id = 12
 inv.slots[95].item_id = 13
 inv.slots[96].item_id = 14
+inv.slots[97].item_id = 18
+inv.slots[98].item_id = 19
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
+show_mini_map = false
+show_tile_widget = false
 debug = false
-last_num_ents = 0
-local TILE_SIZE = 8
-local VIEWPORT_WIDTH = 240
-local VIEWPORT_HEIGHT = 136
-local MAP_WIDTH = 240 * TILE_SIZE
-local MAP_HEIGHT = 136 * TILE_SIZE
-local GRID_CELL_SIZE = math.ceil(VIEWPORT_WIDTH / TILE_SIZE)
---------------------FUNCTIONS-------------------------
+alt_mode = false
+--water effect defs
+local num_colors = 3
+local start_color = 8
+local tileSize = 8
+local tileCount = 1
+local amplitude = num_colors
+local frequency = 0.22
+local speed = 0.005
+--------------------
+local sounds = {
+  ['deny']        = {id = 5, note = 'C-3', duration = 22, channel = 0, volume = 15, speed = 0},
+  ['place_belt']  = {id = 4, note = 'B-3', duration = 10, channel = 0, volume = 15, speed = 4},
+  ['delete']      = {id = 2, note = 'C-3', duration =  4, channel = 0, volume = 15, speed = 5},
+  ['rotate']      = {id = 3, note = 'E-5', duration = 10, channel = 0, volume = 15, speed = 3},
+  ['move_cursor'] = {id = 0, note = 'C-4', duration =  4, channel = 0, volume = 15, speed = 5},
+}
+
+local dust = {}
+
+function move(o)
+  o.x = o.x + o.vx
+  o.y = o.y + o.vy
+end
+
+function particles()
+  for i,d in pairs(dust) do
+    move(d)
+    d.vx, d.vy = d.vx * 1.015, d.vy * 1.015    
+    --if (d.t//1)%5==0 and d.c>3 then d.c=d.c-1 end    
+    if d.t < 5 then d.r = d.r/1.1 d.c = d.c - (d.c > 3 and 1 or 0) end
+    d.t = d.t - 1 + math.random()
+    if d.r < 1 then	table.remove(dust, i) end
+  end
+end
+
+function new_dust(x_, y_, r_, vx_, vy_)
+  for i = 0, 1 do
+    table.insert(dust, {x = x_, y = y_, c = 4, ty = math.random(-1, 1), vx = vx_, vy = vy_, r = math.random() * r_, t = 5 * r_})
+  end
+end
+
+function get_sprite_pixel(sprite_id, x, y)
+  local byte = peek(0x04000 + sprite_id * 32 + y * 4 + math.floor(x / 2))
+  return x % 2 == 0 and byte % 16 or byte // 16
+end
+
+function set_sprite_pixel(sprite_id, x, y, color)
+  -- Arguments: sprite_id (0-511), x (0-7), y (0-7), color (palette index 0-15)
+  local addr = 0x04000 + sprite_id * 32 + y * 4 + math.floor(x / 2)
+  local byte = peek(addr)
+  if x % 2 == 0 then poke(addr, (byte - byte % 16) + color) else poke(addr, (color * 16) + byte % 16) end
+end
+
+function sound(name)
+  if sounds[name] then
+    local s = sounds[name]
+    sfx(s.id, s.note, s.duration, s.channel, s.volume, s.speed)
+  end
+end
+
+function update_water_effect(time)
+  for sprite_id = 0, (tileCount * tileCount) - 1 do
+    for y = 0, tileSize - 1 do
+      for x = 0, tileSize - 1 do
+        -- Get the world coordinates for the current pixel
+        local worldX = (sprite_id % tileCount) * tileSize + x
+        local worldY = math.floor(sprite_id / tileCount) * tileSize + y
+        
+        -- Apply modulo operation to create a tiling texture
+        local tileX = worldX % (tileSize * tileCount)
+        local tileY = worldY % (tileSize * tileCount)
+        
+        -- Calculate the noise value using world coordinates and time
+        local noiseValue = simplex.Noise2D(tileX * frequency, (tileY + time * speed) * frequency)
+        
+        -- Convert the noise value to a pixel color (palette index 0-15)
+        local color = math.floor(((noiseValue + 1) / 2) * amplitude) + start_color
+        
+        -- Set the pixel color in the sprite
+        set_sprite_pixel(224, x, y, color)
+      end
+    end
+  end
+end
 
 function get_visible_ents()
-  vis_ents = {['transport_belt'] = {}, ['inserter'] = {}, ['power_pole'] = {}, ['splitter'] = {}, ['mining_drill'] = {}, ['stone_furnace'] = {}}
+  vis_ents = {
+    ['transport_belt'] = {},
+    ['inserter'] = {},
+    ['power_pole'] = {},
+    ['splitter'] = {},
+    ['mining_drill'] = {},
+    ['stone_furnace'] = {},
+    ['underground_belt'] = {},
+    --['underground_belt_exit'] = {},
+    ['assembly_machine'] = {},
+  }
   for x = 1, 31 do
     for y = 1, 18 do
       local worldX = (x*8) + (player.x - 116)
       local worldY = (y*8) + (player.y - 64)
       local cellX = floor(worldX / 8)
       local cellY = floor(worldY / 8)
-      local key = cellX .. '-' .. cellY
-      if ENTS[key] and ENTS[key].type ~= 'dummy' and ENTS[key].type ~= 'dummy_drill' and ENTS[key].type ~= 'dummy_furnace' then
-        local type = ENTS[key].type
+      local k = cellX .. '-' .. cellY
+      --if ENTS[key] and ENTS[key].type ~= 'dummy_splitter' and ENTS[key].type ~= 'dummy_drill' and ENTS[key].type ~= 'dummy_furnace' and ENTS[key] ~= then
+      if ENTS[k] and vis_ents[ENTS[k].type] then
+        local type = ENTS[k].type
         local index = #vis_ents[type] + 1
         --vis_ents[type][key] = ENTS[key]
-        vis_ents[type][index] = key
+        vis_ents[type][index] = k
       end
     end
   end
 end
 
--- function get_ent(x, y, world)
---   local key = x .. '-' .. y
---   if not world then
---     key = get_key(x, y)
---   end
---   return ENTS[key]
--- end
+function get_ent(x, y)
+  local k = get_key(x, y)
+  if not ENTS[k] then return false end
+  if ENTS[k].type == 'splitter' then return k end
+  if ENTS[k].other_key then return ENTS[k].other_key else return k end
+end
 
 function get_key(x, y)
-  local tile, wx, wy = get_world_cell(x, y)
+  local _, wx, wy = get_world_cell(x, y)
   return wx .. '-' .. wy
 end
 
@@ -175,12 +284,50 @@ function get_world_cell(mouse_x, mouse_y)
   local wy = floor(cam_y / 8) + sy + 1
   return TileMan.tiles[wy][wx], wx, wy
 end
+
+function highlight_ent(k)
+
+end
+
+function draw_item_stack(x, y, stack)
+  sspr(ITEMS[stack.id].sprite_id, x, y, ITEMS[stack.id].color_key)
+  local sx, sy = stack.count < 10 and x + 5 or x + 3, y + 5
+  prints(stack.count, sx, sy)
+end
+
+function clamp(val, min, max)
+  return math.max(0, math.min(val, max))
+end
+
+function prints(text, x, y, bg, fg)
+  bg, fg = bg or 0, fg or 4
+  print(text, x - 1, y, bg, false, 1, true)
+  print(text, x    , y, fg, false, 1, true)
+end
+
+function lerp(a,b,mu)
+  return a*(1-mu)+b*mu
+end
 --------------------------------------------------------------------------------------
+
+function spawn_player()
+  local tile = get_world_cell(116, 76)
+  if not tile.is_land then
+    while tile.is_land == false do
+      player.x = player.x + 1
+      tile = get_world_cell(116, 76)
+    end
+  end
+end
+
+function remap(n, a, b, c, d)
+  return c + (n - a) * (d - c) / (b - a)
+end
 
 function is_water(x, y)
   local tile = get_world_cell(x, y)
-  if tile.tile == 15 then
-    sfx(5, 'C-3', 22, 0, 15, 4)
+  if not tile.is_land then
+    sound('deny')
     return true
   end
   return false
@@ -203,39 +350,140 @@ function is_facing(self, other, side)
   }
   if rotations[self.rot][side] == other.rot then return true else return false end
 end
-
-function add_belt(x, y, rotation)
-  local tile, cell_x, cell_y = get_world_cell(x, y)
-  local key = cell_x .. '-' .. cell_y
-  local belt = {}
-  if ENTS[key] and ENTS[key].type ~= 'transport_belt' then return end
-  if not ENTS[key] or ENTS[key].type == 'ground-items' then
-    sfx(4, 'B-3', 10, 0, 15, 4)
-    belt = new_belt({x = cell_x, y = cell_y}, cursor.rot)
-    if ENTS[key] and ENTS[key].type == 'ground-items' then
-      belt.lanes = ENTS[key].items
-      ENTS[key] = belt
-      ENTS[key]:rotate(rotation)
-    else
-      ENTS[key] = belt
-      ENTS[key]:rotate(rotation)
-      ENTS[key]:update_neighbors()
+--------ADD-+-REMOVE-ENTS------------------------------------------------
+function add_assembly_machine(x, y)
+  local tile, wx, wy = get_world_cell(x, y)
+  local k = wx .. '-' .. wy
+  if not ENTS[k] then
+    --check 3x3 area for ents
+    for i = 0, 2 do
+      for j = 0, 2 do
+        if ENTS[wx + j .. '-' .. i + wy] then 
+          sound('deny')
+          return
+        end
+      end
     end
-  elseif ENTS[key] and ENTS[key].type == 'transport_belt' then
-    ENTS[key]:rotate(rotation)
-  end
-  if ENTS[key] and ENTS[key].type == 'transport_belt' then
-    ENTS[key]:set_curved()
+    --else place dummy ents to reserve 3x3 tile area, and create the crafter
+    for i = 0, 2 do
+      for j = 0, 2 do
+        ENTS[wx + j .. '-' .. i + wy] = {type = 'dummy_assembler', other_key = k}
+      end
+    end
+    sound('place_belt')
+    ENTS[k] = new_assembly_machine(wx, wy)
+  else
+    sound('deny')
   end
 end
 
-function remove_belt(x, y)
-  local key = get_key(x, y)
+function remove_assembly_machine(x, y)
+  local tile, wx, wy = get_world_cell(x, y)
+  local k = wx .. '-' .. wy
+  if ENTS[k].other_key then
+    k = ENTS[k].other_key
+    wx, wy = ENTS[k].x, ENTS[k].y
+  end
+  if ENTS[k] and ENTS[k].type == 'assembly_machine' then
+    for i = 0, 2 do
+      for j = 0, 2 do
+        ENTS[wx + j .. '-' .. i + wy] = nil
+      end
+    end
+    ENTS[k] = nil
+  -- elseif ENTS[k] and ENTS[k].type == 'dummy_assembler' then
+  --   k = ENTS[k].other_key
+  --   wx, wy = ENTS[k].x, ENTS[k].y
+  --   for i = 0, 2 do
+  --     for j = 0, 2 do
+  --       ENTS[wx + j .. '-' .. i + wy] = nil
+  --     end
+  --   end
+  --   ENTS[k] = nil
+  end
+end
+
+function add_underground_belt(x, y)
+  local tile, wx, wy = get_world_cell(x, y)
+  local k = wx .. '-' .. wy
+  if not ENTS[k] then
+    local result, other_key, cells = get_ubelt_connection(x, y, cursor.rot)
+    --found suitable connection
+    --don't create a new ENT, use the found ubelt as the 'host', and update it with US as it's output
+    if result then
+      ENTS[k] = {type = 'underground_belt_exit', flip = UBELT_ROT_MAP[cursor.rot].out_flip, rot = cursor.rot, x = wx, y = wy, other_key = other_key}
+      ENTS[other_key]:connect(wx, wy, #cells - 1)
+      sound('place_belt')
+    else
+      ENTS[k] = new_underground_belt(wx, wy, cursor.rot)
+    end
+    sound('place_belt')
+  else
+    sound('deny')
+  end
+end
+
+function remove_underground_belt(x, y)
+  local k = get_key(x, y)
+  if ENTS[k] then
+    --return underground items if any
+    --remove hidden belts, since we removed the head
+    ENTS[ENTS[k].other_key] = nil
+    ENTS[k] = nil
+    sound('delete')
+  end
+end
+
+function add_belt(x, y, rotation)
+  --trace('adding belt')
   local tile, cell_x, cell_y = get_world_cell(x, y)
-  if not ENTS[key] then return end
-  if ENTS[key] and ENTS[key].type == 'transport_belt' then
-    sfx(2, 'C-3', 4, 0, 15, 5)
-    ENTS[key] = nil
+  local k = cell_x .. '-' .. cell_y
+  local belt = {}
+  if ENTS[k] and ENTS[k].type ~= 'transport_belt' then
+    sound('deny')
+    return
+  end
+
+  if not ENTS[k] then
+    ENTS[k] = new_belt({x = cell_x, y = cell_y}, cursor.rot)
+    ENTS[k]:rotate(rotation)
+    ENTS[k]:update_neighbors()
+    sound('place_belt')
+  elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= rotation then
+    ENTS[k]:rotate(rotation)
+    sound('rotate')
+  end
+
+
+  -- if not ENTS[k] or ENTS[k].type == 'ground-items' then
+  --   belt = new_belt({x = cell_x, y = cell_y}, cursor.rot)
+  --   if ENTS[k] and ENTS[k].type == 'ground-items' then
+  --     belt.lanes = ENTS[k].items
+  --     ENTS[k] = belt
+  --     ENTS[k]:rotate(rotation)
+  --   else
+  --     ENTS[k] = belt
+  --     ENTS[k]:rotate(rotation)
+  --     ENTS[k]:update_neighbors()
+  --   end
+  --   sound('place_belt')
+  -- elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= rotation then
+  --   ENTS[k]:rotate(rotation)
+  --   sound('rotate')
+  -- end
+
+  -- if ENTS[k] and ENTS[k].type == 'transport_belt' then
+  --   ENTS[k]:set_curved()
+  -- end
+end
+
+function remove_belt(x, y)
+  local k = get_key(x, y)
+  local tile, cell_x, cell_y = get_world_cell(x, y)
+  if not ENTS[k] then return end
+  if ENTS[k] and ENTS[k].type == 'transport_belt' then
+    sound('delete')
+    ENTS[k] = nil
   end
   local tiles = {
     [1] = {x = cell_x, y = cell_y - 1},
@@ -255,88 +503,97 @@ function add_splitter(x, y)
   local tile, wx, wy = get_world_cell(x, y)
   wx, wy = wx + child.x, wy + child.y
   local tile2, cell_x, cell_y = get_world_cell(x, y)
-  local key = get_key(x, y)
+  local key1 = get_key(x, y)
   local key2 = wx .. '-' .. wy
-  if not ENTS[key] and not ENTS[key2] then
+  if not ENTS[key1] and not ENTS[key2] then
     local splitr = new_splitter(cell_x, cell_y, cursor.rot)
     splitr.other_key = key2
-    ENTS[key] = splitr
-    ENTS[key2] = {type = 'dummy', other_key = key, rot = cursor.rot}
-    ENTS[key]:set_output()
+    ENTS[key1] = splitr
+    ENTS[key2] = {type = 'dummy_splitter', other_key = key1, rot = cursor.rot}
+    ENTS[key1]:set_output()
+    sound('place_belt')
+  else
+    sound('deny')
   end
 end
 
 function remove_splitter(x, y)
-  local key = get_key(x, y)
-  if not ENTS[key] then return end
-  if ENTS[key] and (ENTS[key].type == 'splitter' or ENTS[key].type == 'dummy') then
-    if ENTS[key].type == 'dummy' then key = ENTS[key].other_key end
-    local key_l, key_r = ENTS[key].output_key_l, ENTS[key].output_key_r
-    local key2 = ENTS[key].other_key
-    ENTS[key] = nil
+  local k = get_key(x, y)
+  if not ENTS[k] then return end
+  if ENTS[k].type == 'dummy_splitter' then k = ENTS[k].other_key end
+  if ENTS[k] and ENTS[k].type == 'splitter' then    
+    local key_l, key_r = ENTS[k].output_key_l, ENTS[k].output_key_r
+    local key2 = ENTS[k].other_key
+    ENTS[k] = nil
     ENTS[key2] = nil
-    if ENTS[key_l] and ENTS[key_l].type == 'transport_belt' then ENTS[key_l]:update_neighbors(key) end
-    if ENTS[key_r] and ENTS[key_r].type == 'transport_belt' then ENTS[key_r]:update_neighbors(key) end
+    if ENTS[key_l] and ENTS[key_l].type == 'transport_belt' then ENTS[key_l]:update_neighbors(k) end
+    if ENTS[key_r] and ENTS[key_r].type == 'transport_belt' then ENTS[key_r]:update_neighbors(k) end
+    sound('delete')
   end
 end
 
 function add_inserter(x, y, rotation)
-  local key = get_key(x, y)
+  local k = get_key(x, y)
   local tile, cell_x, cell_y = get_world_cell(x, y)
-  if ENTS[key] and ENTS[key].type == 'inserter' then
-    if ENTS[key].rot ~= rotation then
-      ENTS[key]:rotate(rotation)
+  if ENTS[k] and ENTS[k].type == 'inserter' then
+    if ENTS[k].rot ~= rotation then
+      ENTS[k]:rotate(rotation)
+      sound('rotate')
     end
-  elseif not ENTS[key] then
-    ENTS[key] = new_inserter({x = cell_x, y = cell_y}, rotation)
+  elseif not ENTS[k] then
+    ENTS[k] = new_inserter({x = cell_x, y = cell_y}, rotation)
+    sound('place_belt')
+  else
+    sound('deny')
   end
 end
 
 function remove_inserter(x, y)
-  local key = get_key(x, y)
-  if not ENTS[key] then return end
-  if ENTS[key] and ENTS[key].type == 'inserter' then
-    ENTS[key] = nil
+  local k = get_key(x, y)
+  if not ENTS[k] then return end
+  if ENTS[k] and ENTS[k].type == 'inserter' then
+    ENTS[k] = nil
+    sound('delete')
   end
 end
 
 function add_pole(x, y)
-  local key = get_key(x,y)
+  local k = get_key(x,y)
   local tile, cell_x, cell_y = get_world_cell(x, y)
-  if not ENTS[key] then
-    ENTS[key] = new_pole({x = cell_x, y = cell_y})
+  if not ENTS[k] then
+    ENTS[k] = new_pole({x = cell_x, y = cell_y})
   end
 end
 
 function remove_pole(x, y)
-  local key = get_key(x, y)
-  if not ENTS[key] then return end
-  if ENTS[key] and ENTS[key].type == 'power_pole' then
-    ENTS[key] = nil
+  local k = get_key(x, y)
+  if not ENTS[k] then return end
+  if ENTS[k] and ENTS[k].type == 'power_pole' then
+    ENTS[k] = nil
   end
 end
 
 function add_drill(x, y)
-  local key = get_key(x, y)
+  local k = get_key(x, y)
   local found_ores = {}
-  local tile_keys, field_keys = {}, {}
+  local field_keys = {}
   --local sx, sy = get_screen_cell(x, y)
   for i = 1, 4 do
     local pos = DRILL_AREA_MAP_BURNER[i]
-    local sx, sy = cursor.tile_x + (pos.x * 8), cursor.tile_y + (pos.y * 8)
+    local sx, sy = cursor.tx + (pos.x * 8), cursor.ty + (pos.y * 8)
     local tile, wx, wy = get_world_cell(sx, sy)
     local k = get_key(sx, sy)
-    tile_keys[k] = tile.tile
     field_keys[i] = k
-    if tile.tile > 35 then
-      table.insert(found_ores, tile.tile)
+    if tile.ore then
+      table.insert(found_ores, i)
 
       if not ORES[k] then
         local ore = {
-          type = ores[tile.index].name,
-          tile_id = ores[tile.index].tile_id,
-          sprite_id = ores[tile.index].sprite_id,
-          ore_remaining = 5,
+          type = ores[tile.ore].name,
+          tile_id = ores[tile.ore].tile_id,
+          sprite_id = ores[tile.ore].sprite_id,
+          id = ores[tile.ore].id,
+          ore_remaining = 100,
           wx = wx,
           wy = wy,
         }
@@ -344,37 +601,41 @@ function add_drill(x, y)
       end
     end
     if ENTS[k] or (i == 4 and #found_ores == 0) then
-      sfx(5, 'C-3', 22, 0, 15, 4)
+      sound('deny')
       return
     end
   end
 
-  if not ENTS[key] then
+  if not ENTS[k] then
     local tile, wx, wy = get_world_cell(x, y)
-    sfx(4, 'B-3', 10, 0, 15, 4)
+    sound('place_belt')
     --trace('creating drill @ ' .. key)
-    ENTS[key] = new_drill({x = wx, y = wy}, cursor.rot, field_keys)
-    ENTS[wx + 1 .. '-' .. wy] = {type = 'dummy_drill', other_key = key}
-    ENTS[wx + 1 .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = key}
-    ENTS[wx .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = key}
-  elseif ENTS[key] and ENTS[key].type == 'mining_drill' then
-    sfx(4, 'B-3', 10, 0, 15, 4)
-    sfx(3, 'E-5', 10, 0, 15, 3)
-    --ENTS[key].rot = cursor.rot
+    ENTS[k] = new_drill({x = wx, y = wy}, cursor.rot, field_keys)
+    ENTS[wx + 1 .. '-' .. wy] = {type = 'dummy_drill', other_key = k}
+    ENTS[wx + 1 .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = k}
+    ENTS[wx .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = k}
+  elseif ENTS[k] and ENTS[k].type == 'mining_drill' then
+    sound('place_belt')
+    sound('rotate')
+    --ENTS[k].rot = cursor.rot
   end
 end
 
 function remove_drill(x, y)
-  local key = get_key(x, y)
-  local tile, wx, wy = get_world_cell(x, y)
-  if ENTS[key].type == 'dummy_drill' then
-    key = ENTS[key].other_key
+  local k = get_key(x, y)
+  local _, wx, wy = get_world_cell(x, y)
+  local _, wx, wy = get_world_cell(x, y)
+  if ENTS[k].type == 'dummy_drill' then
+    k = ENTS[k].other_key
   end
-  local wx, wy = ENTS[key].pos.x, ENTS[key].pos.y
-  if ENTS[key] then ENTS[key] = nil end
-  if ENTS[wx + 1 .. '-' .. wy] then ENTS[wx + 1 .. '-' .. wy] = nil end
-  if ENTS[wx + 1 .. '-' .. wy + 1] then ENTS[wx + 1 .. '-' .. wy + 1] = nil end
-  if ENTS[wx .. '-' .. wy + 1] then ENTS[wx .. '-' .. wy + 1] = nil end
+  if ENTS[k] then
+    local wx, wy = ENTS[k].pos.x, ENTS[k].pos.y
+    ENTS[k] = nil
+    ENTS[wx + 1 .. '-' .. wy] = nil
+    ENTS[wx + 1 .. '-' .. wy + 1] = nil
+    ENTS[wx .. '-' .. wy + 1] = nil
+    sound('delete')
+  end
 end
 
 function add_furnace(x, y)
@@ -384,29 +645,51 @@ function add_furnace(x, y)
   local key4 = get_key(x, y + 8)
   if not ENTS[key1] and not ENTS[key2] and not ENTS[key3] and not ENTS[key4] then
     local wx, wy = screen_to_world(x, y)
-    ENTS[key1] = new_furnace(wx, wy)
+    ENTS[key1] = new_furnace(wx, wy, {key2, key3, key4})
     ENTS[key2] = {type = 'dummy_furnace', other_key = key1}
     ENTS[key3] = {type = 'dummy_furnace', other_key = key1}
     ENTS[key4] = {type = 'dummy_furnace', other_key = key1}
+    sound('place_belt')
   end
 end
 
+function remove_furnace(x, y)
+  local k = get_key(x, y)
+  if ENTS[k] then
+    if ENTS[k].type == 'dummy_furnace' then
+      k = ENTS[k].other_key
+    end
+    for k, v in ipairs(ENTS[k].dummy_keys) do
+      ENTS[v] = nil
+    end
+    ENTS[k] = nil
+    sound('delete')
+  end
+end
+
+----END-OF----ADD-+-REMOVE-ENTS------------------------------------------------
+
 function move_player(x, y)
-  -- local tile_nw = fget(mget(get_world_cell(cam.x + x,     cam.y + y    )), 0)
-  -- local tile_ne = fget(mget(get_world_cell(cam.x + x + 7, cam.y + y    )), 0)
-  -- local tile_se = fget(mget(get_world_cell(cam.x + x + 7, cam.y + y + 7)), 0)
-  -- local tile_sw = fget(mget(get_world_cell(cam.x + x,     cam.y + y + 7)), 0)
-  -- local info = {
-  --   [1] = 'tile_nw:' .. tostring(tile_nw),
-  --   [2] = 'tile_ne:' .. tostring(tile_ne),
-  --   [3] = 'tile_se:' .. tostring(tile_se),
-  --   [4] = 'tile_sw:' .. tostring(tile_sw),
-  -- }
-  --draw_debug2(info, 10)
-  --if tile_nw and tile_ne and tile_se and tile_sw then
-    player.lx, player.ly = player.x, player.y
-    player.x, player.y = x, y
-  --end
+  local tile, wx, wy = get_world_cell(116 + x, 76 + y)
+  local sx, sy = world_to_screen(wx, wy)
+  --sspr(349, 116 + x, 77 + y, 0)
+  --if tile.is_land then player.x, player.y = player.x + x, player.y + y end
+  player.x, player.y = player.x + x, player.y + y
+  -- local tile_nw = TileMan.tiles[y][x]
+  -- local tile_ne = TileMan.tiles[y][x+1]
+  -- local tile_se = TileMan.tiles[y+1][x+1]
+  -- local tile_sw = TileMan.tiles[y+1][x]
+  -- -- local info = {
+  -- --   [1] = 'tile_nw:' .. tostring(tile_nw),
+  -- --   [2] = 'tile_ne:' .. tostring(tile_ne),
+  -- --   [3] = 'tile_se:' .. tostring(tile_se),
+  -- --   [4] = 'tile_sw:' .. tostring(tile_sw),
+  -- -- }
+  -- --draw_debug2(info, 10)
+  -- if tile_nw.is_land and tile_ne.is_land and tile_se.is_land and tile_sw.is_land then
+  --   player.lx, player.ly = player.x, player.y
+  --   player.x, player.y = x, y
+  -- end
 end
 
 function update_player()
@@ -439,14 +722,21 @@ function update_player()
   if key(4)  then --d
     x_dir = 1
   end
-  move_player(player.x + x_dir, player.y + y_dir)
+  if x_dir ~= 0 or y_dir ~= 0 then
+    new_dust(120 + (-x_dir * 4), 76 + player.anim_frame + (-y_dir*4), 2, (math.random(-1, 1)/2) + (1.75 * -x_dir), (math.random(1, 1)/2) + (1.75 * -y_dir))
+  elseif TICK % 24 == 0 then
+    new_dust(120, 76 + player.anim_frame, 2, (math.random(-1, 1)/2) + (0.75 * -x_dir), (math.random(1, 1)/2) + (0.75 * -y_dir))
+  end
+  move_player(x_dir * (not show_mini_map and player.move_speed or player.move_speed * 8), y_dir * (not show_mini_map and player.move_speed or player.move_speed * 8))
   player.last_dir = x_dir .. ',' .. y_dir
 end
 
 function draw_player()
+  local sx, sy = world_to_screen(player.x//8 + 1, player.y//8 + 2)
+  --sspr(CURSOR_HIGHLIGHT, sx, sy, 0, 1, 0, 0, 2, 2)
   local sprite = player.directions[player.last_dir] or player.directions['0,0']
-  sspr(player.shadow - player.anim_frame, 116, 76, 0)
-  sspr(sprite.id, 116, 64 + player.anim_frame, 0, 1, sprite.flip)
+  sspr(player.shadow - player.anim_frame, 240/2 - 4, 136/2 + 8, 0)
+  sspr(sprite.id, 240/2 - 4, 136/2 - 4 + player.anim_frame, 0, 1, sprite.flip)
 end
 
 function cycle_hotbar(dir)
@@ -474,22 +764,23 @@ function set_active_slot(slot)
   inv.active_slot = slot
   local id = inv.slots[90 + slot].item_id
   if id ~= 0 then
+    trace('setting item to: ' .. ITEMS[id].name)
     cursor.item = ITEMS[id].name
     cursor.item_stack = {id = id, count = inv.slots[90 + slot].count}
     cursor.type = 'item'
   else
-    cursor.item = 'pointer'
+    cursor.item = false
     cursor.type = 'pointer'
     cursor.item_stack = {id = 0, count = 0}
   end
 end
 
 function add_item(x, y, id)
-  local key = get_key(x, y)
-  if ENTS[key] and ENTS[key].type == 'transport_belt' then
-    ENTS[key].idle = false
-    ENTS[key].lanes[1][8] = id
-    ENTS[key].lanes[2][8] = id
+  local k = get_key(x, y)
+  if ENTS[k] and ENTS[k].type == 'transport_belt' then
+    ENTS[k].idle = false
+    ENTS[k].lanes[1][8] = id
+    ENTS[k].lanes[2][8] = id
   end
 end
 
@@ -516,22 +807,22 @@ end
 
 function move_cursor(dir, x, y)
   if dir == 'up' then
-    if get_flags(cursor.tile_x, cursor.tile_y - 8, 0) then cursor.tile_y = cursor.tile_y - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tx, cursor.ty - 8, 0) then cursor.ty = cursor.ty - 8 sound('move_cursor') end
   elseif dir == 'down' then
-    if get_flags(cursor.tile_x, cursor.tile_y + 8, 0) then cursor.tile_y = cursor.tile_y + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tx, cursor.ty + 8, 0) then cursor.ty = cursor.ty + 8 sound('move_cursor') end
   elseif dir == 'left' then
-    if get_flags(cursor.tile_x - 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x - 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tx - 8, cursor.ty, 0) then cursor.tx = cursor.tx - 8 sound('move_cursor') end
   elseif dir == 'right' then
-    if get_flags(cursor.tile_x + 8, cursor.tile_y, 0) then cursor.tile_x = cursor.tile_x + 8 sfx(0, 'C-4', 4, 0, 15, 5) end
+    if get_flags(cursor.tx + 8, cursor.ty, 0) then cursor.tx = cursor.tx + 8 sound('move_cursor') end
   end
   if dir == 'mouse' then
-    cursor.tile_x, cursor.tile_y = get_screen_cell(x, y)
+    cursor.tx, cursor.ty = get_screen_cell(x, y)
   end 
 end
 
 function draw_cursor()
   local x, y = cursor.x, cursor.y
-  local key = get_key(x, y)
+  local k = get_key(x, y)
 
   if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) then
     if cursor.panel_drag then
@@ -540,100 +831,172 @@ function draw_cursor()
       sspr(CURSOR_HAND_ID, cursor.x - 2, cursor.y, 0, 1, 0, 0, 1, 1)
     end
     return
-  -- elseif cursor.item_stack.id ~= 0 then
-  --   local sprite_id = ITEMS[cursor.item_stack.id].sprite_id
-  --   sspr(312, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-  --   sspr(sprite_id, cursor.tile_x, cursor.tile_y, 0)
-  -- elseif cursor.type == 'pointer' then
-  --   sspr(CURSOR_POINTER, cursor.x, cursor.y, 0)
-  else
-    --sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
+    -- elseif cursor.item_stack.id ~= 0 then
+    --   local sprite_id = ITEMS[cursor.item_stack.id].sprite_id
+    --   sspr(312, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+    --   sspr(sprite_id, cursor.tx, cursor.ty, 0)
+    -- elseif cursor.type == 'pointer' then
+    --   sspr(CURSOR_POINTER, cursor.x, cursor.y, 0)
+    -- elseif cursor.item_stack.id ~= 0 then
+    --   local sprite_id = ITEMS[cursor.item_stack.id].sprite_id
+    --   sspr(312, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+    --   sspr(sprite_id, cursor.tx, cursor.ty, 0)
+    -- elseif cursor.type == 'pointer' then
+    --   sspr(CURSOR_POINTER, cursor.x, cursor.y, 0)
   end
 
-  if cursor.type == 'item' and cursor.item == 'transport_belt' then
-    if cursor.drag then
-      local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
-      if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-        sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, sy - 1, 0, 1, 0, 0, 2, 2)
-      else
-        sspr(CURSOR_HIGHLIGHT, sx - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-      end
-      --arrow to indicate drag direction
-      sspr(287, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.drag_dir, 1, 1)
-    elseif not ENTS[key] or (ENTS[key] and ENTS[key].type == 'transport_belt' and ENTS[key].rot ~= cursor.rot) then
-      sspr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tile_x, cursor.tile_y, 00, 1, 0, cursor.rot, 1, 1)
-      sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-    else
-      sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-    end
-  elseif cursor.type == 'item' and cursor.item == 'inserter' then
-    if not ENTS[key] or (ENTS[key] and ENTS[key].type == 'inserter' and ENTS[key].rot ~= cursor.rot) then
-      local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
-      local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rot)
-      sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-      temp_inserter:draw()
-    end
-    sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-  elseif cursor.type == 'item' and cursor.item == 'power_pole' then
-    local tile, world_x, world_y = get_world_cell(cursor.tile_x, cursor.tile_y)
-    local temp_pole = new_pole({x = world_x, y = world_y})
-    temp_pole:draw(true)
-    --check around cursor to attach temp cables to other poles
-  elseif cursor.type == 'pointer' then
-    sspr(CURSOR_POINTER, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
-    sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-    pix(cursor.x, cursor.y, 2)
-  elseif cursor.type == 'item' and cursor.item == 'splitter' then
-    local loc = SPLITTER_ROTATION_MAP[cursor.rot]
-    --sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1, cursor.tile_y - 1, 0, 1, 0, 0, 2, 2)
-    sspr(CURSOR_HIGHLIGHT, cursor.tile_x - 1 + (loc.x * 8), cursor.tile_y - 1 + (loc.y * 8), 0, 1, 0, 0, 2, 2)
-    sspr(SPLITTER_ID, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.rot, 1, 2)
-  elseif cursor.type == 'item' and cursor.item == 'mining_drill' then
+    if cursor.type == 'item' then
+      if cursor.item == 'transport_belt' then
+        if cursor.drag then
+          local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
+          if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
+            sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, sy - 1, 0, 1, 0, 0, 2, 2)
+          else
+            sspr(CURSOR_HIGHLIGHT, sx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+          end
+          --arrow to indicate drag direction
+          sspr(BELT_ARROW_ID, cursor.tx, cursor.ty, 0, 1, 0, cursor.drag_dir, 1, 1)
+        elseif not ENTS[k] or (ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= cursor.rot) then
+          sspr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tx, cursor.ty, 00, 1, 0, cursor.rot, 1, 1)
+          sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+        else
+          sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+        end
+      elseif cursor.item == 'inserter' then
+        if not ENTS[k] or (ENTS[k] and ENTS[k].type == 'inserter' and ENTS[k].rot ~= cursor.rot) then
+          local tile, world_x, world_y = get_world_cell(cursor.tx, cursor.ty)
+          local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rot)
+          sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+          temp_inserter:draw()
+        end
+        sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+      elseif cursor.item == 'power_pole' then
+        local tile, world_x, world_y = get_world_cell(cursor.tx, cursor.ty)
+        local temp_pole = new_pole({x = world_x, y = world_y})
+        temp_pole:draw(true)
+        --check around cursor to attach temp cables to other poles
+      elseif cursor.item == 'splitter' then
+        local loc = SPLITTER_ROTATION_MAP[cursor.rot]
+        local tile, wx, wy = get_world_cell(x, y)
+        wx, wy = wx + loc.x, wy + loc.y
+        local tile2, cell_x, cell_y = get_world_cell(x, y)
+        local key1 = get_key(x, y)
+        local key2 = wx .. '-' .. wy
+        local red, green = {5,6,0}, {1,2,0}
+        local color_keys = not ENTS[key1] and not ENTS[key2] and green or red
+        local loc1, loc2, loc3, loc4
+        if cursor.rot == 0 or cursor.rot == 2 then
+          loc1, loc2, loc3, loc4 =
+          {x = cursor.tx - 2, y = cursor.ty - 2},
+          {x = cursor.tx + 2, y = cursor.ty - 2},
+          {x = cursor.tx + 2, y = cursor.ty + 10},
+          {x = cursor.tx - 2, y = cursor.ty + 10}
+        else
+          loc1, loc2, loc3, loc4 =
+          {x = cursor.tx -  2, y = cursor.ty - 1},
+          {x = cursor.tx + 10, y = cursor.ty - 1},
+          {x = cursor.tx + 10, y = cursor.ty + 2},
+          {x = cursor.tx -  2, y = cursor.ty + 2}
+        end
+        sspr(CURSOR_HIGHLIGHT_CORNER_S, loc1.x, loc1.y, color_keys, 1, 0)
+        sspr(CURSOR_HIGHLIGHT_CORNER_S, loc2.x, loc2.y, color_keys, 1, 1)
+        sspr(CURSOR_HIGHLIGHT_CORNER_S, loc3.x, loc3.y, color_keys, 1, 3)
+        sspr(CURSOR_HIGHLIGHT_CORNER_S, loc4.x, loc4.y, color_keys, 1, 2)
+        sspr(SPLITTER_ID, cursor.tx, cursor.ty, 0, 1, 0, cursor.rot, 1, 2)
+      elseif cursor.item == 'mining_drill' then
 
-    local found_ores = {}
-    --local _, wx, wy = get_world_cell(cursor.x, cursor.y)
-    --local temp_drill = new_drill({x = wx, y = wy}, cursor.rot, {})
-    local color_keys = {[1] = {0, 2}, [2] = {0, 2}, [3] = {0, 2}, [4] = {0, 2}}
-    for i = 1, 4 do
-      local pos = DRILL_AREA_MAP_BURNER[i]
-      local key = get_key(cursor.tile_x + (pos.x * 8), cursor.tile_y + (pos.y * 8))
-      local sx, sy = cursor.tile_x + (pos.x * 8), cursor.tile_y + (pos.y * 8)
-      local tile, wx, wy = get_world_cell(sx, sy)
-      --table.insert(found_ores, tile)
-      if ENTS[key] or tile.tile < 35 then
-        color_keys[i] = {0, 5}
-      end
+        local found_ores = {}
+        --local _, wx, wy = get_world_cell(cursor.x, cursor.y)
+        --local temp_drill = new_drill({x = wx, y = wy}, cursor.rot, {})
+        local color_keys = {[1] = {0, 2}, [2] = {0, 2}, [3] = {0, 2}, [4] = {0, 2}}
+        for i = 1, 4 do
+          local pos = DRILL_AREA_MAP_BURNER[i]
+          local k = get_key(cursor.tx + (pos.x * 8), cursor.ty + (pos.y * 8))
+          local sx, sy = cursor.tx + (pos.x * 8), cursor.ty + (pos.y * 8)
+          local tile, wx, wy = get_world_cell(sx, sy)
+          --table.insert(found_ores, tile)
+          if not tile.ore or ENTS[k] then
+            color_keys[i] = {0, 5}
+          end
+        end
+        sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx - 1, cursor.ty - 1, color_keys[1], 1, 0, 0, 1, 1)
+        sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx + 9, cursor.ty - 1, color_keys[2], 1, 0, 1, 1, 1)
+        sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx + 9, cursor.ty + 9, color_keys[3], 1, 0, 2, 1, 1)
+        sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx - 1, cursor.ty + 9, color_keys[4], 1, 0, 3, 1, 1)
+        --temp_drill:draw()
+        local sx, sy = get_screen_cell(x, y)
+        local belt_pos = DRILL_MINI_BELT_MAP[cursor.rot]
+        --trace(TICK % 2)
+        --sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
+        sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 7, 0, 1, 0, 0, 1, 1)
+        sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
+        sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, cursor.rot, 1, 1)
+        --sspr(DRILL_BURNER_SPRITE_ID, cursor.tx, cursor.ty, 0, 1, 0, cursor.rot, 2, 2)
+      elseif cursor.item == 'stone_furnace' then
+        local sx, sy = get_screen_cell(x, y)
+        sspr(FURNACE_SPRITE_INACTIVE_ID, sx, sy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
+      elseif cursor.item == 'underground_belt' then
+        local flip = UBELT_ROT_MAP[cursor.rot].in_flip
+        local result, other_key, cells = get_ubelt_connection(cursor.x, cursor.y, cursor.rot)
+        trace('result: ' .. tostring(result))
+        trace('other_key: ' .. tostring(other_key))
+        trace('cells: ' .. tostring(cells))
+        if result then
+          local sx, sy = world_to_screen(ENTS[other_key].x, ENTS[other_key].y)
+          sspr(UBELT_OUT + UBELT_TICK, cursor.tx, cursor.ty, 0, 1, UBELT_ROT_MAP[cursor.rot].out_flip, cursor.rot)
+          sspr(CURSOR_HIGHLIGHT, sx - 1, sy - 1, 0, 1, 0, 0, 2, 2)
+          for i, cell in ipairs(cells) do
+            sspr(CURSOR_HIGHLIGHT, cell.x - 1, cell.y - 1, 0, 1, 0, 0, 2, 2)
+          end
+        else
+          sspr(UBELT_IN + UBELT_TICK, cursor.tx, cursor.ty, 0, 1, flip, cursor.rot)
+        end
+        sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+      elseif cursor.item == 'assembly_machine' then
+      sspr(CRAFTER_ID, cursor.tx, cursor.ty, 0, 1, 0, 0, 3, 3)
     end
-    sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tile_x - 1, cursor.tile_y - 1, color_keys[1], 1, 0, 0, 1, 1)
-    sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tile_x + 9, cursor.tile_y - 1, color_keys[2], 1, 0, 1, 1, 1)
-    sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tile_x + 9, cursor.tile_y + 9, color_keys[3], 1, 0, 2, 1, 1)
-    sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tile_x - 1, cursor.tile_y + 9, color_keys[4], 1, 0, 3, 1, 1)
-    --temp_drill:draw()
-    local sx, sy = get_screen_cell(x, y)
-    local belt_pos = DRILL_MINI_BELT_MAP[cursor.rot]
-    --trace(TICK % 2)
-    --sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
-    sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 7, 0, 1, 0, 0, 1, 1)
-    sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
-    sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, cursor.rot, 1, 1)
-    --sspr(DRILL_BURNER_SPRITE_ID, cursor.tile_x, cursor.tile_y, 0, 1, 0, cursor.rot, 2, 2)
-  elseif cursor.type == 'item' and cursor.item == 'stone_furnace' then
-    local sx, sy = get_screen_cell(x, y)
-    sspr(FURNACE_SPRITE_INACTIVE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
+  end
+
+  if cursor.type == 'pointer' then
+    local k = get_key(cursor.x, cursor.y)
+    if window and window:is_hovered(cursor.x, cursor.y) then
+      
+    end
+    if ENTS[k] then
+      -- local ent = ENTS[key].type
+      -- if ent == 'dummy_splitter' or ent == 'dummy_drill' or ent == 'dummy_furnace' then
+      --   key = ENTS[key].other_key
+      -- end
+      -- ENTS[key]:draw_hover_widget()
+    end
+    local k = get_key(cursor.x, cursor.y)
+    if window and window:is_hovered(cursor.x, cursor.y) then
+      
+    end
+    if ENTS[k] then
+      -- local ent = ENTS[key].type
+      -- if ent == 'dummy_splitter' or ent == 'dummy_drill' or ent == 'dummy_furnace' then
+      --   key = ENTS[key].other_key
+      -- end
+      -- ENTS[key]:draw_hover_widget()
+    end
+    sspr(CURSOR_POINTER, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
+    if show_tile_widget then sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2) end
+    --pix(cursor.x, cursor.y, 2)
   end
 end
 
 function rotate_cursor()
-  --sfx(3, 'E-5', 10, 0, 15, 3)
+  sfx(3, 'E-5', 10, 0, 15, 3)
   if not cursor.drag then
     cursor.rot = cursor.rot + 1
     if cursor.rot > 3 then cursor.rot = 0 end
-    local key = get_key(cursor.x, cursor.y)
+    local k = get_key(cursor.x, cursor.y)
     local tile, cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
-    if ENTS[key] then
-      if ENTS[key].type == 'transport_belt' and cursor.item == 'pointer' then
-        sfx(3, 'E-5', 10, 0, 15, 3)
-        ENTS[key]:rotate(ENTS[key].rot + 1)
+    if ENTS[k] then
+      if ENTS[k].type == 'transport_belt' and cursor.type == 'pointer' then
+        sound('rotate')
+        ENTS[k]:rotate(ENTS[k].rot + 1)
         local tiles = {
           [1] = {x = cell_x, y = cell_y - 1},
           [2] = {x = cell_x + 1, y = cell_y},
@@ -644,39 +1007,40 @@ function rotate_cursor()
           if ENTS[k] and ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
         end
       end
-      if ENTS[key].type == 'inserter' and cursor.item == 'pointer' then
-        sfx(3, 'E-5', 10, 0, 15, 3)
-        ENTS[key]:rotate(ENTS[key].rot + 1)
+      if ENTS[k].type == 'inserter' and cursor.type == 'pointer' then
+        sound('rotate')
+        ENTS[k]:rotate(ENTS[k].rot + 1)
       end
     end
-  end
-  if cursor.drag then
-    sfx(3, 'E-5', 10, 0, 15, 3)
+  elseif cursor.drag and cursor.type == 'item' and cursor.item == 'transport_belt' then
+    trace('drag-rotating')
+    sound('rotate')
     cursor.rot = cursor.rot + 1
     if cursor.rot > 3 then cursor.rot = 0 end
+    cursor.drag_dir = cursor.rot
     --trace('rotated while dragging')
     local tile, wx, wy
     local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
-      tile, wx, wy = get_world_cell(cursor.x, dy)
+      _, wx, wy = get_world_cell(cursor.x, dy)
     elseif (cursor.drag_dir == 1 or cursor.drag_dir == 3) then
-      tile, wx, wy = get_world_cell(dx, cursor.y)
+      _, wx, wy = get_world_cell(dx, cursor.y)
     end
     -- cursor.rot = cursor.rot + 1
     -- if cursor.rot > 3 then cursor.rot = 0 end
     --cursor.drag_offset = 
     cursor.drag_loc = {x = wx, y = wy}
-    cursor.drag_dir = cursor.rot
   end
-  if cursor.type == 'item' then sfx(3, 'E-5', 10, 0, 15, 3) end
+  if cursor.type == 'item' then sound('rotate') end
 end
 
 function place_tile(x, y, rotation)
   local tile = get_world_cell(x, y)
-  if tile.tile == 15 then
-    sfx(5, 'C-3', 22, 0, 15, 4)
+  if not tile.is_land then
+    sound('deny')
     return
   end
+  
   --trace('placing belt')
   --rotation = rotation or cursor.rot
   if cursor.item == 'transport_belt' then
@@ -702,69 +1066,109 @@ function remove_tile(x, y)
       remove_inserter(x, y)
     elseif ent.type == 'power_pole' then
       remove_pole(x, y)
-    elseif ent.type == 'splitter' or ent.type == 'dummy' then
+    elseif ent.type == 'splitter' or ent.type == 'dummy_splitter' then
       remove_splitter(x, y)
     elseif ent.type == 'mining_drill' or ent.type == 'dummy_drill' then
       remove_drill(x, y)
+    elseif ent.type == 'stone_furnace' or ent.type == 'dummy_furnace' then
+      remove_furnace(x, y)
+    elseif ent.type == 'stone_furnace' or ent.type == 'dummy_furnace' then
+      remove_furnace(x, y)
+    elseif ent.type == 'underground_belt' or ent.type == 'underground_belt_exit' then
+      remove_underground_belt(x, y)
+    elseif ent.type == 'assembly_machine' or ent.type == 'dummy_assembler' then
+      remove_assembly_machine(x, y)
     end
-  else
-    --TileMan:set_tile(0, wx, wy)
+  elseif not tile.ore then
+    TileMan:set_tile(wx, wy)
   end
-
 end
 
 function pipette()
   if cursor.type == 'pointer' then
-    local key = get_key(cursor.x, cursor.y)
-    if ENTS[key] then
-      if ENTS[key].type == 'dummy' or ENTS[key].type == 'dummy_drill' or ENTS[key].type == 'dummy_furnace' then
-        key = ENTS[key].other_key
+    local k = get_key(cursor.x, cursor.y)
+    local ent = ENTS[k]
+    if ent then
+      if ent.type == 'dummy_splitter' or ent.type == 'dummy_drill' or ent.type == 'dummy_furnace' or ent.type == 'dummy_assembler' then
+        ent = ENTS[ent.other_key]
       end
       cursor.type = 'item'
-      cursor.item = ENTS[key].type
-      cursor.item_stack = {id = ENTS[key].item_id, count = 0}
-      if ENTS[key].rot then
-        cursor.rot = ENTS[key].rot
+      cursor.item = ent.type
+      cursor.item_stack = {id = ent.item_id, count = 0}
+      if ent.rot then
+        cursor.rot = ent.rot
       end
       return
     end
   else
-    cursor.item = 'pointer'
+    cursor.item = false
     cursor.item_stack = {id = 0, count = 0}
     cursor.type = 'pointer'
   end
 end
 
-function dispatch_input()
-  local x, y, left, middle, right, scroll_x, scroll_y = mouse()
-  local tile, tile_x, tile_y = get_world_cell(x, y)
-  local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
-  local k = get_key(x, y)
-  if scroll_y ~= 0 then cycle_hotbar(scroll_y*-1) end
-
-  if not left and cursor.last_left and cursor.drag then
-    local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
-    cursor.drag = false
-    if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-      cursor.tile_y = sy
-    else      
-      cursor.tile_x = sx
-    end
+function update_cursor_state()
+  local x, y, l, m, r, sx, sy = mouse()
+  local _, wx, wy = get_world_cell(x, y)
+  local tx, ty = get_screen_cell(x, y)
+  --update hold state for left and right click
+  if l and cursor.l and not cursor.held_left and not cursor.held_r then
+    cursor.held_left = true
   end
 
+  if r and cursor.r and not cursor.held_right and not cursor.held_l then
+    cursor.held_right = true
+  end
 
+  if cursor.held_left or cursor.held_right then
+    cursor.hold_time = cursor.hold_time + 1
+  end
+
+  if not l then cursor.held_l = false end
+  if not r then cursor.held_r = false end
+
+
+  --cursor.cl, cursor.cr = l and not cursor.l, r and not cursor.r
+  cursor.wx, cursor.wy, cursor.tx, cursor.ty, cursor.sx, cursor.sy = wx, wy, tx, ty, sx, sy
+  cursor.lx, cursor.ly, cursor.ll, cursor.lm, cursor.lr, cursor.lsx, cursor.lsy = cursor.x, cursor.y, cursor.l, cursor.m, cursor.r, cursor.sx, cursor.sy
+  cursor.x, cursor.y, cursor.l, cursor.m, cursor.r, cursor.sx, cursor.sy = x, y, l, m, r, sx, sy
+end
+
+function dispatch_input()
+  update_cursor_state()
+  local k = get_key(cursor.x, cursor.y)
+  if cursor.sy ~= 0 then cycle_hotbar(cursor.sy*-1) end
+  if not cursor.l and cursor.ll and cursor.drag then
+    local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
+    cursor.drag = false
+    -- if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
+    --   cursor.tx = sy
+    -- else      
+    --   cursor.ty = sx
+    -- end
+  end
+
+  if window and window:is_hovered(cursor.x, cursor.y) and cursor.l and not cursor.ll then
+    if window:click(cursor.x, cursor.y) then
+      return
+    end
+  end
   --begin mouse-over priority dispatch
 
   --check crafting menu
-  if craft_menu.vis and craft_menu:is_hovered(x, y) then
-    if left and not cursor.last_left then
-      craft_menu:click(x, y, 'left')
-    elseif right and cursor.last_right then
-      craft_menu:click(x, y, 'right')
+  if craft_menu.vis and craft_menu:is_hovered(cursor.x, cursor.y) then
+    if cursor.l and not cursor.ll then
+      craft_menu:click(cursor.x, cursor.y, 'left')
+    elseif cursor.r and cursor.lr then
+      craft_menu:click(cursor.x, cursor.y, 'right')
     end
+    --consumed = true
     --check inventory
+    return
   elseif inv.vis and inv:is_hovered(cursor.x, cursor.y) then
-    inv:clicked(x, y)
+    inv:clicked(cursor.x, cursor.y)
+    return
+    --consumed = true
   end
 
     --check other visible widgets
@@ -772,22 +1176,32 @@ function dispatch_input()
     local item = ITEMS[cursor.item_stack.id]
     local count = cursor.item_stack.count
     --check for ents to deposit item stack
-    if ENTS[k] and ENTS[k].type == 'none' then
-      if left then
+    if ENTS[k] and ENTS[k].type == 'none' then --TODO
+      if cursor.l then
         if ENTS[k]:can_accept(item.id) then
           local result = ENTS[k]:deposit(cursor.item_stack)
         end
-      elseif right then
-        remove_tile(x, y)
+      elseif cursor.r then
+        remove_tile(cursor.x, cursor.y)
       end
     else
+
     --if item is placeable, run callback for item type
-      if left and not cursor.last_left then
-        DEFS.callbacks[cursor.item](x, y)
-      elseif cursor.item == 'transport_belt' and left then 
-        DEFS.callbacks[cursor.item](x, y)
-      elseif right then
-        remove_tile(x, y)
+      if cursor.l and cursor.item_stack.id == 9 then
+        --trace('placing belt')
+        callbacks[cursor.item](cursor.x, cursor.y)
+        return
+      elseif cursor.l and not cursor.ll then
+        callbacks[cursor.item](cursor.x, cursor.y)
+        return
+        --consumed = true
+      -- elseif left and cursor.item == 'transport_belt' then 
+      --   DEFS.callbacks[cursor.item](x, y)
+      --   --consumed = true
+      elseif cursor.r then
+        remove_tile(cursor.x, cursor.y)
+        --return
+        --consumed = true
       end
     end
   end
@@ -795,9 +1209,11 @@ function dispatch_input()
   
 
   --F
-  if key(6) then add_item(x, y, 1) end
+  if key(6) then add_item(cursor.x, cursor.y, 1) end
   --G
-  if key(7) then add_item(x, y, 2) end
+  if key(7) then add_item(cursor.x, cursor.y, 2) end
+  --M
+  if keyp(13) then show_mini_map = not show_mini_map end
   --R
   if keyp(18) and not keyp(63) then rotate_cursor() end
   --Q
@@ -809,154 +1225,83 @@ function dispatch_input()
   --C
   if keyp(3) then toggle_crafting() end
   --Y
-  if keyp(25) then debug = debug == false and true or false end
+  if keyp(25) then debug = not debug end
+  --SHIFT
+  if key(64) then show_tile_widget = true else show_tile_widget = false end
+  if keyp(65) then alt_mode = not alt_mode end
   --0-9
   for i = 1, 10 do
-    local key = 27 + i
-    if i == 10 then key = 27 end
-    if keyp(key) then set_active_slot(i) end
+    local key_n = 27 + i
+    if i == 10 then key_n = 27 end
+    if keyp(key_n) then set_active_slot(i) end
   end
 
   --if left and not cursor.last_left then place_tile(x, y, cursor.rot) end
-  if right then remove_tile(x, y) end
+  if cursor.r then remove_tile(cursor.x, cursor.y) return end
   if ENTS[k] then ENTS[k].is_hovered = true end
 
-  if craft_menu.vis and not cursor.panel_drag and left and not cursor.last_left and craft_menu:is_hovered(x, y) == true then
-    if craft_menu:click(x, y) then
+  if craft_menu.vis and not cursor.panel_drag and cursor.l and not cursor.ll and craft_menu:is_hovered(cursor.x, cursor.y) == true then
+    if craft_menu:click(cursor.x, cursor.y) then
+      return
     elseif not craft_menu.docked then
       cursor.panel_drag = true
-      cursor.drag_offset.x = craft_menu.x - x
-      cursor.drag_offset.y = craft_menu.y - y
+      cursor.drag_offset.x = craft_menu.x - cursor.x
+      cursor.drag_offset.y = craft_menu.y - cursor.y
+      return
     end
+    --consumed = true
   end
 
-  if not left then cursor.panel_drag = false end
+  if not cursor.l then cursor.panel_drag = false end
   if craft_menu.vis and cursor.panel_drag then
-    craft_menu.x = math.max(1, math.min(x + cursor.drag_offset.x, 239 - craft_menu.w))
-    craft_menu.y = math.max(1, math.min(y + cursor.drag_offset.y, 135 - craft_menu.h))
+    craft_menu.x = math.max(1, math.min(cursor.x + cursor.drag_offset.x, 239 - craft_menu.w))
+    craft_menu.y = math.max(1, math.min(cursor.y + cursor.drag_offset.y, 135 - craft_menu.h))
+    return
+    --consumed = true
   end
 
-  if left and not cursor.last_left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
-    local slot = inv:get_hovered_slot(x, y)
+  if cursor.l and not cursor.ll and not craft_menu:is_hovered(cursor.x, cursor.y) and inv:is_hovered(cursor.x, cursor.y) then
+    local slot = inv:get_hovered_slot(cursor.x, cursor.y)
     --trace('returning: slot_pos_x = ' .. slot.x .. ', slot_pos_y = ' .. slot.y .. ', slot_index = ' .. slot.index)
-    if slot then inv.slots[slot.index]:callback() end
-  end
-
-  cursor.last_tile_x, cursor.last_tile_y = cursor.tile_x, cursor.tile_y
-  cursor.tile_x, cursor.tile_y = screen_tile_x, screen_tile_y
-  cursor.last_rotation = cursor.rot
-  cursor.left, cursor.middle, cursor.right = left, middle, right
-  cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, cursor.left, cursor.middle, cursor.right
-  cursor.x, cursor.y = x, y
-end
-
-function handle_input()
-  local x, y, left, middle, right, scroll_x, scroll_y = mouse()
-  if scroll_y ~= 0 then cycle_hotbar(scroll_y*-1) end
-  move_cursor('mouse', x, y)
-
-  if not left and cursor.last_left and cursor.drag then
-    local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
-    cursor.drag = false
-    if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-      cursor.tile_y = sy
-    else      
-      cursor.tile_x = sx
+    if slot then
+      inv.slots[slot.index]:callback()
+      return
     end
+    
+    --consumed = true
   end
 
-  local tile, tile_x, tile_y = get_world_cell(x, y)
-  local screen_tile_x, screen_tile_y = get_screen_cell(x, y)
-  local k = get_key(x, y)
-
-  if cursor.item == 'transport_belt' and not cursor.drag and left and cursor.last_left then
-    --drag locking/placing belts
-    cursor.drag = true
-    local screen_x, screen_y = get_screen_cell(x, y)
-    local tile, wx, wy = get_world_cell(x, y)
-    cursor.drag_loc = {x = wx, y = wy}
-    cursor.drag_dir = cursor.rot
-  end
-
-  if cursor.item == 'transport_belt' and cursor.drag then
-    local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
-    if cursor.drag_dir == 0 or cursor.drag_dir == 2 and screen_tile_x ~= cursor.last_tile_x then
-      place_tile(x, dy, cursor.drag_dir)
-    elseif cursor.drag_dir == 1 or cursor.drag_dir == 3 and screen_tile_y ~= cursor.last_tile_y then
-      place_tile(dx, y, cursor.drag_dir)
+  if cursor.l and not cursor.ll and ENTS[k] then
+    if ENTS[k].type == 'dummy_furnace' or
+    ENTS[k].type == 'dummy_assembler' or
+    ENTS[k].type == 'dummy_drill' or
+    ENTS[k].type == 'dummy_splitter' then
+      k = ENTS[k].other_key
     end
-  end
 
-  if left and not cursor.last_left then place_tile(x, y, cursor.rot) end
-  if right then remove_tile(x, y) end
-  if ENTS[k] then ENTS[k].is_hovered = true end
-
-  -- if keyp(18) and not keyp(63) then rotate_cursor()end --r
-  -- if keyp(17) then pipette()            end --q
-  -- if key(6)   then add_item(x, y, 1)          end --f
-  -- if key(7)   then add_item(x, y, 2)          end --g
-  -- if keyp(9) or keyp(49) then toggle_inventory() end --i or tab
-  -- if keyp(8) then toggle_hotbar() end
-  -- if keyp(3) then toggle_crafting() end
-  -- if keyp(25) then debug = debug == false and true or false end
-  -- if keyp(28) then set_active_slot(1) end
-  -- if keyp(29) then set_active_slot(2) end
-  -- if keyp(30) then set_active_slot(3) end
-  -- if keyp(31) then set_active_slot(4) end
-  -- if keyp(32) then set_active_slot(5) end
-  -- if keyp(33) then set_active_slot(6) end
-  -- if keyp(34) then set_active_slot(7) end
-  -- if keyp(35) then set_active_slot(8) end
-  -- if keyp(36) then set_active_slot(9) end
-  -- if keyp(27) then set_active_slot(10) end
-
-      --F
-      if key(6) then add_item(x, y, 1) end
-      --G
-      if key(7) then add_item(x, y, 2) end
-      --R
-      if keyp(18) and not keyp(63) then rotate_cursor() end
-      --Q
-      if keyp(17) then pipette() end
-      --I or TAB
-      if keyp(9) or keyp(49) then toggle_inventory() end
-      --H
-      if keyp(8) then toggle_hotbar() end
-      --C
-      if keyp(3) then toggle_crafting() end
-      --Y
-      if keyp(25) then debug = debug == false and true or false end
-      --0-9
-      for i = 1, 10 do
-        local key = 27 + i
-        if i == 10 then key = 27 end
-        if keyp(key) then set_active_slot(i) end
-      end
-
-  if craft_menu.vis and not cursor.panel_drag and left and not cursor.last_left and craft_menu:is_hovered(x, y) == true then
-    if craft_menu:click(x, y) then
-    elseif not craft_menu.docked then
-      cursor.panel_drag = true
-      cursor.drag_offset.x = craft_menu.x - x
-      cursor.drag_offset.y = craft_menu.y - y
+    if ENTS[k].type == 'stone_furnace' then
+      window = ENTS[k]:open()
     end
-  end
-  if not left then cursor.panel_drag = false end
-  if craft_menu.vis and cursor.panel_drag then
-    craft_menu.x = math.max(1, math.min(x + cursor.drag_offset.x, 239 - craft_menu.w))
-    craft_menu.y = math.max(1, math.min(y + cursor.drag_offset.y, 135 - craft_menu.h))
+    if ENTS[k].type == 'assembly_machine' then
+      cursor.type = 'pointer'
+      window = ENTS[k]:open()
+    end
+    if ENTS[k].type == 'mining_drill' then
+    end
+    if ENTS[k].type == 'splitter' then
+    end
+    if ENTS[k].type == 'transport_belt' then
+    end
+    return
+    --consumed = true
   end
 
-  if left and not cursor.last_left and not craft_menu:is_hovered(x, y) and inv:is_hovered(x, y) then
-    local slot = inv:get_hovered_slot(x, y)
-    inv.slots[slot.index]:callback()
-  end
-
-  cursor.last_tile_x, cursor.last_tile_y = cursor.tile_x, cursor.tile_y
-  cursor.tile_x, cursor.tile_y = screen_tile_x, screen_tile_y
-  cursor.last_rotation = cursor.rot
-  cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, left, middle, right
-  cursor.x, cursor.y = x, y
+  -- cursor.last_tile_x, cursor.last_tile_y = cursor.tx, cursor.ty
+  -- cursor.tx, cursor.ty = screen_tile_x, screen_tile_y
+  -- cursor.last_rotation = cursor.rot
+  -- cursor.left, cursor.middle, cursor.right = left, middle, right
+  -- cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, cursor.left, cursor.middle, cursor.right
+  -- cursor.x, cursor.y = x, y
 end
 
 function toggle_hotbar()
@@ -977,8 +1322,8 @@ function toggle_inventory()
   end
 end
 
-function toggle_crafting()
-  craft_menu.vis = craft_menu.vis == false and true or false
+function toggle_crafting(force)
+  if force then craft_menu.vis = true else craft_menu.vis = not craft_menu.vis end
 end
 
 local img_count = 1
@@ -1008,7 +1353,7 @@ end
 function update_ents()
   if TICK % 5 == 0 then
     for k, v in pairs(ENTS) do
-      if v.type ~= 'dummy' and v.type ~= 'dummy_drill' and v.type ~= 'dummy_furnace' then
+      if vis_ents[v.type] then
         v:update()
       end
     end
@@ -1016,55 +1361,37 @@ function update_ents()
 end
 
 function draw_ents()
-  for index, key in pairs(vis_ents['transport_belt']) do
-    if ENTS[key] then ENTS[key]:draw() end
+  for i, k in pairs(vis_ents['transport_belt']) do
+    if ENTS[k] then ENTS[k]:draw() end
   end
-  for index, key in pairs(vis_ents['transport_belt']) do
+  for i, k in pairs(vis_ents['transport_belt']) do
     --trace('drawing belt items')
-    if ENTS[key] then ENTS[key]:draw_items() end
+    if ENTS[k] then ENTS[k]:draw_items() end
   end
-  for index, key in pairs(vis_ents['inserter']) do
-    if ENTS[key] then ENTS[key]:draw() end
+  for i, k in pairs(vis_ents['stone_furnace']) do
+    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
+    if ENTS[k] then ENTS[k]:draw() end
   end
-  for index, key in pairs(vis_ents['power_pole']) do
-    if ENTS[key] then ENTS[key]:draw() end
+  for i, k in pairs(vis_ents['underground_belt']) do
+    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
+    if ENTS[k] then ENTS[k]:draw() ENTS[k]:draw_items() end
   end
-  for index, key in pairs(vis_ents['splitter']) do
-    --trace('DRAWING ENT - KEY: ' .. tostring(key) .. ', VALUE: ' .. tostring(ent.type))
-    if ENTS[key] then ENTS[key]:draw() end
+  for i, k in pairs(vis_ents['splitter']) do
+    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
+    if ENTS[k] then ENTS[k]:draw() end
   end
-  for index, key in pairs(vis_ents['mining_drill']) do
-    --trace('DRAWING ENT - KEY: ' .. tostring(key) .. ', VALUE: ' .. tostring(ent.type))
-    if ENTS[key] then ENTS[key]:draw() end
+  for i, k in pairs(vis_ents['mining_drill']) do
+    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
+    if ENTS[k] then ENTS[k]:draw() end
   end
-  for index, key in pairs(vis_ents['stone_furnace']) do
-    --trace('DRAWING ENT - KEY: ' .. tostring(key) .. ', VALUE: ' .. tostring(ent.type))
-    if ENTS[key] then ENTS[key]:draw() end
+  for i, k in pairs(vis_ents['assembly_machine']) do
+    if ENTS[k] then ENTS[k]:draw() end
   end
-end
-
-function draw_ents2()
-  for k, v in pairs(vis_ents) do
-    if k == 'transport_belt' then
-      for index, key in pairs(vis_ents[k]) do
-        if ENTS[key] then ENTS[key]:draw() end
-      end
-      for index, key in pairs(vis_ents[k]) do
-        if ENTS[key] then ENTS[key]:draw_items() end
-      end
-    elseif k == 'splitter' then
-      for index, key in ipairs(vis_ents[k]) do
-        if ENTS[key] then ENTS[key]:draw() end
-      end
-      -- for index, key in ipairs(vis_ents[k]) do
-      --   if ENTS[key] then ENTS[key]:draw_items() end
-      -- end
-    else
-      for index, key in pairs(vis_ents[k]) do
-        --trace('drawing ent' .. k)
-        if ENTS[key] then ENTS[key]:draw() end
-      end
-    end
+  for i, k in pairs(vis_ents['inserter']) do
+    if ENTS[k] then ENTS[k]:draw() end
+  end
+  for i, k in pairs(vis_ents['power_pole']) do
+    if ENTS[k] then ENTS[k]:draw() end
   end
 end
 
@@ -1076,28 +1403,43 @@ function draw_belt_items()
   end
 end
 
-function draw_map()
-  TileMan:draw(player, 31, 18)
+function draw_terrain()
+  TileMan:draw_terrain(player, 31, 18)
 end
 
-local function lapse(fn, ...)
+function draw_tile_widget()
+  local x, y = cursor.x, cursor.y
+  local tile, wx, wy = get_world_cell(x, y)
+  local tile_type = tile.ore and ores[tile.ore].name or tile.is_land and 'Land' or 'Water'
+  local biome = tile.is_land and biomes[tile.biome].name or 'Ocean'
+  local info = {
+    [1] = 'Biome: ' .. biome,
+    [2] = 'Type: ' .. tile_type,
+    [3] = 'X,Y: ' .. wx .. ',' .. wy,
+    [4] = 'Noise: '  .. tile.noise
+  }
+  ui.draw_text_window(info, x + 5, y + 5)
+end
+
+function lapse(fn, ...)
 	local t = time()
 	fn(...)
 	return floor((time() - t))
 end
 
+spawn_player()
+
 function TIC()
-  TICK = TICK + 1
   local start = time()
-  --remove mouse cursor
-  poke(0x3FFB, 0x000000, 8)
+  TICK = TICK + 1
+  update_water_effect(time())
+  --change mouse cursor
+  poke(0x3FFB, 286)
   cls(0)
+
   local gv_time = lapse(get_visible_ents)
-  --update_camera()
-  --local uc_time = lapse(update_camera)
-  --map(15 - cam.ccx, 8 - cam.ccy, 31, 18, (cam.x % 8) - 8,(cam.y % 8) - 8)
-  --local m_time = lapse(draw_map)
-  local m_time = lapse(draw_map)
+  --local m_time = lapse(draw_terrain)
+  local m_time = lapse(draw_terrain)
   --update_player()
   local up_time = lapse(update_player)
   --handle_input()
@@ -1109,6 +1451,11 @@ function TIC()
     if BELT_TICK > BELT_MAXTICK then BELT_TICK = 0 end
   end
 
+  if TICK % UBELT_TICKRATE == 0 then
+    UBELT_TICK = UBELT_TICK + 1
+    if UBELT_TICK > UBELT_MAXTICK then UBELT_TICK = 0 end
+  end
+
   if TICK % DRILL_TICK_RATE == 0 then
     DRILL_BIT_TICK = DRILL_BIT_TICK + DRILL_BIT_DIR
     if DRILL_BIT_TICK > 7 or DRILL_BIT_TICK < 0 then DRILL_BIT_DIR = DRILL_BIT_DIR * -1 end
@@ -1116,81 +1463,104 @@ function TIC()
     if DRILL_ANIM_TICK > 2 then DRILL_ANIM_TICK = 0 end
   end
 
+  if TICK % FURNACE_ANIM_TICKRATE == 0 then
+    FURNACE_ANIM_TICK = FURNACE_ANIM_TICK + 1
+    if FURNACE_ANIM_TICK > FURNACE_ANIM_TICKS then
+      FURNACE_ANIM_TICK = 0
+    end
+  end
 
   local ue_time = lapse(update_ents)
   --draw_ents()
   local de_time = lapse(draw_ents)
-  
-  -- local key = get_key(cursor.x, cursor.y)
-  -- local cell_x, cell_y = get_world_cell(cursor.x, cursor.y)
-  -- local tile_id = mget(cell_x, cell_y)
-  -- local info = {
-  --   [1] = 'player: ' ..player.x .. ',' .. player.y,
-  --   [2] = 'camera: ' .. cam.x .. ',' .. cam.y,
-  --   [3] = 'ccx/ccy: ' .. (cam.x%8)-8 .. ',' .. (cam.y%8)-8,
-  --   [4] = 'tile: ' .. cell_x .. ',' .. cell_y,
-  --   [5] = 'tileID: ' .. tile_id,
-  --   [6] = '#ENTS: ' .. #ENTS,
-  --   [7] = 'VIS ENTS: ' .. #ents,
-  -- }
 
-  -- if ENTS[key] and ENTS[key].type == 'transport_belt' then
-  --   local item_info = ENTS[key]:get_info()
-  --   for i = 1, #item_info do
-  --     info[7 + i] = item_info[i]
-  --   end
+  -- for k, v in pairs(ENTS) do
+  --   v.updated = false
+  --   v.drawn = false
+  --   v.is_hovered = false
+  --   if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
   -- end
-    --local db_time = lapse(draw_belt_items)
-
-  --draw_debug2(info)
-  draw_player()
-  --sspr(player.spr, 116, 64, 1, 1, 0, 0, 1, 2)
-  
-  for k, v in pairs(ENTS) do
-    v.updated = false
-    v.drawn = false
-    v.is_hovered = false
-    if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
+  --TileMan:draw_clutter(player, 31, 18)
+  local dcl_time = 0
+  if not show_mini_map then
+    local st_time = time()
+    TileMan:draw_clutter(player, 31, 18)
+    dcl_time = floor(time() - st_time)
   end
-  
-  
-  
+  --draw dust
+  particles()
+  for i,d in pairs(dust) do
+    if d.ty>=0 then	circ(d.x,d.y,d.r,d.c)
+    else circb(d.x,d.y,d.r,d.c+1) end
+  end
+  draw_player()
+
+  local dc_time = lapse(draw_cursor)
+  local x, y, l, m, r = mouse()
+  local col = 5
+  if r then col = 2 end
+  -- if (l or r) and TICK % 3 == 0 then
+  --   sspr(346 + BELT_TICK, x - 4, y - 4, 0, 1)
+  --   line(x, y, 119, 66 + player.anim_frame, 4 + BELT_TICK)
+  -- end
+
+  if show_tile_widget then draw_tile_widget() end
+
   inv:draw()
   --inv:draw_hotbar()
   craft_menu:draw()
-  local dc_time = lapse(draw_cursor)
+  if window then
+    if ENTS[window.ent_key] then
+      window:draw()
+    else
+      window = nil
+    end
+  end
 
   --draw_cursor()
 
-  --   local info = {
-  --   --[1] = 'update_camnera: ' .. uc_time,
-  --   [1] = 'nil',
-  --   [2] = 'draw_map: ' .. m_time,
-  --   [3] = 'update_player: ' .. up_time,
-  --   [4] = 'handle_input: ' .. hi_time,
-  --   [5] = 'draw_ents: ' .. de_time,
-  --   [6] = 'update_ents:' .. ue_time,
-  --   [7] = 'draw_cursor: ' .. dc_time,
-  --   [8] = 'draw_belt_items: ' ..db_time,
-  --   [9] = 'get_vis_ents: ' .. gv_time,
-  -- }
+  local info = {
+    [1] = 'draw_clutter: ' .. dcl_time,
+    [2] = 'draw_terrain: ' .. m_time,
+    [3] = 'update_player: ' .. up_time,
+    [4] = 'handle_input: ' .. hi_time,
+    [5] = 'draw_ents: ' .. de_time,
+    [6] = 'update_ents:' .. ue_time,
+    [7] = 'draw_cursor: ' .. dc_time,    
+    --[8] = 'draw_belt_items: ' .. db_time,
+    [8] = 'get_vis_ents: ' .. gv_time,
+  }
+  --draw_debug2(info)
   local ents = 0
   for k, v in pairs(vis_ents) do
     for _, ent in ipairs(v) do
       ents = ents + 1
     end
   end
+
+  info[9] = 0
+  if show_mini_map then
+    local st_time = time()
+    TileMan:draw_worldmap(player, 70, 18, 75, 75, true)
+    pix(121, 69, 2)
+    info[9] = 'draw_worldmap: ' .. floor(time() - st_time) .. 'ms'
+    --info[10] = 'map_rects: ' .. TileMan:optimize_minimap(player, 0, 0, 238, 134)
+    --info[10] = 'map_rects: ' .. TileMan:draw_worldmap(player, 240, 136)
+  end
+
   local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
   local sx, sy = get_screen_cell(cursor.x, cursor.y)
-  local key = get_key(cursor.x, cursor.y)
-  local info = {
-    [1] = 'Wx,Wy: ' .. wx ..',' .. wy,
-    [2] = 'Tile: ' .. tile.tile,
-    [3] = 'Sx,Sy: ' .. sx .. ',' .. sy,
-    [4] = 'Key: ' .. key,
-    [5] = '#Ents: ' .. ents,
-    [6] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
-  }
+  local k = get_key(cursor.x, cursor.y)
+  -- local info = {
+  --   [1] = 'World X-Y: ' .. wx ..',' .. wy,
+  --   [2] = 'Player X-Y: ' .. player.x ..',' .. player.y,
+  --   [3] = 'Tile: ' .. tostring(tile.sprite_id),
+  --   [4] = 'Sx,Sy: ' .. sx .. ',' .. sy,
+  --   [5] = 'Key: ' .. key,
+  --   [6] = '#Ents: ' .. ents,
+  --   [7] = 'Frame Time: ' .. floor(time() - start) .. 'ms',
+  --   [8] = 'Seed: ' ..seed,
+  -- }
   -- local info
   -- local ent = ENTS[key]
   -- if ent then
@@ -1211,123 +1581,134 @@ function TIC()
   --     [2] = 'KEY: ' .. key
   --   }
   -- end
-  draw_debug2(info)
+  --draw_debug2(info)
+  info[10] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
+  if debug then ui.draw_text_window(info, 2, 2) end
+  local k = get_ent(cursor.x, cursor.y)
+  if k and alt_mode and ENTS[k] then
+    -- if ENTS[k].other_key then
+    --   k = ENTS[k].other_key
+    -- end
+    ENTS[k]:draw_hover_widget()
+  end
+  for k, v in pairs(ENTS) do
+    v.updated = false
+    v.drawn = false
+    v.is_hovered = false
+    if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
+  end
+  --draw_item_stack(0, 0, {id = 4, count = TICK%45})
 end
 
 -- <TILES>
--- 000:4444444444444434444443444444434443444444443444444434444444444444
+-- 000:4444444444444444444444444444444444444444444444444444444444444444
 -- 001:4444444444477446446777474477764744777777647677444777774444776744
--- 002:4744444467474444474744444677446444474744444776444467444444474444
+-- 002:4445744444477444444775444447774444577444447774444447744444477444
 -- 003:4647774444767774477737774767776747776777447777744447774644444444
 -- 004:44444444444444444444444444444b444444bab444444b444444474444444444
 -- 005:4647774444762764477232774767276746776777447777744447764644444444
 -- 006:4444444445444444447444444474744444747444444444444444444444444444
 -- 007:444444444444444444eddd444eddddd44ccdcdc444fcce444444444444444444
--- 008:4444444444bbbb444bbbbbb44b0b0bb44bbebbb444bbbb4444dbcb4444444444
--- 014:9899a99999b999999a99898999999999989a99b9999899a99a9999999989b899
--- 015:9999999999899989999999999999999999999999999899999899989999999999
--- 016:6666666667666666667667666676766666767666666666666666666666666666
--- 017:6666666666667666766776666767766767677676676776766666666666666666
+-- 008:44444444444444444444de444444cdc444444cd4444444444444444444444444
+-- 009:4444444d44b444444bbd4444444bd4444444bd444d444bb444444b4444444444
+-- 010:4444444444bbbb444bbbbbb44b0b0bb44bbebbb444bbbb4444dbcb4444444444
+-- 011:0000000000044000004444000444444004444440004444000004400000000000
+-- 012:0000000044000404044444444444044444444444444444444444444444444444
+-- 013:0000000000000044000004440000440400004444004444440404444404444444
+-- 014:0000000000000000000000000000000000000000004444000444444044444444
+-- 015:0404444004444440004444044044440000404400044444400044440404444440
+-- 016:6666666666666666666666666666666666666666666666666666666666666666
+-- 017:6666636666667666766476666767766767677676676776766666666666666666
 -- 018:6666666666d666666d2d66d666d66d2d667666d6667666766666666666666666
--- 019:6676666667566666765666667664666676666766666665766666656766663667
--- 020:6676666666666666766667666666666666666666666676666766666666666667
+-- 019:6666666666666666667666666677666666776676667767666666676666666666
+-- 020:6676666667566666765666667664666676666766666665766666656766663667
 -- 021:66666666666666666666666666666b666666bab666666b666666676666666666
 -- 022:6669666666949666666866666667666666676666666766666666666666666666
--- 023:6666666666666676666667666666676667666666667666666676666666666666
--- 024:6666666666666666666666666666666666666666666666666666666666666666
--- 036:4ce4ce44cdd4edc4dec44cf4444444444ecd4de4edf44ece4ee4ecdc444444e4
--- 037:444442344424243f23342323324444244444434433f432443434332442243244
--- 038:4ce4cf448bd4fdb48ee448f444444444edcb4ff4fc8e48cf4ff4ffbc44444ef4
--- 039:4400400440fe40ef400f44f0440444444044440f000e40f00ef040e44f044444
--- 040:45745f44f654f654f77447f44444444475754f74f677475f4ff4ff65444445f4
--- 041:41f40f440114f114410141f4444444440f104104f11f411f410411f0444440f4
--- 053:dc000000ccd000000ee000000000000000000000000000000000000000000000
--- 054:0340000044200000230000000000000000000000000000000000000000000000
--- 055:be000000cd8000000cd000000000000000000000000000000000000000000000
--- 056:ffe00000eff00000fe0000000000000000000000000000000000000000000000
--- 057:0570000077500000f70000000000000000000000000000000000000000000000
--- 058:0ff0000011100000ff0000000000000000000000000000000000000000000000
--- 064:6666666666666666666666666666666666666ddd666edddd66ddccdd6eddddcd
--- 065:66666666666666666666666666666666dc666666ddecc666dddddec6dddddcd6
--- 066:666666666666666666cddd666eddddd66ccdcdc666ccce666666666666666666
--- 067:66666666666cd66666edc66666dc666666666666666666666666666666666666
--- 080:6cccdddd66cecccd66cccccc6666ccec66666666666666666666666666666666
--- 081:dccccdd6dddddcc6cccccc66cccec66666666666666666666666666666666666
--- 082:666de66666ddc6666dddce666dddce666dddce666dddcce66ddddcc666dddd66
--- 083:6666666666ddddd66dddddccddddcccccddcccce66cccee66666666666666666
--- 096:0000000000000000000000000000007000000070000007770000077700000777
--- 097:0000000000000000000000000000000000000000500000000000000000000000
--- 100:6ce6ce66ccd6ecc6cee66ce666666666edcc6ee6ecc66ece6ee6eeec666666e6
--- 101:666662366426243f23362323326666266666436633f632463436332662263266
--- 102:6ce6cf668bd6fdb68ee668f666666666edcb6ff6fc8e68cf6ff6ffbc66666ef6
--- 103:6600600660fe60ef600f66f0660666666066660f000e60f00ef060e66f066666
--- 104:65765f66f556f556f77667f66666666675756f76f577675f6ff6ff55666665f6
--- 105:61f6116601160116110661f6666666660f1161061111611f61061110666661f6
--- 106:6666666666666666666666666666666666666666666666666666666666666666
--- 107:6666666666666666666666666666666666666666666666666666666666666666
--- 112:0000775500005577000767750000577700007577000777770077775700775777
--- 113:5700000077000000570000007755000057770000755000007777000077755000
--- 128:0057775705775777007777777757557707577777075777750077707700000051
--- 129:5777750077577770777577505777770075757755777770707575000070000000
--- 131:9999999949999999449999994444999944444999444444994444444944444449
--- 132:9494444494444444994444449944444499494444944444449944444494444444
--- 133:9944449994444449944444499444444994444449444444444444444444444444
--- 134:9999999999999999999999994444999944444999444444994444449944444499
--- 144:000000010000000100000001000000010000000100000001000000010000001e
--- 145:0000000000000000000000000000000000000000000000000000000010000000
--- 155:4444444444444444444444444444444444444444444444444444444444444444
--- 156:4444444444444444444444444444444444444444444444444444444444444444
--- 157:4444444444444444444444444444444444444444444444444444444444444444
--- 158:4444444444444444444444444444444444494444444444494949994499999999
--- 159:4444444444444444444444444444444444494444444444494949994499999999
--- 170:4444444444444444444444444444444444444444444444444444444444444444
--- 171:4444444444444444444444444444444444494444444444494949994499999999
--- 172:4444444444444444444444444444444444494444444444494949994499999999
--- 173:4444444944444499444449994444499944449999444999994499999999999999
--- 174:9999999999899989999999999999999999999999999899999899989999999999
--- 175:9999999999899989999999999999999999999999999899999899989999999999
--- 176:9999999999899989999999999999999999999999999899999899989999999999
--- 177:9494444494444444994444449944444499494444944444449944444494444444
--- 181:9999999999899989999999999999999999999999999899999899989999999999
--- 186:4444494944444449444444994444449944449499444444494444449944444449
--- 187:9999999999899989999999999999999999999999999899999899989999999999
--- 188:9999999999899989999999999999999999999999999899999899989999999999
--- 189:9999999999899989999999999999999999999999999899999899989999999999
--- 190:9999999999899989999999999999999999999999999899999899989999999999
--- 191:9999999999899989999999999999999999999999999899999899989999999999
--- 192:9999999944999494944444444444944444444444444444444444444444444444
--- 193:4444444444444444444444444444444444444444444444444444444444444444
--- 196:9999999999899989999999999999999999999999999899999899989999999999
--- 197:9944449994444449944444499444444994444449444444444444444444444444
--- 198:9999999999899989999999999999999999999999999899999899989999999999
--- 199:9999999999899989999999999999999999999999999899999899989999999999
--- 202:4444444444444444444444444444444444444444444444444444444444444444
--- 203:9999999949999999449999994444999944444999444444994444444944444449
--- 204:9999999999899989999999999999999999999999999899999899989999999999
--- 205:9999999999899989999999999999999999999999999899999899989999999999
--- 206:9998999999888999998889999888889998888899998889999988899999989999
--- 207:9999999999899989999999999999999999999999999899999899989999999999
--- 212:9999999944999494944444444444944444444444444444444444444444444444
--- 213:4444444444444444444444444444444444444444444444444444444444444444
--- 214:9999999999999999999999994444999944444999444444994444449944444499
--- 215:9999999999899989999999999999999999999999999899999899989999999999
--- 218:4444444444444444444444444444444444444444444444444444444444444444
--- 219:4444444444444444444444444444444444444444444444444444444444444444
--- 220:9999999949999999449999994444999944444999444444994444444944444449
--- 221:9999999999899989999999999999999999999999999899999899989999999999
--- 222:9989899999999999999999999999999999999999999899999899989999999999
--- 223:9999999999899989999999999999999999999999999899999899989999999999
--- 231:9999999999899989999999999999999999999999999899999899989999999999
--- 235:4444444444444444444444444444444444444444444444444444444444444444
--- 236:4444444444444444444444444444444444444444444444444444444444444444
--- 237:9999999949999999449999994444999944444999444444994444444944444449
--- 238:9999999999899989999999999999999999999999999899999899989999999999
--- 239:9999999999899989999999999999999999999999999899999899989999999999
--- 251:4444444444444444444444444444444444444444444444444444444444444444
--- 252:4444444444444444444444444444444444444444444444444444444444444444
--- 253:4444444444444444444444444444444444444444444444444444444444444444
--- 254:9999999949999999449999994444999944444999444444994444444944444449
--- 255:9999999999899989999999999999999999999999999899999899989999999999
+-- 023:666622666762b226667222266666bd666666bc66676667666666766666666666
+-- 024:66666666666cd66666edc66666dc666666666666666666666666666666666666
+-- 025:6666666666666666666666666666666666666666666666666666666666666666
+-- 026:666666666666666666cddd666eddddd66ccdcdc666ccce666666666666666666
+-- 027:4444444444466444446666444666666446666664446666444446644444444444
+-- 028:4444444466444646466666666666466666666666666666666666666666666666
+-- 029:4444444444444444444446664444666644466666444666664466666644666666
+-- 030:4444444444444444444444444444444444444444446666444666666466666666
+-- 031:4646666446666664446666466466664444646644466666644466664646666664
+-- 032:7777777777777777777777777777777777777777777777777777777777777777
+-- 033:777707777f7777777f7f77f7777077f77f777077707f70777777777f7777f770
+-- 034:7777a777777a9a777977a7779897657779756777567767777657777776777777
+-- 035:7721777772321777772177777776777777567777777677777776577777767777
+-- 036:7726777772327777772647777774547777764777775677777776777777777777
+-- 037:7777777777777777777777e7770770707e707f7777707f77777f7f7777777777
+-- 038:7777777777777777777777e7770770707e707f7777707f77777f7f7777777777
+-- 039:7777777777777777777777e7770770707e707f7777707f77777f7f7777777777
+-- 040:777777777777777777eddd777eddddd77ccdcdc777fcce777777777777777777
+-- 041:7777777777777777777777777777777777777777777777777777777777777777
+-- 042:7777777777ddcdd77dcdddccddddcccdcddccdcefecceeef7ffffff777777777
+-- 043:6666666666677666667777666777777667777776667777666667766666666666
+-- 044:6666666677666767677777777777677777777777777777777777777777777777
+-- 045:6666666666666676666667776666776766677777667677776677777767777777
+-- 046:6666666666666666666666666666666666666666667777666777777677777777
+-- 047:6777767667777776767777666677776766776766677777767677776667777776
+-- 079:9999999999899989999999999999999999999999999899999899989999999999
+-- 160:4ce4ce44cdd4edc4dec44cf4444444444ecd4de4edf44ece4ee4ecdc444444e4
+-- 161:c2111121342f331133f144f112c142f1111111111431142ff323132f1d2f1f11
+-- 162:4ce4cf448bd4fdb48ee448f444444444edcb4ff4fc8e48cf4ff4ffbc44444ef4
+-- 163:4400400440fe40ef400f44f0440444444044440f000e40f00ef040e44f044444
+-- 164:45646f44f75457f4f66f45f4444444444f544f546575456ff7764f754ff444f4
+-- 165:41f40f440114f114410141f4444444440f104104f11f411f410411f0444440f4
+-- 176:dc444444ccd444444ee444444444444444444444444444444444444444444444
+-- 177:1341111144211111231111111111111111111111111111111111111111111111
+-- 178:be444444cd8444444cd444444444444444444444444444444444444444444444
+-- 179:4f0444440e044444f04444444444444444444444444444444444444444444444
+-- 180:4574444477544444f74444444444444444444444444444444444444444444444
+-- 181:4ff4444411144444ff4444444444444444444444444444444444444444444444
+-- 194:0000000700000076000000660007676700076673000766660060777706706276
+-- 195:76000000706000006600000011676000066672e0707676002766206061702600
+-- 196:0000002100002112001c122402442cc301222bd2212d222d122222221221dc21
+-- 197:111000002cc100002222210022122210212dd111222de1212221211112121210
+-- 198:0000000000000000000000000000000000000006000006660000556600005556
+-- 199:0000000000000000000000000665500066665566666566666666666566676666
+-- 200:0000000000000000000000000000000050000000550000005550000066550000
+-- 201:0000000000000000000000000000000600000066000006660000666600007666
+-- 202:0000000000000000065555005666655565566656666666666766776666776666
+-- 203:0000000000000000000000005000000065000000650000006655000066650000
+-- 204:0000000000000000000000000000000b00000022000002b200002bd200022222
+-- 205:0000000000000000022d2220222222bd22bb2222222db22222222222b2222222
+-- 206:0000000000000000000000002000000022000000b2200000db2200002d22b000
+-- 210:6766000706776076676763770676036700000023000000010000000200000003
+-- 211:61728000777e0267676066777200277762032606223200603100000032000000
+-- 212:0114c312022122120002221100002111000000ef000000010000000c0000000c
+-- 213:21121110212111101111110011221000fe00000018000000f8000000c0000000
+-- 214:0006666500666666077676667776776677777777007772770000772000000002
+-- 215:6677666667777666777277667727777772777776722277767233077702337777
+-- 216:6665000066550000765555006666655066667600666677006667700037770000
+-- 217:0000076600000076000000070000000000006660000765560000766500000772
+-- 218:6667777766723373677233037772333300022300600223006702330070023300
+-- 219:7665000037670000777000000000000000000000006000000666000066666000
+-- 220:002d222200222243000003110000000f00000000000000000000000000000000
+-- 221:243443424eceece4f1cdec1f1fcddcf100cddc00000bd000000bb000000db000
+-- 222:222222003422220011300000f000000000000000000000000000000000000000
+-- 224:9999999999899989999999999999999999999999999899999899989999999999
+-- 226:0000000300000003000000030000000300000003000000030000000300000003
+-- 227:2100000032000000320000002200000031000000320000002200000023000000
+-- 228:0000000c0000000c0000000c0000000c0000000c0000000c0000000c0000000c
+-- 229:d0000000d0000000d0000000c0000000d0000000d0000000d0000000d0000000
+-- 230:0000000200000000000000000000000000000000000000000000000000000000
+-- 231:2233777322330037022333000233300002330000023300000233000002330000
+-- 232:7770000070000000000000000000000000000000000000000000000000000000
+-- 233:0000007700000000000000000000000000000000000000000000000000000000
+-- 234:2202330702223300000223330002333000023300000233000002330000023300
+-- 235:7376660037777000000000000000000000000000000000000000000000000000
+-- 237:000bb000000db000000bb000000bb000000bb000000bd000000bb000000bb000
+-- 242:0000000300000003000000130000042300000002000000040000000000000000
+-- 243:1200000032200000220000003220000020330000200000003000000000000000
+-- 244:0000000c0000000c0000000c000000cc00000ccc000000cc0000000c00000000
+-- 245:c0000000d0000000de000000dc000000dec00000ddd00000d000000000000000
+-- 246:0000000000000000000000000000000000000000000000000000000000000002
+-- 247:0223000002330000023300000233000002330000023300002233300022333300
+-- 250:0002330000023300000223000002330000023300000233000022333002223333
+-- 253:00bbb00000bdbb0000bdbd0000bcedb00bdbeed00bcdbedbbcbdbcecbbd00000
+-- 254:000000000000000000000000000000000000000000000000b000000000000000
 -- </TILES>
 
 -- <TILES1>
@@ -1479,84 +1860,106 @@ end
 -- 237:f3fff3df333f33df333f3cdf333f33dfffff3cdf3c33cdf0dddddf00fffff000
 -- </TILES1>
 
+-- <TILES3>
+-- 000:66666dff66666df06666fdf06666fdff666dfdee666dfeee664dffff664de000
+-- 001:ffe666660fe666660fe06666ffe06666eeefe666eef0e666ffffe266000fe266
+-- 016:644dedde644eddde444e1122443233ee443233e343222ee243233ed366233ed4
+-- 017:eddfe226edddf2262211f222ee3321222e3321223ee221124de33212cde33266
+-- </TILES3>
+
 -- <SPRITES>
--- 000:ffffffffeeeeeeee4fcd4fcdfcd4fcd4fcd4fcd44fcd4fcdeeeeeeeeffffffff
--- 001:ffffffffeeeeeeeefcd4fcd4cd4fcd4fcd4fcd4ffcd4fcd4eeeeeeeeffffffff
--- 002:ffffffffeeeeeeeecd4fcd4fd4fcd4fcd4fcd4fccd4fcd4feeeeeeeeffffffff
--- 003:ffffffffeeeeeeeed4fcd4fc4fcd4fcd4fcd4fcdd4fcd4fceeeeeeeeffffffff
--- 004:00ffffff0feeeeeefeed4fcdfed4fcd4fed4fcd4fecd4fcdfefccfdefe4ff4ef
--- 005:00ffffff0feeeeeefecddcd4fefccf4ffe4ff44ffed44dd4fecddcdefefccfef
--- 006:00ffffff0feeeeeefeeddd4ffecdd4fcfefcc4fcfe4ff44ffed44ddefeddddef
--- 007:00ffffff0feeeeeefeedd4fcfedd4fcdfecd4fcdfefcf4fcfe4ff4defed44def
--- 008:00000011000001d10000111f111111f011111100000011100000f1d100000f11
--- 009:ff00000044f000000040000000f4444300f44434ff4000004400000000000000
--- 010:0004f00000004f00f0004f004fff4f00044444f00000444f0000043400000043
+-- 000:ffffffffeeeeeeee4fdd4fddfdd4fdd4fdd4fdd44fdd4fddeeeeeeeeffffffff
+-- 001:ffffffffeeeeeeeefdd4fdd4dd4fdd4fdd4fdd4ffdd4fdd4eeeeeeeeffffffff
+-- 002:ffffffffeeeeeeeedd4fdd4fd4fdd4fdd4fdd4fddd4fdd4feeeeeeeeffffffff
+-- 003:ffffffffeeeeeeeed4fdd4fd4fdd4fdd4fdd4fddd4fdd4fdeeeeeeeeffffffff
+-- 004:00ffffff0feeeeeefeed4fddfed4fdd4fed4fdd4fedd4fddfefddfdefe4ff4ef
+-- 005:00ffffff0feeeeeefeddddd4fefddf4ffe4ff44ffed44dd4fedddddefefddfef
+-- 006:00ffffff0feeeeeefeeddd4ffeddd4fdfefdd4fdfe4ff44ffed44ddefeddddef
+-- 007:00ffffff0feeeeeefeedd4fdfedd4fddfedd4fddfefdf4fdfe4ff4defed44def
+-- 008:ffffff1dfffff1d1ffff111fd11111ffd11111ffffff111ffffff1d1ffffff1d
+-- 009:ffffffff44ffffffff4ffffffff44443fff44434ff4fffff44ffffffffffffff
+-- 010:fff4ffffffff4fffffff4fff4fff4ffff44444ffffff444ffffff434ffffff43
 -- 011:0000000099000000009000000009999300f99939ff9000009900000000000000
 -- 012:0009000000009000f00090009fff900009999900000099900000093900000093
 -- 013:0000008a000008980000888fc88888f0c8888800000088800000f89800000f8a
 -- 014:00000000000f000000fc00000fcffff00cccccc000cf0000000c000000000000
 -- 015:00dddd00020000d0d020000dd002000dd000200dd000020d0d00002000dddd00
 -- 016:3000000300000000000000000000000000000000000000000000000030000003
--- 017:cdeeeeeed000dddde00c23eee00d323de00c232cd00d32eee000eccce000c000
--- 018:eeeeeedcdddd000deeeee00ecdcdc00edcdcd00eeeeee00dccce000e000c000e
+-- 017:bbbbbbbbbb000000b0b00000b00b0000b000b000b0000b00b00000b0bddddddb
+-- 018:bbbbbbbb000000bb00000b0b0000b00b000b000b00b0000b0b00000beddddddb
 -- 019:000d0000000d00000defed0000def000000d0000000000000000000000000000
 -- 021:0002000000002000f00020002fff200002222200000022200000022200000022
 -- 022:0000000000000000000000000000000000000000000000000000000020000000
 -- 023:02f00f2002f00f20002ff2000002200000033000000220000002200000022000
--- 025:656002213450034265400124000000000000000099800bbd3490034b89400db4
--- 026:003000d003430cec003000d0000000000000000004330bcc03330ccc03340ccd
--- 027:1ff111f010ff10ff11f01f011111111111111111100111f11f0f1f0f10f110f0
+-- 024:6560000034500000654000000000000000000000000000000000000000000000
+-- 025:0300000034300000030000000000000000000000000000000000000000000000
+-- 027:44444444444ef04444f000444400f0044f000004400f00f444f00fe444444444
 -- 028:0000000004300980032408fd003300e800000000003300ed03240efe04300dd0
 -- 029:000000000e0d00000eff00000de0000000000000000000000000000000000000
+-- 030:b0000000bb000000bbd00000bde0000000000000000000000000000000000000
 -- 031:0000000000300000034000003433333344444444040000000040000000000000
 -- 032:3030303000000003300000000000000330000000000000033000000003030303
--- 033:fddddddde0000000ddd00000ffec0000fffeceecffec0000ddd00000cdeeeeee
--- 034:ddddddde0000000e0000000d0000000eceecceed0000000e0000000deeeeeedc
+-- 033:b000000eb00000b0b0000b00b000b000b00b0000b0b00000bb000000bbbbbbbb
+-- 034:b000000b0b00000b00b0000b000b000b0000b00b00000b0b000000bbbbbbbbbb
+-- 035:000000000fcccc000fc0fc000fcccce00fcccce00fcccc00fcccccc000000000
 -- 036:00000000d00cd00decccccce000dd000000ee000000110000001100000011000
 -- 037:0000000200000000000000000000000000000000000000000000000000000000
 -- 038:2200000022200000022200000023200000023000000000000000000000000000
 -- 039:0002200000022000000220000002200000022000000220000002300000032000
+-- 040:2210000034200000124000000000000000000000000000000000000000000000
 -- 041:0ed00000efe00000dd0000000000000000000000000000000000000000000000
 -- 042:fe000000efd000000ef000000000000000000000000000000000000000000000
+-- 043:bcc00000ccc00000ccd000000000000000000000000000000000000000000000
+-- 044:4330000033300000334000000000000000000000000000000000000000000000
 -- 045:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
 -- 046:000fffff00fcdfee0fe21fcdfd21dfd2fc21cfd2fdc21fcdfcdcfeee0fffffff
 -- 047:000fffff00fcdfee0fea9fcdfda9dfd9fca9cfd9fdca9fcdfcdcfeee0fffffff
--- 048:0000e0000000de00dddddde04eff4edeeff4effe4eff4ededddddde00000de00
--- 049:0000e0000000de00dddddde0eff4efdeff4eff4eeff4efdedddddde00000de00
--- 050:0000e0000000de00dddddde0ff4effdef4eff4eeff4effdedddddde00000de00
--- 051:0000e0000000de00dddddde0f4eff4de4eff4efef4eff4dedddddde00000de00
+-- 048:0000000000000000ddd00000f4ec00004ff4c000f4ec0000ddd0000000000000
+-- 049:0000000000000000ddd000004fec0000ff4ec0004fec0000ddd0000000000000
+-- 050:0000000000000000ddd00000ff4c0000f4fec000ff4c0000ddd0000000000000
+-- 051:5252525020000000500000002000000050000000200000005000000000000000
 -- 052:0001100000011000000110000001100000011000000110000001100000011000
--- 053:5252525020000000500000002000000050000000200000005000000000000000
--- 056:3030303000000000300000000000000030000000000000003000000000000000
--- 057:3000000003000000000000000300000000000000030000000000000003000000
--- 058:bbbbbbbbbb000000b0b00000b00b0000b000b000b0000b00b00000b0bddddddb
--- 059:bbbbbbbb000000bb00000b0b0000b00b000b000b00b0000b0b00000beddddddb
--- 060:cdeeeeeed000dddde00c23eee00d232de00c322cd00d33eee000eccce000c000
--- 061:eeeeeedcdddd000deeeee00ecdcdc00edcdcd00eeeeee00dccce000e000c000e
+-- 053:3030303000000000300000000000000030000000000000003000000000000000
+-- 054:3000000003000000000000000300000000000000030000000000000003000000
+-- 056:00000000000ddddd00dfcfff0dccfddd0dcfdcef0dcfdef80dcfdcef0dcfdeee
+-- 057:00000000ddddddddffffffffddddddddeeefeeeffef8fef8eeefeeefeeeeeeee
+-- 058:00000000ddddd000fffccd00dddfccd0ecedfcd0fecdfcd0eeedfcd0eecdfcd0
+-- 059:3334444331222223323333433222334332332223101111211022222111111111
+-- 060:cccccccccf88888cc823ccdcc83ccc4cc8ccc34cf0ffff82f08888811fffff11
+-- 061:ccccccccc8f8f8fcfa8a8a8fca8a8a8ccccccccc8f0f0f088f0f0f0888888888
 -- 062:cdeeeeeed000dddde00c32eee00d232de00c323cd00d23eee000eccce000c000
 -- 063:eeeeeedcdddd000deeeee00ecdcdc00edcdcd00eeeeee00dccce000e000c000e
--- 064:3300003330000003000000000000000000000000000000003000000333000033
--- 065:0000000000000000ddd00000f4ec00004ff4c000f4ec0000ddd0000000000000
--- 066:0000000000000000ddd000004fec0000ff4ec0004fec0000ddd0000000000000
--- 067:0000000000000000ddd00000ff4c0000f4fec000ff4c0000ddd0000000000000
+-- 064:00b0000000b0000000bbb000b0bbb0000bbbb00000cc00000000000000000000
+-- 065:000000000bb000000bbb0000bbbb0000bbbb00000cc000000000000000000000
+-- 066:000efffe000fccdf00f4dde00f4defd00f4dfed000f4dde0000fccf0000fccff
 -- 068:0001100000011000000cd000000dc000000ce000000cd0000000000000000000
--- 072:3000000003030303000000000000000000000000000000000000000000000000
--- 073:0000000003000000000000000000000000000000000000000000000000000000
--- 074:b000000eb00000b0b0000b00b000b000b00b0000b0b00000bb000000bbbbbbbb
--- 075:b000000b0b00000b00b0000b000b000b0000b00b00000b0b000000bbbbbbbbbb
--- 076:fddddddde0000000ddd000004fec0000ff4eceec4fec0000ddd00000cdeeeeee
--- 077:ddddddde0000000e0000000d0000000eceecceed0000000e0000000deeeeeedc
+-- 069:3000000003030303000000000000000000000000000000000000000000000000
+-- 070:0000000003000000000000000000000000000000000000000000000000000000
+-- 072:0dcfdfff0dcfdf770dcfdfff0defdddd0defcddc0defcddc0defcccc0defceec
+-- 073:ffffffff77777777ffffffffccccccccdeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 074:fffdfcd077fdfcd0fffdfcd0ddddfed0cddcfed0cddcfed0ccccfed0ceecfed0
 -- 078:fddddddde0000000ddd00000ff4c0000f4feceecff4c0000ddd00000cdeeeeee
 -- 079:ddddddde0000000e0000000d0000000eceecceed0000000e0000000deeeeeedc
--- 080:ffff0000f2220000f2000000f200000000000000000000000000000000000000
--- 082:0000000027272700727272702727272056567270656527205656727005652720
--- 083:0000000065656500565656506565656072725650272765607272565007276560
--- 085:bbb00000bd000000b0b00000000b000000000000000000000000000000000000
--- 087:000efffe000fccdf00f4dde00f4defd00f4dfed000f4dde0000fccf0000fccff
--- 096:5dd00000de000000d0d00000000d000000000000000000000000000000000000
--- 100:00b0000000b0000000bbb000b0bbb0000bbbb00000cc00000000000000000000
--- 101:000000000bb000000bbb0000bbbb0000bbbb00000cc000000000000000000000
--- 103:000fccff000fccf000f4dde00f4dfed00f4defd000f4dde0000fccdf000efffe
+-- 080:1212000025650000160000002500000000000000000000000000000000000000
+-- 081:0000000000000000646400004000000060000000464600000000000000000000
+-- 082:000fccff000fccf000f4dde00f4dfed00f4defd000f4dde0000fccdf000efffe
+-- 083:ff0fff0f888888884888488888848884888488844888488888888888ff0fff0f
+-- 084:fff0fff0888888888884888488488848884888488884888488888888fff0fff0
+-- 085:0fff0fff8888888888488848848884888488848888488848888888880fff0fff
+-- 086:f0fff0ff888888888488848848884888488848888488848888888888f0fff0ff
+-- 088:0defcddc0defceec0defceec0deefccc0defefff00deecee000ddddd00000000
+-- 089:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeccccccccffffffffdddddddd00000000
+-- 090:cddcfed0ceecfed0ceecfcd0cccfeed0fffeecd0eececd00ddddd00000000000
+-- 091:0000000000000000000000000002300000022000000000000000000000000000
+-- 092:0000000000000000000220000020020000200200000220000000000000000000
+-- 093:0000000000022000002002000200002002000020002002000002200000000000
+-- 094:0022220002000020200000022000000220000002200000020200002000222200
+-- 099:000fff0f0f888888f8884888f884888408848884f8884888f8888888f848848f
+-- 100:ff0fff0f888888884888488888848884888488844888488888888888ff0fff0f
+-- 101:000fff0f0f888888f8884888f884888408848884f8884888f8888888f848848f
+-- 102:00f0fff00f888888f888888408888848f8488448f8844884f888888808888880
+-- 103:00ff0fff0f88888808888848f8888488f8888488f848844808844888f888888f
+-- 104:00fff0ff00888888f8888488f8884888f888488808888488f8488488f884488f
 -- 106:00fddf0d0fc77cfc0c7657c00ce77ec00decced002ceec20200dd00200300300
 -- 107:00fddf000fcee7f00dee76500deee7700cdccec0003ee2d0030d200d00020000
 -- 108:000fff0002fecef020dc75ef0dccc7cf0dceccefcedccdf00cedd02000c00200
@@ -1565,10 +1968,12 @@ end
 -- 112:ddeeeeeedce00000ee000000e0000000e0000000e0000000e0000000e0000000
 -- 113:eeceecee000d0000000e0000000c0000000e0000000c0000000e0000000c0000
 -- 114:eeeeeedd00000ecd000000ee0000000e0000000e0000000e0000000e0000000e
--- 118:000dddff00deedee0de4fdcdde4fedd4de4fedd4dee4fdcddeeddeeedddeffff
--- 119:000dddff00deedee0de4fdd4de4fed4fde4fed4fdee4fdd4deeddeeedddeffff
--- 120:000dddff00deedee0de4fd4fde4fedfcde4fedfcdee4fd4fdeeddeeedddeffff
--- 121:000dddff00deedee0de4fdfcde4fedcdde4fedcddee4fdfcdeeddeeedddeffff
+-- 115:000000000000000000000000000000000000000000000000ddddddddcccddddd
+-- 116:000000000000000000000000000000000000000000000000dd000000dd000000
+-- 117:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
+-- 118:000fffff00fcdfee0fe43fd4fd43df4ffc43cf4ffdc43fd4fcdcfeee0fffffff
+-- 119:000fffff00fcdfee0fe43f4ffd43dffcfc43cffcfdc43f4ffcdcfeee0fffffff
+-- 120:000fffff00fcdfee0fe43ffcfd43dfcdfc43cfcdfdc43ffcfcdcfeee0fffffff
 -- 122:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
 -- 123:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
 -- 124:000000000000000000000000000ff00000ffff0000ffff00000ff00000000000
@@ -1604,6 +2009,7 @@ end
 -- 156:111111fd1111111f1111111e111111ed11111edd1111fddd111feedd11edeeef
 -- 157:fededde1ddedde11ddddedf1dddeddeeddedddddde11edddede11eedddd1111e
 -- 158:11111111111111111111111111111111ee111111dde11111de111111e1111111
+-- 161:4310000000400000431000000000000000000000000000000000000000000000
 -- 163:11111fff11111111111111111111111111111111111111111111111111111111
 -- 164:dfffeeedfdfffedf1fdffdf111fddf11111ff111111111111111111111111111
 -- 165:1111111111111111111111111111111111111111111111111111111111111111
@@ -1616,14 +2022,22 @@ end
 -- 172:1edddef1edddddf1eddddf111eddf11111ed1111111111111111111111111111
 -- 173:fddd11111fde1111111111111111111111111111111111111111111111111111
 -- 174:1111111111111111111111111111111111111111111111111111111111111111
--- 179:eeeee000eecee000ecdce000edede000edede000eddde000eddde000eeeee000
--- 180:eeeee000eedee000edede000ecede000ecede000eddde000eddde000eeeee000
--- 192:000cf00000ddcf000cbdddf0cdddddcf0ddddcf000cddf00000cf00000000000
--- 193:0003f00000333f0003b333f03333333f033333f000333f000003f00000000000
+-- 176:0d000000cec000000d0000000000000000000000000000000000000000000000
+-- 177:04f000000ee0000004f000000000000000000000000000000000000000000000
+-- 178:f4f000004ee00000f4f000000000000000000000000000000000000000000000
+-- 179:fffff000ffcff000fcecf000fefcf000fefcf000fcccf000fcccf000fffff000
+-- 180:fffff000fffff000ffcff000fcfcf000fcfcf000fcccf000fcccf000fffff000
+-- 181:222220002f2f200022f220002f2f200022222000000000000000000000000000
+-- 182:fffff000eefdcf004ffe43f0fcf43ddffcf43ccf4ffc43dfeeefcdcffffffff0
+-- 183:fffff000eefdcf00fcfe43f0cdf43ddfcdf43ccffcfc43dfeeefcdcffffffff0
+-- 184:fffff000eefdcf00cdfe43f0d4f43ddfd4f43ccfcdfc43dfeeefcdcffffffff0
+-- 185:fffff000eefdcf00d4fe43f04ff43ddf4ff43ccfd4fc43dfeeefcdcffffffff0
+-- 192:00fdf0000fdddf00fdbdddf0dddddddffdddddf00fdddf0000fdf000000f0000
+-- 193:00f3f0000f333f00f3b333f03333333ff33333f00f333f0000f3f000000f0000
 -- 194:00df00000dcdf000dedcdf000dedcdf000dedcdf000dedf00000df0000000000
 -- 195:0ffffff003334430034434400ffffff003334430043443400000000000000000
 -- 196:0000000000bcdf000becebf00ccbccf00becebf000dcbf000000000000000000
--- 197:0003f00003003f003f303f003f303f003fff3f000333f0000000000000000000
+-- 197:0000000000003f00003003f003f303f003f303f003fff3f000333f0000000000
 -- 198:000000000c0d00000d0c00000d0d00000c0d00000c0c00000d0d000000000000
 -- 199:000000000bd00000bbbd00000bbbd00000bbbd00000bbbd00000bd0000000000
 -- 200:0666666734444466666664663444644466646666006444440066666600000000
@@ -1634,13 +2048,13 @@ end
 -- 205:000dd000000ee000000cc00000d56d000d5666d00c6656c00d6666d000d77d00
 -- 206:000dd000000ee000000dd00000dbbc000cbbbbc00dbbdbd00dbbbbd000cddc00
 -- 207:000dd000000ee000000cc00000da9d000d8998d00c9999c00d99a9d000d89d00
--- 208:0000000033333333344444433444444333333333444444444443344444444444
--- 209:00000000dddddddddeeeeeeddeeeeeedddddddddceeeeeecceeddeeccccccccc
--- 210:dddddddddeeeeeeddeeeeeedddddddddfeeeeeeffeddddeffeeffeeffccccccf
+-- 208:3334444331222223323333433222334332332223101111211022222111111111
+-- 209:cccccccccf88888cc823ccdcc83ccc4cc8ccc34cf0ffff82f08888811fffff11
+-- 210:ccccccccc8f8f8fcfa8a8a8fca8a8a8ccccccccc8f0f0f088f0f0f0888888888
 -- 211:00dddd000dccccd0dccddccddcdecdcddcdcedcddccddccd0dccccd000dddd00
--- 212:ffffffffeeeeeeeef4dcf4dccf4dcf4dcf4dcf4df4dcf4dceeeeeeeeffffffff
--- 213:ffffffffeeeeeeeef2dcf2dccf2dcf2dcf2dcf2df2dcf2dceeeeeeeeffffffff
--- 214:ffffffffeeeeeeeef9dcf9dccf9dcf9dcf9dcf9df9dcf9dceeeeeeeeffffffff
+-- 212:ffffffffeeeeeeeecd4fcd4fd4fcd4fcd4fcd4fccd4fcd4feeeeeeeeffffffff
+-- 213:ffffffffeeeeeeeecd2fcd2fd2fcd2fcd2fcd2fccd2fcd2feeeeeeeeffffffff
+-- 214:ffffffffeeeeeeeecd9fcd9fd9fcd9fcd9fcd9fccd9fcd9feeeeeeeeffffffff
 -- 215:0ef110ef0ef110ef00effef0000ee0000f1ee100f11ee1101d1ec1d1110cef11
 -- 216:04f1104f04f1104f004ff4f0000440000f144100f11441101d1431d111034f11
 -- 217:02f1102f02f1102f002ff2f0000220000f122100f11221101d1231d111032f11
@@ -1653,30 +2067,32 @@ end
 -- 224:c00ec00cccdffdcc00deed0000dcfd0000dfcd0000deed0000dcfd0000dfcd00
 -- 225:d00dd00deddeedde000dd000000dd00000deed000deeeed00dceecd00deeeed0
 -- 226:0007000000777000007570000757770007777700077777000077700000000000
--- 228:fffff000eefccf00dcf34df04dfc34df4dfc34dfdcf34dcfeeefcccffffffff0
--- 229:fffff000eefccf00dcf12df02dfc12df2dfc12dfdcf12dcfeeefcccffffffff0
--- 230:fffff000eefccf00dcf9adf09dfc9adf9dfc9adfdcf9adcfeeefcccffffffff0
--- 231:deecceede0d000ceedcd00ceedcd00ceec2c00cee23d00ceedddcefddeeecf4d
--- 232:0000000000000dff0000ddcf0000ddcc0000ddcc0000ddcc000dddcc000ddddc
--- 233:00000000ffe00000feee0000ceee0000ceee0000ceee0000cceee000cceee000
--- 234:0000000000000dff0000ddcf0000ddcc0000ddcc0000ddcc000dddcc000ddddc
--- 235:00000000ffe00000feee0000ceee0000ceee0000ceee0000cceee000cceee000
--- 236:0000000000000dff0000dddf0000dddd0000dddd0000dddd000ddddd000ddddd
--- 237:00000000ffe00000fcee0000ccee0000ccee0000ccee0000cccee000dccee000
--- 238:0000000000000dff0000dddf0000dddd0000dddd0000dddd000ddddd000ddddd
--- 239:00000000ffe00000fcee0000ccee0000dcee0000dcee0000dccee000ddcee000
+-- 227:0dddddd0dc8cc8cddccccccdd557777ddeeeeeeddcdccdcddceccecd0dddddd0
+-- 228:00ffffff0fedfeeefcd4fecdfd4ffed4fd4ffed4fcc4fecdfdecfeee0fffffff
+-- 229:000fffff00fccfee0fd21fcdfd21cfd2fd21cfd2fcd21fcdfcccfeee0fffffff
+-- 230:000fffff00fccfee0fda9fcdfda9cfd9fda9cfd9fcda9fcdfcccfeee0fffffff
+-- 231:deecceedefdffffeedcdffdeedcdfdceec2cffdee232ccceecdc4f4edeeef4fd
+-- 232:66666cff66666cf06666fcf06666fcff666cfc88666cf888664cffff664c8000
+-- 233:ff8666660f8666660f806666ff806666888f866688f08666ffff8266000f8266
+-- 234:66666cff66666cf06666fcf06666fcff666cfc88666cf888664cffff664c8000
+-- 235:ff8666660f8666660f806666ff806666888f866688f08666ffff8266000f8266
+-- 236:66666cff66666cf06666fcf06666fcff666cfc88666cf888664cffff664c8000
+-- 237:ff8666660f8666660f806666ff806666888f866688f08666ffff8266000f8266
+-- 238:66666cff66666cf06666fcf06666fcff666cfc88666cf888664cffff664c8000
+-- 239:ff8666660f8666660f806666ff806666888f866688f08666ffff8266000f8266
+-- 240:e0000000be000000bbe00000bdf0000000df0000000000000000000000000000
 -- 244:004ecd0004eeede0004ecde0000dcd00000dcd00004ecde004eeede0004ecd00
 -- 245:002ecd0002eeede0002ecde0000dcd00000dcd00002ecde002eeede0002ecd00
 -- 246:009ecd0009eeede0009ecde0000dcd00000dcd00009ecde009eeede0009ecd00
 -- 247:00dcce0000ddce000dddcee00dddcce00ddffce0ddf23fceddffffcedddddcce
--- 248:000ddddc00ddddff00dddfce00ddfeec0dddfece0dddffff0ddddddd00000000
--- 249:cccee000ffceee00cefcee00eecfcee0ecefcce0ffffcce0dcccccc000000000
--- 250:000ddddc00ddddff00dddf3400ddf4320dddf3430dddffff0ddddddd00000000
--- 251:cccee000ffceee0023fcee00343fcee0432fcce0ffffcce0dcccccc000000000
--- 252:000ddddd00ddddff00dddf3200ddf3430dddf4340dddffff0ddddddd00000000
--- 253:ddcce000ffccee0034fcce00432fcee0234fcce0ffffcce0ddddcce000000000
--- 254:000ddddd00ddddff00dddf4300ddf4340dddf4320dddff000ddddddd00000000
--- 255:ddcce000ffdcee0043fdce00234fcee0343fdce000ffdce0dddddce000000000
+-- 248:644c8cc86448ccc844481122443233884432338d4322288e432338cd662338ce
+-- 249:8ccf82268cccf2262211f22288332122e8332122d8822112ec833212dc833266
+-- 250:644c8cc86448ccc844481122443233884432338243222883432338c4662338cd
+-- 251:8ccf82268cccf2262211f2228833212238332122288221123c8332124c833266
+-- 252:644c8cc86448ccc844481122443233884432338343222882432338c3662338c4
+-- 253:8ccf82268cccf2262211f2228833212228332122388221124c833212dc833266
+-- 254:644c8cc86448ccc844481122443233884432338243222883432338c4662338cd
+-- 255:8ccf82268cccf2262211f2228833212238332122288221123c8332124c833266
 -- </SPRITES>
 
 -- <SPRITES1>
@@ -1760,6 +2176,14 @@ end
 -- 113:77777f00ffffff00ffffeef0eeeefeefffffffffccccecf0cececef0ffffff00
 -- 115:00fe777500ffffff0feefffffeefeeeeffffffff0feccccc0fcecece00ffffff
 -- 116:777d7f00ffffff00ffffeef0eeeefeefffffffffccccecf0cececef0ffffff00
+-- 165:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
+-- 168:000fffff00fcdfee0fe43f4ffd43dffcfc43cffcfdc43f4ffcdcfeee0fffffff
+-- 181:000fffff00fcdfee0fe43fd4fd43df4ffc43cf4ffdc43fd4fcdcfeee0fffffff
+-- 184:000fffff00fcdfee0fe43ffcfd43dfcdfc43cfcdfdc43ffcfcdcfeee0fffffff
+-- 196:000fffff00fcdfee0f34eff4fdd34fcffcc34fcffd34cff4fcdcfeee0fffffff
+-- 212:000fffff00fcdfee0f34efcffdd34fdcfcc34fdcfd34cfcffcdcfeee0fffffff
+-- 228:000fffff00fcdfee0f34efdcfdd34f4dfcc34f4dfd34cfdcfcdcfeee0fffffff
+-- 244:000fffff00fcdfee0f34ef4dfdd34ff4fcc34ff4fd34cf4dfcdcfeee0fffffff
 -- </SPRITES1>
 
 -- <SPRITES2>
@@ -1882,162 +2306,49 @@ end
 -- </SPRITES3>
 
 -- <SPRITES4>
--- 000:00000000000fffff00ffcccc0fedfcdc0fccdeff0fedcfec0fccdfcf0fedcfef
--- 001:00000000ffffffffccccccccdcdcdcdcffffffffececececfffffffefffffffc
--- 002:00000000ffffffffccccccccdcdcdcdcfffffffffeeeeeeefce55555feeeeeee
--- 003:00000000fffff000cccccf00dcdcfcf0fffedcf0eeefccf077efdcf0eeefccf0
--- 016:0fccdfcf0fedcfef0fccdfcf0fedcfef0fccdfcf0fedcfef0fccdfce0fedcfec
--- 017:fffffffefffffffcfffffffefffffffcfffffffefffffffccecececeecececec
--- 018:fce33377feeeeeeefce4f4e4fee4f4effce444e4feeff4e4fceff4e4feeeeeee
--- 019:77efdcf0eeefdcf044efccf0f4efdcf044efdcf0ffefccf044efdcf0eeefdcf0
--- 032:0fccdcff0fedcfdd0fccdfdf0fedcfdf0fccdfdf0fedcfdf0fccdfdf0fedcfdd
--- 033:ffffffffddddddddeeeeeeeeefffecccefffecccefffeccceeeeeeeedddddddd
--- 034:ffffffffddddddddeeeeeeeeeccceccceccceccceccceccceeeeeeeedddddddd
--- 035:fffdccf0dddfdcf0efdfdcf0efdfdcf0efdfccf0efdfdcf0efdfdcf0dddfdcf0
--- 048:0fccdcff0fedcfdd0fccfddd0fefdccd0fcfcccc00fccdcd000fffff00000000
--- 049:ffffffffddddddddddddddddccdccdcccccccccccdcdcdcdffffffff00000000
--- 050:ffffffffdddddddddddddddddccdccdccccccccccdcdcdcdffffffff00000000
--- 051:fffcdcf0dddfccf0ddddfcf0cdccdff0cccccff0cdcdcf00fffff00000000000
+-- 000:3334444331222223323333433222334332332223101111211022222111111111
+-- 001:cccccccccf88888cc823ccdcc83ccc4cc8ccc34cf0ffff82f08888811fffff11
+-- 002:ccccccccc8f8f8fcfa8a8a8fca8a8a8ccccccccc8f0f0f088f0f0f0888888888
+-- 016:00000000cc0000008cfc80000cf88000cc0ff00088cffc0000cccc0000888800
+-- 017:00000000c400000084fc800004f88000c40ff000834ff4000044440000333300
+-- 018:00000000c300000083fc800003f88000c30ff000823ff3000033330000222200
+-- 019:00000000ca0000008afc80000af88000ca0ff00089affa0000aaaa0000999900
+-- 020:00000000c100000081fc800001f88000c10ff0008f1ff1000011110000ffff00
+-- 021:00000000c500000085fc800005f88000c50ff000865ff5000055550000666600
+-- 022:00000000cd0000008dfc80000df88000cd0ff0008cdffd0000dddd0000cccc00
+-- 032:8888888848884888888488848884888448884888888888880ff00ff0f8fff8ff
+-- 033:8888888888848884884888488848884888848884888888880ff00ff0f8fff8ff
+-- 034:8888888888488848848884888488848888488848888888880ff00ff0f8fff8ff
+-- 035:8888888884888488488848884888488884888488888888880ff00ff0f8fff8ff
+-- 036:884884888888888f4844488f4888488f888888f088880ff00ff0ff00f8ff0000
+-- 037:888888884844488f8488848f8488888f488888f088880ff00ff0ff00f8ff0000
+-- 038:888888888844448f4488848f8448888f884888f088880ff00ff0ff00f8ff0000
+-- 039:888448888848848f8488888f8444888f888488f088880ff00ff0ff00f8ff0000
+-- 048:66666cff66666cf06666fcf06666fcff666cfc88666cf888664cffff664c8000
+-- 049:ff8666660f8666660f806666ff806666888f866688f08666ffff8266000f8266
+-- 050:66666668666668dd666fcddd66fccdda66ccdada6cdcaadc6ccaacdd6cccddcd
+-- 051:cdd3ddc8dd332dddddd3dacdabdddcccaddccbbbddacca9aba9bdc9dddcbbcdd
+-- 052:66666666c8666666dac86666dd988666c118ff66dd889f66da89f8f6ab89aff6
+-- 053:000000000000000000000000000000000000000000000000dddddddddddddddc
+-- 054:000000000000000000000000000000000000000000000000ddddddddcccddddd
+-- 055:000000000000000000000000000000000000000000000000dd000000dd000000
+-- 064:644c8cc86448ccc844481122443233884432338343222882432338c3662338c4
+-- 065:8ccf82268cccf2262211f2228833212228332122388221124c833212dc833266
+-- 066:88cadc338c9acd2d88c9caac888cbabc0f8aabacf9a8ccdc0f989ac26f98aaa2
+-- 067:dcddd22aaaabc218aabddcc8aaddbbcacddbbbca8dbbbbcb2cbbbbcc1fcccc88
+-- 068:bab8998faab8a8ff88a888ffaa8210f0aa811f0fac8fff00ccaf9900aaaf9906
+-- 069:ddddddcddddddcddddddcdddddddcdddddddcdddddddcdddbddddcddbbddddcd
+-- 070:dddcddddddddcddddddddcddaadddcddaadddcdddddddcddddddcddddddcdddd
+-- 071:dd000000dd000000dd000000dd000000dd000000dd000000dc000000cc000000
+-- 072:30000000880000008c0800000cc8000000000000000000000000000000000000
+-- 082:6fff9a8866fff889666ffff966666fff66666666666666666666666666666666
+-- 083:faaba98caf9aa98ca911119af111111f66666666666666666666666666666666
+-- 084:ca9f98068800f0669f000666f006666666666666666666666666666666666666
+-- 085:bbbddddcbbbbddddbbbbbdddbbbbbddd0bbbbddd00bbbddd000bbddd0000bddd
+-- 086:cccddddcddddddccdddddcccdddddcccdddddcccdddddcccdddddcc0dddddc00
+-- 087:cc000000cc000000cc000000cc000000c0000000000000000000000000000000
+-- 163:00000000000000000000000000000000000cdd8000ccdd8000ccc88000000000
 -- </SPRITES4>
-
--- <MAP>
--- 000:a2a2a2a2a2a2a2a2a2a2a2a2a262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a26262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 001:a2a2a2a2a2a2a2a2a2a2a26262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 002:a2a2a2a2a2a2a2a2a2a26262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242626262626242424242424242424242424242a2a2a2a2a2a2a2626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 003:a2a2a2a2a2a2a2a2a2a26262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242626262626262626262424242424242424242a2a2a2a2a2a2a2a2a2626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 004:a2a2a2a2a2a2a2a2a26262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424262626262626262626262626242424242424242a2a2a2a2a2a2a2a2a26262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 005:a2a2a2a2a2a2a2a2a262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242626262626262626262626262626242424242a2a2a2a2a2a2a2a2a2a2a26262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 006:a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242626262626262626262626262626262626242a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 007:a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 008:a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242626262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a26262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 009:a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424262626262626262626262626262626262626262626262626262a2a2a2a2a2a26262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 010:a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424262626262626262626262626262626262626262626262626262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 011:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262626262626262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 012:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a07272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262626262626262626262626262626262629292a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 013:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a072727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262626262626262626262626262626262929292a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 014:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262626262626262626262a2a292a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 015:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a072727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a282a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 016:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0727272727272727272727272727272727272724242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 017:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a07272727272727272727272727272727272724242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 018:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a072727272727272727272727272727272724242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 019:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0727272727272727272727272727272724242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 020:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a072727272727272727272727272727272424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 021:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a27272727272727272727272a2a2424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 022:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 023:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 024:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 025:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a28282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 026:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 027:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 028:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 029:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 030:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 031:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a242525252424242424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 032:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a252525252525252525252424242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 033:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a25252525252525252525252524242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 034:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2525252525252525252525252525242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 035:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a252525252525252525252525252525242424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 036:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2525252525252525252525252525252424242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 037:a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a25252525252525252525252525252524242424242424242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0
--- 038:a2929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a252525252525252525252525252524242424242424242424242424242424242424242424242424242424242a2929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0
--- 039:a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a25252525252525252525252525242424242424242424242424242424242424242424242424242424242a2a2929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0
--- 040:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a252525252525252525252a2a24242424242424242424242424242424242424242424242424242a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0
--- 041:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2525252525252a2a2a2a2a24242424242424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0
--- 042:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0
--- 043:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0
--- 044:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0
--- 045:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0
--- 046:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0
--- 047:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 048:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 049:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252a2a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 050:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 051:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252525252525252a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 052:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525252a2a2a0a0a0a0a0a0a0a0a0a0
--- 053:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252525252525252525252a2a2a0a0a0a0a0a0a0a0a0a0
--- 054:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525252525252a2a0a0a0a0a0a0a0a0a0a0
--- 055:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252525252525252525252525252a2a0a0a0a0a0a0a0a0a0a0
--- 056:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525252525252a2a2a0a0a0a0a0a0a0a0a0a0
--- 057:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525252525252a2a2a0a0a0a0a0a0a0a0a0a0
--- 058:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252525252525252a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 059:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252525252a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 060:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a25252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 061:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292a2a2a2a2a2a2a2a2a2a25252525252525252525252525252525252525272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0
--- 062:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525252727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0
--- 063:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252525252525272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0
--- 064:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252525252525252727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0
--- 065:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525252525252727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0
--- 066:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525252525252727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 067:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252525252525272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 068:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252525272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 069:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 070:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 071:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292929292a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 072:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 073:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 074:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 075:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 076:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 077:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 078:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 079:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 080:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a282828282828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 081:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a282828282828282828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 082:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a282828282828282828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 083:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a28282828282828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 084:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 085:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 086:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 087:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 088:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 089:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 090:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 091:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a29292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 092:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262626262a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 093:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262626262a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 094:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 095:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 096:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262626262a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 097:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 098:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 099:a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 100:a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 101:a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 102:a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 103:a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 104:a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 105:a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 106:a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 107:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 108:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 109:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 110:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a25252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272727272727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 111:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2727272727272727272727272727272727272727272727272727272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 112:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272727272727272727272424242424242424272727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 113:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2727272727272727272727272727272727242424242424242424242424242727272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262626262626262a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 114:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272727272424242424242424242424242424242427272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 115:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272727272424242424242424242424242424242424272a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a26262626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 116:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272727272724242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2626262626262626262626262a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 117:a0a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a27272727272724242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626262626262a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 118:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a272724242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a262626262626292a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 119:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 120:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292929292a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 121:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 122:a0a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 123:a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 124:a0a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 125:a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 126:a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2828282828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a292929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 127:a0a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2828282828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 128:a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2828282a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242424242a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 129:a0a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a24242424242424242424242424242424242a2a2a2a252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 130:a0a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242a2a2a252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 131:a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242a2525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 132:a0a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2424242424242424242424242424242a2525252525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 133:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242424242a252525252525252525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 134:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a242424242424242424242a2a2525252525252525252525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- 135:a2a2a2a2a2a2a2a2a2a2a2a2a2a2929292929292a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2525252525252525252525252525252525252525252525252525252525252a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
--- </MAP>
 
 -- <WAVES>
 -- 000:eeeeeeedcb9687777777778888888888
@@ -2045,15 +2356,20 @@ end
 -- 002:06655554443333344556789989abcdef
 -- 004:777662679abccd611443377883654230
 -- 005:eeedddccbbaaaaaaabbbbcccb9210000
+-- 006:cdddb953334ddddaa9abddbaa9876665
+-- 007:55556777777776655555666778877776
+-- 008:f00070c00600b00550dd000009a0cc00
+-- 009:44444456789aabb97a654dc831347213
 -- </WAVES>
 
 -- <SFX>
--- 000:020802080201020802010208020802080201020802010208020802080201020802010208020802080201020802010208020802080201020802010208a00000000004
--- 001:8000d000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000329000000000
--- 002:04f0f4000400f4000400f4000400f4000400f4000400f4000400f4000400040004000400040004000400040004000400040004000400040004000400a00000000000
+-- 000:020802080201020802010208020802080201020802010208020802080201020802010208020802080201020802010208020802080201020802010208b0b000000004
+-- 001:8000800080009000a000c000e000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000220000000000
+-- 002:04f0f4000400f4000400f4000400f4000400f4000400f4000400f4000400040004000400040004000400040004000400040004000400040004000400c04000000000
 -- 003:050005100520153025504560659085b095f0a5f0b5f0c5f0d5f0e5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0404000000000
 -- 004:00ec00c170a4f076f037f00ff00df00af008f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000a0b000000000
 -- 005:34073407340734073407f400f400f400f400040704070407040704070407040704070407040704070407040704070407040704070407040704070407200000000000
+-- 006:09000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090030b000000000
 -- </SFX>
 
 -- <PATTERNS>
@@ -2068,23 +2384,23 @@ end
 -- </TRACKS>
 
 -- <FLAGS>
--- 000:00000000000000001000000000000000000000000000100010000000000000000000000010101010101000000000000000000000001010101010100010101010000000000000000000000000101010100000000000101000000000001010101000000000101010101010101010101010101010100000101010101010101010100000000000000010101010100000000000000000001010000000000000000000000000001010101010100000000000000000000010001010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 000:00000000000000001000000000000000000000000000100010000000000000000000000010101010101000000000000000000000001010101010100010101010000000000000000000000000101010100000000000101000000000001010101000000000101010101010101010101010101010100000101010101010101010100000000000000010101010100000000000000000001010000000000000000000000000000000101010100000000000000000000000001010101000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000
 -- </FLAGS>
 
 -- <PALETTE>
--- 000:1c1c1c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f6eaeaea919191b2b2b2656c79333434
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE>
 
 -- <PALETTE1>
--- 000:1a1c2c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f673eff7919191aeaaae656c79333434
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE1>
 
 -- <PALETTE2>
--- 000:1a1c2c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f673eff7919191aeaaae656c79333434
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE2>
 
 -- <PALETTE3>
--- 000:1a1c2c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f673eff7919191aeaaae656c79333434
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE3>
 
 -- <PALETTE4>
