@@ -5,7 +5,6 @@ A de-make of Factorio for the [TIC-80](https://tic80.com/) fantasy console.
 
 ![furnace_stack_demo_4](https://github.com/archaicvirus/Craptorio/assets/25288625/7d1ec8f1-e66a-4146-bb75-e83adba0bdc6)
 
-
 **Note, this project is a WIP.
 - If you have found this page and would like to contribute to the project, please open a discussion and we can talk about the details.
 # Core idea for de-make
@@ -30,6 +29,7 @@ I do intend to add as many features and mechanics from the original as technical
 - You now play as an advanced logistics robot, capable of flying over any terrain or obstacles
 - ~Working on finishing new splitters~
 - ~Currently working on crafting mechanics, inventory, and item systems.~
+- ![furnace_ui_v5](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/8197e646-1259-421f-b6cf-b210370a55bb)
 - ![new_furnace_ui](https://github.com/archaicvirus/Craptorio/assets/25288625/6ed8d134-03e4-4e61-b566-973309a34b36)
 - ![assembly_ui_layout_4](https://github.com/archaicvirus/Craptorio/assets/25288625/7f3aef5d-6e93-4471-95db-4b4932bc33be)
 - ![assembly_recipie_overlay_demo](https://github.com/archaicvirus/Craptorio/assets/25288625/53389950-9337-43ef-aa96-f9320457ea73)
