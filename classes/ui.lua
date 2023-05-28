@@ -359,17 +359,16 @@ function draw_recipe_widget(x, y, id)
     if str_w > w then w = str_w end
     h = h + 6
   end
-  local str_w = print(item.name, 0, -6, 0, false, 1, true)
-  if str_w > w then w = str_w end
+  local str_w2 = print(item.name, 0, -6, 0, false, 1, true)
+  if str_w2 > w then w = str_w2 + 4 end
   --local sx, sy = x - w/2, y + 8
   local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
-  rectb(sx - 1, sy - 1, w + 3, h, 13)
-  rect(sx, sy, w + 1, h - 2, 8)
-  print(item.fancy_name, sx + 1, sy + 1, 11, false, 1, true)
-  line(sx + 1, sy + 8, sx + w - 2, sy + 8, 13)
+  box(sx - 1, sy - 1, w + 3, h, 8, 9)
+  prints(item.fancy_name, sx + 2, sy + 2, 0, 4)
+  line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
   local i = 0
   for k, v in ipairs(item.recipe.ingredients) do
-    print(ITEMS[v.id].name .. ' - ' .. v.count, sx + 1, sy + 10 + (i * 6), 5, false, 1, true)
+    prints(ITEMS[v.id].fancy_name .. ' - ' .. v.count, sx + 2, sy + 10 + (i * 6), 0, 12)
     i = i + 1
   end
 end

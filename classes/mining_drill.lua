@@ -178,7 +178,7 @@ function Drill.draw(self)
     local belt_pos = DRILL_MINI_BELT_MAP[self.rot]
     --trace(TICK % 2)
     --sspr(DRILL_BURNER_SPRITE_ID + (DRILL_ANIM_TICK * 2), sx, sy, 0, 1, 0, self.rot, 2, 2)
-    sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 7, 0, 1, 0, 0, 1, 1)
+    sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 5, 0, 1, 0, 0, 1, 1)
     sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
     sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, self.rot, 1, 1)
   else

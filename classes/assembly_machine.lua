@@ -16,6 +16,15 @@ local Crafter = {
   progress = 0,
 }
 
+function Crafter:draw_hover_widget(sx, sy)
+  local sx, sy = sx or cursor.x + 3, sy or cursor.y + 3
+  local x, y, w, h = sx, sy, 69, 50
+  box(sx, sy, w, h, 8, 9)
+  local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
+  rect(sx + 1, sy + 1, w - 2, 8, 9)
+  prints('Assembly Machine', sx + w/2 - width/2, sy + 2, 0, 4)
+end
+
 function Crafter:draw()
   local sx, sy = world_to_screen(self.x, self.y)
   local blink = TICK % 60 < 30
@@ -24,14 +33,14 @@ function Crafter:draw()
     sspr(ITEMS[self.recipe.id].sprite_id, sx + 8, sy + 12, 0)
   end
   if self.state == 'crafting' then
-    pix(sx + 7, sy + 5, blink and 5 or 7)
+    pix(sx + 6, sy + 5, blink and 5 or 7)
     line(sx + 6, sy + 9, sx + 6 + remap(self.progress, 0, self.recipe.crafting_time, 0, 12), sy + 9, 5)
   end
   if self.state == 'idle' then
     pix(sx + 11, sy + 5, blink and 0 or 3)
   end
   if self.state == 'ready' then
-    pix(sx + 15, sy + 5, blink and 0 or 2)
+    pix(sx + 16, sy + 5, blink and 0 or 2)
   end
 end
 
@@ -88,8 +97,8 @@ function Crafter:open()
   if not self.recipe then
     -------------NO recipe--------------------
     return {
-      width = 100,
-      height = 75,
+      width = 80,
+      height = 55,
       x = 70,
       y = 18,
       close = function(self, sx, sy)
@@ -103,31 +112,24 @@ function Crafter:open()
       ent_key = self.x .. '-' .. self.y,
       click = function(self, sx, sy)
         --check for close-button
-        if sx >= self.x and sx < self.x + self.width and sy >= self.y and sy < self.y + self.height then
-          if self:close(sx, sy) then
+        if self:close(sx, sy) then
             window = nil
             craft_menu.current_output = 'player'
             return true
-          end
-          --check for other clicked input
         end
-
         --if no recipe, check the 'set-recipe' button
-        if not self.recipe then
-          local width = print('Select a recipe', 0, -10, 0, true, 1, true) + 4
-          local x, y, w, h = (self.x + self.width/2) - (width/2), self.y + 50, width + 4, 10
-          if sx >= x and sx < x + w and sy >= y and sy < sy + h then
-            --open recipe selection widget
-            window = nil
-            --ui.assembly_recipe_widget(self)
-            craft_menu.current_output = self.ent_key
-            toggle_crafting(true)
-            trace('selecting recipe')
-            return true
-          end
+        local width = print('Select a recipe', 0, -10, 0, false, 1, true) + 4
+        local x, y, w, h = (self.x + self.width/2) - (width/2), self.y + 40, width + 4, 10
+        if sx >= x and sx < x + w and sy >= y and sy < sy + h then
+          --open recipe selection widget
+          window = nil
+          --ui.assembly_recipe_widget(self)
+          craft_menu.current_output = self.ent_key
+          toggle_crafting(true)
+          trace('selecting recipe')
+          return true
         end
         return false
-
       end,
 
       is_hovered = function(self, x, y)
@@ -139,27 +141,25 @@ function Crafter:open()
           if not ent then self = nil return end
           local input, output, fuel = ent.input_buffer, ent.output_buffer, ent.fuel_buffer
           local x, y, w, h = self.x, self.y, self.width, self.height
+          local width = print('Select a recipe', 0, -10, 0, false, 1, true)
+          local c = cursor          
+          local btn = {x = x + w/2 - width/2 - 2, y = y + 40, w = width + 4, h = 9}
+          btn.color = c.x >= btn.x and c.x < btn.x + btn.w and c.y >= btn.y and c.y < btn.y + btn.h and 9 or 8
           --background window and border
           box(x, y, w, h, 8, 9)
+          rect(x + 1, y + 1, w - 2, 8, 9)
           --input input icon, and item count------------------------------------------
 
           --input slot
           --box(x + 3, y + 40, 10, 10, 0, 9)
-          local width = print('Select a recipe', 0, -10, 0, true, 1, true)
-          box(x + w/2 - width/2 - 2, y + 50, width + 4, 10, 15, 9)
-          print('Select a recipe', x + w/2 - width/2 + 1, y + 52, 0, true, 1, true)
-          print('Select a recipe', x + w/2 - width/2, y + 52, 4, true, 1, true)
+          box(btn.x, btn.y, btn.w, btn.h, btn.color, 9)
+          prints('Select a recipe', x + w/2 - width/2 + 1, y + 42, 0, 4)
           --assembly machine graphic-and terrain background-------------------------
-          local sprite_id = CRAFTER_ID
-          local fx, fy = x + w/2 - 12, y + 12 --crafter icon screen pos
-          --rectb(fx - 33, fy - 17, w - 18, 50, 14)
-          line(x + 1, y + 10, x + w - 2, y + 10, 9)
-          line(x + 1, y + 37, x + w - 2, y + 37, 9)
-          sspr(sprite_id, fx, fy, 0, 1, 0, 0, 3, 3)
+          line(x + 1, y + 35, x + w - 2, y + 35, 9)
+          sspr(CRAFTER_ID, x + w/2 - 12, y + 10, 0, 1, 0, 0, 3, 3)
           sspr(437, x + w - 7, y + 2, 0)
-          local width = print('Assembly Machine', 0, -10, 0, true, 1, true)
-          print('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, true, 1, true)
-          print('Assembly Machine', x + w/2 - width/2 + 0, y + 3, 4, true, 1, true)
+          local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
+          prints('Assembly Machine', x + w/2 - width/2 + 1, y + 2, 0, 4)
         else
 
         end
@@ -183,15 +183,11 @@ function Crafter:open()
       ent_key = self.x .. '-' .. self.y,
       click = function(self, sx, sy)
         --check for close-button
-        if sx >= self.x and sx < self.x + self.width and sy >= self.y and sy < self.y + self.height then
-          if self:close(sx, sy) then
-            window = nil
-            return true
-          end
-          --check for other clicked input
-
+        if self:close(sx, sy) then
+          window = nil
+          return true
         end
-
+          --check for other clicked input
         return false
       end,
 
@@ -204,11 +200,14 @@ function Crafter:open()
         local x, y, w, h = self.x, self.y, self.width, self.height
         --background window and border
         box(x, y, w, h, 8, 9)
+        rect(x + 1, y + 1, w - 2, 9, 9)
         --recipe info and icon
-        print(ITEMS[ent.recipe.id].fancy_name, x + 31, y + 14, 0, true, 1, true)
-        print(ITEMS[ent.recipe.id].fancy_name, x + 30, y + 14, 4, true, 1, true)
+        prints(ITEMS[ent.recipe.id].fancy_name, x + 31, y + 14, 0, 4)
+        -- print(ITEMS[ent.recipe.id].fancy_name, x + 31, y + 14, 0, true, 1, true)
+        -- print(ITEMS[ent.recipe.id].fancy_name, x + 30, y + 14, 4, true, 1, true)
         for k, v in ipairs(ent.recipe.ingredients) do
           sspr(ITEMS[v.id].sprite_id, x + 30 + (k-1)*15, y + 24, 0)
+          --prints()
           print(v.count, x + 38 + ((k-1)*15) - 3, y + 28, 0, true, 1, true)
           print(v.count, x + 39 + ((k-1)*15) - 3, y + 29, 4, true, 1, true)
         end
@@ -255,8 +254,9 @@ function Crafter:open()
         sspr(sprite_id, fx, fy, 0, 1, 0, 0, 3, 3)
         sspr(437, x + w - 7, y + 2, 0)
         local width = print('Assembly Machine', 0, -10, 0, true, 1, true)
-        print('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, true, 1, true)
-        print('Assembly Machine', x + w/2 - width/2 + 0, y + 3, 4, true, 1, true)
+        prints('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, 4)
+        -- print('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, true, 1, true)
+        -- print('Assembly Machine', x + w/2 - width/2 + 0, y + 3, 4, true, 1, true)
         --Input ingredient icons and count
         for k, v in ipairs(ent.input) do
           
