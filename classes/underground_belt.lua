@@ -6,6 +6,7 @@ UBELT_TICK         = 0
 
 local underground_belt = {
   x = 0, y = 0,
+  item_id = 18,
   rot = 0,
   flip = 0,
   lanes = {[1] = {}, [2] = {}},
@@ -45,6 +46,15 @@ function underground_belt:draw()
     end
     sspr(UBELT_IN + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
   end
+end
+
+function underground_belt:draw_hover_widget(x, y)
+  x, y = x or cursor.x + 3, y or cursor.y + 3
+  w, h = 50, 50
+  box(x, y, w, h, 8, 9)
+  rect(x + 1, y + 1, w - 2, 9, 9)
+  prints('Underground Belt', x + w/2 - (print('Underground Belt', 0, -10, 0, false, 1, true)/2), y + 2, 0, 4)
+  sspr(ITEMS[self.item_id].sprite_id, x + 5, y + 15, ITEMS[self.item_id].color_keys, 2, self.flip, self.rot)
 end
 
 function underground_belt:draw_items()

@@ -233,7 +233,8 @@ function Belt:draw_hover_widget()
   rect(x + 1, y + 1, w - 2, 8, 9)
   prints('Transport Belt', x + 2, y + 2, 0, 4)
   --rect(x + w/2 - 5, y + 10, 9, 9, 9)
-  sspr(self.id, x + w/2 - 17, y + 11, 0, 4, self.flip, self.sprite_rot)
+  local b = {x = x + w/2 - 17, y = y + 11}
+  sspr(self.id, b.x, b.y, 0, 4, self.flip, self.sprite_rot)
   -- for i = 1, 2 do
   --   for j = 1, 8 do
   --     if self.lanes[i][j] ~= 0 then
@@ -245,13 +246,16 @@ function Belt:draw_hover_widget()
 
 
   local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
+  local offsets = {
+    
+  }
   for i = 1, 2 do
     for j = 1, 8 do
       if self.lanes[i][j] > 0 then
         --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
-        local xx = x + w/2 - 17 + (item_locations[j][i].x * 4)
-        local yy = y + 15 + (item_locations[j][i].y * 3)
-        local sprite_id = ITEMS[self.lanes[i][j]].belt_id
+        local xx = b.x + (item_locations[j][i].x * 4)
+        local yy = b.y + (item_locations[j][i].y * 4)
+        local sprite_id = ITEMS[self.lanes[i][j]].sprite_id
         sspr(sprite_id, xx, yy, ITEMS[self.lanes[i][j]].color_key, 1)
       end
     end
@@ -576,15 +580,11 @@ function Belt.draw_items(self)
     --if self.output_item_key == nil then self:set_output() end
     local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
     for i = 1, 2 do
+      local lane = self.lanes[i]
       for j = 1, 8 do
-        if self.lanes[i][j] > 0 then
-          --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
-          local x, y = item_locations[j][i].x + self.screen_pos.x, item_locations[j][i].y + self.screen_pos.y
-          local sprite_id = ITEMS[self.lanes[i][j]].belt_id
-          sspr(sprite_id, x, y, ITEMS[self.lanes[i][j]].color_key)
-        end
+        if lane[j] > 0 then sspr(ITEMS[lane[j]].belt_id, item_locations[j][i].x + self.screen_pos.x, item_locations[j][i].y + self.screen_pos.y, ITEMS[lane[j]].color_key) end
       end
-    end    
+    end
   end
 
   -- if self.is_hovered then

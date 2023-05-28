@@ -123,7 +123,7 @@ biomes = {
     max = 101,
     t_min = 47,
     t_max = 99,
-    tree_id = 198,
+    tree_id = 201,
     tree_density = 0.20,
     color_key = 4,
     map_col = 7,
@@ -175,16 +175,41 @@ callbacks = {
       cursor.drag_dir = cursor.rot
     end
   
+    local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
+    local rot, place = cursor.drag_dir, false
     if cursor.drag then
-      local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
       if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
-        add_belt(x, dy, cursor.drag_dir)
+        dx, dy, rot, place = x, dy, cursor.drag_dir, true
+        --add_belt(x, dy, cursor.drag_dir)
       elseif (cursor.drag_dir == 1 or cursor.drag_dir == 3) then
-        add_belt(dx, y, cursor.drag_dir)
+        dx, dy, rot, place = dx, y, cursor.drag_dir, true
+        --add_belt(dx, y, cursor.drag_dir)
       end
     elseif cursor.l and not cursor.ll then
-      add_belt(x, y, cursor.rot)
+      dx, dy, rot, place = x, y, cursor.rot, true
+      --add_belt(x, y, cursor.rot)
     end
+    --add belt--
+    if place then
+      local tile, cell_x, cell_y = get_world_cell(dx, dy)
+      local k = cell_x .. '-' .. cell_y
+      local belt = {}
+      if ENTS[k] and ENTS[k].type ~= 'transport_belt' then
+        sound('deny')
+        return
+      end
+
+      if not ENTS[k] then
+        ENTS[k] = new_belt({x = cell_x, y = cell_y}, rot)
+        ENTS[k]:rotate(rot)
+        ENTS[k]:update_neighbors()
+        sound('place_belt')
+      elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= rot then
+        ENTS[k]:rotate(rot)
+        sound('rotate')
+      end
+    end
+
   end,
 
   ['splitter'] = function(x, y)

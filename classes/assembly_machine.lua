@@ -203,47 +203,37 @@ function Crafter:open()
         rect(x + 1, y + 1, w - 2, 9, 9)
         --recipe info and icon
         prints(ITEMS[ent.recipe.id].fancy_name, x + 31, y + 14, 0, 4)
-        -- print(ITEMS[ent.recipe.id].fancy_name, x + 31, y + 14, 0, true, 1, true)
-        -- print(ITEMS[ent.recipe.id].fancy_name, x + 30, y + 14, 4, true, 1, true)
         for k, v in ipairs(ent.recipe.ingredients) do
-          sspr(ITEMS[v.id].sprite_id, x + 30 + (k-1)*15, y + 24, 0)
-          --prints()
-          print(v.count, x + 38 + ((k-1)*15) - 3, y + 28, 0, true, 1, true)
-          print(v.count, x + 39 + ((k-1)*15) - 3, y + 29, 4, true, 1, true)
+          draw_item_stack(x + 30 + (k-1)*15, y + 24, {id = v.id, count = v.count})
+          if k < #ent.recipe.ingredients then prints('+', x + 30 + (k-1)*15 + 10, y + 25, 0, 4) end
+          -- sspr(ITEMS[v.id].sprite_id, x + 30 + (k-1)*15, y + 24, 0)
+          -- print(v.count, x + 38 + ((k-1)*15) - 3, y + 28, 0, true, 1, true)
+          -- print(v.count, x + 39 + ((k-1)*15) - 3, y + 29, 4, true, 1, true)
         end
         local xx = x + 33 + (#ent.recipe.ingredients * 15) + 1
-        print('= ', xx - 7, y + 26, 0)
-        print('= ', xx - 6, y + 26, 4)
-        sspr(ITEMS[ent.recipe.id].sprite_id, xx, y + 24, 0)
-        print(ent.recipe.count, xx + 4, y + 27, 0, true, 1, true)
-        print(ent.recipe.count, xx + 4, y + 28, 4, true, 1, true)
+        prints('= ', xx - 7, y + 26, 0, 4)
+        draw_item_stack(xx, y + 24, {id = ent.recipe.id, count = ent.recipe.count})
         --crafting progress bar
         box(x + 28, y + 38, 69, 6, 0, 9)
         if ent.state == 'crafting' then
           rect(x + 29, y + 39, remap(ent.progress, 0, ent.recipe.crafting_time, 0, 67), 4, 5)
         end
         --input slots and items
-        print('Input', x + 16, y + 50, 0, true, 1, true)
-        print('Input', x + 15, y + 50, 4, true, 1, true)
+        prints('Input', x + 16, y + 50, 0, 4)
         for i = 1, 4 do
-          box(x + 3 + (i - 1)*11, y + 58, 10, 10, 0, 9)
+          box(x + 3 + (i - 1)*15, y + 58, 10, 10, 0, 9)
         end
         for i = 1, 4 do
           if ent.input[i].count > 0 and ent.input[i].id ~= 0 then
-            local id = ent.input[i].id
-            sspr(ITEMS[id].sprite_id, x + 4 + (i - 1)*11, y + 59, 0)
-            print(ent.input[i].count, x + 3 + (i - 1)*11 + 6, y + 63, 0, true, 1, true)
-            print(ent.input[i].count, x + 3 + (i - 1)*11 + 7, y + 63, 4, true, 1, true)
+            local id, count = ent.input[i].id, ent.input[i].count
+            draw_item_stack(x + 4 + (i - 1)*15, y + 59, {id = id, count = count})
           end
         end
         --output slot/items
-        print('Output', x + 66 + 4, y + 50, 0, true, 1, true)
-        print('Output', x + 65 + 4, y + 50, 4, true, 1, true)
+        prints('Output', x + 66 + 4, y + 50, 0, 4)
         box(x + w - 28 + 4, y + 58, 10, 10, 0, 9)
         if ent.output.count > 0 then
-          sspr(ITEMS[ent.output.id].sprite_id, x + w - 28 + 5, y + 59, 0)
-          print(ent.output.count, x + w - 28 + 10, y + 63, 0, true, 1, true)
-          print(ent.output.count, x + w - 28 + 11, y + 63, 4, true, 1, true)
+          draw_item_stack(x + w - 28 + 5, y + 59, {id = ent.output.id, count = ent.output.count})
         end
         --assembly machine graphic-and terrain background-------------------------
         local sprite_id = CRAFTER_ID
