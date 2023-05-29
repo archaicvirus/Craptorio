@@ -39,8 +39,8 @@ function Lab:open()
       prints(ent.current_research.name, self.x + self.w/2 - print(ent.current_research.name, 0, -10, 0, false, 1, true)/2, self.y + 12, 0, 4)
       for i = 1, 6 do
         box(self.x + 4 + (i - 1)*13, self.y + 50, 10, 10, 0, 9)
-        if ent.input[i] then
-          draw_item_stack(self.x + 4 + (i - 1)*13, self.y + 50, ent.input[i])
+        if ent.input[i].count > 0 then
+          draw_item_stack(self.x + 5 + (i - 1)*13, self.y + 51, ent.input[i])
         end
       end
       --progress bar
@@ -93,7 +93,19 @@ function Lab:update()
   return
 end
 
+function Lab:request(keep)
+  
+end
+
 function new_lab(x, y, dummy_keys)
+  -- local slotmap = {
+  --   [1] = ,
+  --   [2] = ,
+  --   [3] = ,
+  --   [4] = ,
+  --   [5] = ,
+  --   [6] = ,
+  -- }
   local newlab = {
     x = x,
     y = y,
@@ -102,8 +114,10 @@ function new_lab(x, y, dummy_keys)
     input = {},
     progress = 10,
     dummy_keys = dummy_keys,
-    current_research = {name = 'Automation 1', id = 1},
   }
+  for i = 1, 6 do
+    newlab.input[i] = {id = 22 + i, count = 1}
+  end
   setmetatable(newlab, {__index = Lab})
   return newlab
 end

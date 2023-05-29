@@ -150,14 +150,14 @@ local CraftPanel = {
       spr_id = 393,
       slots = {},
     },
-    -- [3] = {
-    --   x = 69,
-    --   y = 2,
-    --   w = 22,
-    --   h = 22,
-    --   spr_id = 396,
-    --   slots = {},
-    -- }
+    [3] = {
+      x = 69,
+      y = 2,
+      w = 22,
+      h = 22,
+      spr_id = 497,
+      slots = {},
+    }
   }
 }
 
@@ -198,11 +198,15 @@ function CraftPanel:draw()
     -- print('x', self.x + self.w - 5, self.y + 1, 0, false, 1, true)
 
     --anchor button
-    spr(self.docked == true and CRAFT_ANCHOR_ID or CRAFT_ANCHOR_ID + 1, self.x + self.w - 7, self.y + 8, 15)
+    sspr(self.docked == true and CRAFT_ANCHOR_ID or CRAFT_ANCHOR_ID + 1, self.x + self.w - 7, self.y + 8, 15)
 
     --Sprites for tab images
-    for i = 0, 2 do
-      spr(self.tab[i].spr_id, self.tab[i].x + x, self.tab[i].y + y, 1, 1, 0, 0, 3, 3)
+    for i = 0, 3 do
+      if i < 3 then
+        sspr(self.tab[i].spr_id, self.tab[i].x + x, self.tab[i].y + y, 1, 1, 0, 0, 3, 3)
+      else
+        sspr(self.tab[i].spr_id, self.tab[i].x + x + 3, self.tab[i].y + y + 2, 0, 2.5, 0, 0, 1, 1)
+      end
     end
     --spr(self.tab[3].spr_id, self.tab[3].x + x + 1, self.tab[3].y + y, 6, 1, 0, 0, 3, 3)
 
@@ -277,7 +281,7 @@ function CraftPanel:click(x, y, side)
       return true
     end
     --category tabs
-    for i = 0, 2 do
+    for i = 0, 3 do
       if x >= self.x + self.tab[i].x - 1 and x < self.x + self.tab[i].x + self.tab[i].w and y >= self.y + self.tab[i].y - 1 and y < self.y + self.tab[i].y - 1 + self.tab[i].h then
         self.active_tab = i
         return true
@@ -358,21 +362,25 @@ function draw_recipe_widget(x, y, id)
   local w, h = 10, 12
   for k, v in ipairs(item.recipe.ingredients) do
     local str_w = print(ITEMS[v.id].name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
-    if str_w > w then w = str_w end
+    if str_w > w then w = str_w + 4 end
     h = h + 6
   end
+  h = h + 8
   local str_w2 = print(item.name, 0, -6, 0, false, 1, true)
-  if str_w2 > w then w = str_w2 + 4 end
+  if str_w2 > w then w = str_w2 + 2 end
   --local sx, sy = x - w/2, y + 8
   local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
-  box(sx - 1, sy - 1, w + 3, h, 8, 9)
-  prints(item.fancy_name, sx + 2, sy + 2, 0, 4)
+  box(sx, sy, w, h, 8, 9)
+  rect(sx + 1, sy + 1, w - 2, 8, 9)
+  prints(item.fancy_name, sx + 3, sy + 2, 0, 4)
   line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
   local i = 0
   for k, v in ipairs(item.recipe.ingredients) do
-    prints(ITEMS[v.id].fancy_name .. ' - ' .. v.count, sx + 2, sy + 10 + (i * 6), 0, 12)
+    prints(ITEMS[v.id].fancy_name .. ' - ' .. v.count, sx + 3, sy + 10 + (i * 6), 0, 11)
     i = i + 1
   end
+  sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
+  prints(item.recipe.crafting_time/60 .. 's', sx + 12, sy + h - 8, 0, 5)
 end
 
 function ui.check_input(c)

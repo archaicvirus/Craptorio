@@ -11,7 +11,7 @@ ITEMS = {
     stack_size = 200,
     recipe = {
       id = 1,
-      crafting_time = 2 * 60,
+      crafting_time = 60*6,
       count = 1,
       ingredients = {
         [1] = {id = 21, count = 2}, --copper_cable
@@ -31,7 +31,7 @@ ITEMS = {
     stack_size = 200,
     recipe = {
       id = 2,
-      crafting_time = 4 * 60,
+      crafting_time = 60*0.5,
       count = 1,
       ingredients = {
         [1] = {id = 21, count = 2}, --copper_cable
@@ -131,7 +131,7 @@ ITEMS = {
     stack_size = 100,
     recipe = {
       id = 9,
-      crafting_time = 2.0,
+      crafting_time = 60*0.5,
       count = 2,
       ingredients = {
         [1] = {id = 20, count = 1}, --gear
@@ -149,7 +149,7 @@ ITEMS = {
     stack_size = 100,
     recipe = {
       id = 10,
-      crafting_time = 2.0,
+      crafting_time = 60*1,
       count = 2,
       ingredients = {
         [1] = {id = 2, count = 5}, --green_circuit
@@ -168,7 +168,7 @@ ITEMS = {
     stack_size = 100,
     recipe = {
       id = 11,
-      crafting_time = 1.0,
+      crafting_time = 60*0.5,
       count = 1,
       ingredients = {
         [1] = {id = 2, count = 1}, --circuit
@@ -199,10 +199,12 @@ ITEMS = {
     stack_size = 100,
     recipe = {
       id = 21,
-      crafting_time = 30,
+      crafting_time = 60*2,
       count = 2,
       ingredients = {
-        [1] = {id = 16, count = 1}
+        [1] = {id = 20, count = 3},
+        [2] = {id = 15, count = 3},
+        [3] = {id = 14, count = 1}
       },
     }
   },
@@ -217,7 +219,7 @@ ITEMS = {
     stack_size = 50,
     recipe = {
       id = 21,
-      crafting_time = 30,
+      crafting_time = 60*0.5,
       count = 2,
       ingredients = {
         [1] = {id = 16, count = 1}
@@ -267,7 +269,7 @@ ITEMS = {
     stack_size = 50,
     recipe = {
       id = 18,
-      crafting_time = 1.0,
+      crafting_time = 60*1,
       count = 1,
       ingredients = {
         [1] = {id = 15, count = 10}, --plate
@@ -287,10 +289,12 @@ ITEMS = {
     stack_size = 50,
     recipe = {
       id = 21,
-      crafting_time = 30,
+      crafting_time = 60*0.5,
       count = 2,
       ingredients = {
-        [1] = {id = 16, count = 1}
+        [1] = {id = 2, count = 3},
+        [1] = {id = 20, count = 5},
+        [1] = {id = 15, count = 1},
       },
     }
   },
@@ -305,7 +309,7 @@ ITEMS = {
     stack_size = 100,
     recipe = {
       id = 20,
-      crafting_time = 120,
+      crafting_time = 60*0.5,
       count = 1,
       ingredients = {
         [1] = {id = 15, count = 2}
@@ -323,7 +327,7 @@ ITEMS = {
     stack_size = 100,
     recipe = {
       id = 21,
-      crafting_time = 30,
+      crafting_time = 60*0.5,
       count = 2,
       ingredients = {
         [1] = {id = 16, count = 1}
@@ -341,7 +345,7 @@ ITEMS = {
     stack_size = 50,
     recipe = {
       id = 22,
-      crafting_time = 60*5,
+      crafting_time = 60*2,
       count = 1,
       ingredients = {
         [1] = {id = 2, count = 10},
@@ -349,5 +353,124 @@ ITEMS = {
         [3] = {id = 9, count = 4}
       },
     }
-  }
+  },
+  [23] = {
+    name = 'automation_pack',
+    fancy_name = 'Automation Pack',
+    sprite_id = 460,
+    belt_id = 444,
+    color_key = 0,
+    type = 'intermediate',
+    sub_type = 'craftable',
+    stack_size = 50,
+    recipe = {
+      id = 23,
+      crafting_time = 60*5,
+      count = 1,
+      ingredients = {
+        [1] = {id = 16, count = 1},
+        [2] = {id = 20, count = 1}
+      },
+    }
+  },
+  [24] = {
+    name = 'logistics_pack',
+    fancy_name = 'Logistics Pack',
+    sprite_id = 461,
+    belt_id = 445,
+    color_key = 0,
+    type = 'intermediate',
+    sub_type = 'craftable',
+    stack_size = 50,
+    recipe = {
+      id = 24,
+      crafting_time = 60*6,
+      count = 1,
+      ingredients = {
+        [1] = {id = 11, count = 1},
+        [2] = {id =  9, count = 1}
+      },
+    }
+  },
+  [25] = {
+    name = 'biology_pack',
+    fancy_name = 'Biology Pack',
+    sprite_id = 462,
+    belt_id = 446,
+    color_key = 0,
+    type = 'intermediate',
+    sub_type = 'craftable',
+    stack_size = 50,
+    recipe = {
+      id = 25,
+      crafting_time = 60*10,
+      count = 1,
+      ingredients = {
+        [1] = {id = 4, count = 2}, --copper
+        [2] = {id = 6, count = 5}, --coal
+        [3] = {id = 8, count = 10} --oil
+      },
+    }
+  },
+  [26] = {
+    name = 'production_pack',
+    fancy_name = 'Production Pack',
+    sprite_id = 463,
+    belt_id = 447,
+    color_key = 0,
+    type = 'intermediate',
+    sub_type = 'craftable',
+    stack_size = 50,
+    recipe = {
+      id = 26,
+      crafting_time = 60*20,
+      count = 1,
+      ingredients = {
+        [1] = {id = 4, count = 2}, --copper
+        [2] = {id = 6, count = 5}, --coal
+        [3] = {id = 8, count = 10} --oil
+      },
+    }
+  },
+  [27] = {
+    name = 'chemical_pack',
+    fancy_name = 'Chemical Pack',
+    sprite_id = 496,
+    belt_id = 480,
+    color_key = 0,
+    type = 'intermediate',
+    sub_type = 'craftable',
+    stack_size = 50,
+    recipe = {
+      id = 27,
+      crafting_time = 60*25,
+      count = 1,
+      ingredients = {
+        [1] = {id = 4, count = 2}, --copper
+        [2] = {id = 6, count = 5}, --coal
+        [3] = {id = 8, count = 10} --oil
+      },
+    }
+  },
+  [28] = {
+    name = 'fungal_pack',
+    fancy_name = 'Fungal Pack',
+    sprite_id = 497,
+    belt_id = 481,
+    color_key = 0,
+    type = 'intermediate',
+    sub_type = 'craftable',
+    stack_size = 50,
+    recipe = {
+      id = 28,
+      crafting_time = 60*30,
+      count = 1,
+      ingredients = {
+        [1] = {id = 4, count = 2}, --copper
+        [2] = {id = 6, count = 5}, --coal
+        [3] = {id = 8, count = 10}, --oil
+        [4] = {id = 17, count = 50} --oil
+      },
+    }
+  },
 }

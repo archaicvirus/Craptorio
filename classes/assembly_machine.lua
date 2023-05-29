@@ -1,5 +1,6 @@
 CRAFTER_ID = 312
 CRAFTER_TICKRATE = 5
+CRAFTER_TIME_ID = 337
 
 local Crafter = {
   x = 0,
@@ -202,19 +203,19 @@ function Crafter:open()
         box(x, y, w, h, 8, 9)
         rect(x + 1, y + 1, w - 2, 9, 9)
         --recipe info and icon
-        prints(ITEMS[ent.recipe.id].fancy_name, x + 31, y + 14, 0, 4)
+        prints(ITEMS[ent.recipe.id].fancy_name, x + 3, y + 14, 0, 4)
         for k, v in ipairs(ent.recipe.ingredients) do
-          draw_item_stack(x + 30 + (k-1)*15, y + 24, {id = v.id, count = v.count})
-          if k < #ent.recipe.ingredients then prints('+', x + 30 + (k-1)*15 + 10, y + 25, 0, 4) end
+          draw_item_stack(x + 3 + (k-1)*14, y + 24, {id = v.id, count = v.count})
+          if k < #ent.recipe.ingredients then prints('+', x + 3 + (k-1)*14 + 10, y + 25, 0, 11) end
           -- sspr(ITEMS[v.id].sprite_id, x + 30 + (k-1)*15, y + 24, 0)
           -- print(v.count, x + 38 + ((k-1)*15) - 3, y + 28, 0, true, 1, true)
           -- print(v.count, x + 39 + ((k-1)*15) - 3, y + 29, 4, true, 1, true)
         end
-        local xx = x + 33 + (#ent.recipe.ingredients * 15) + 1
-        prints('= ', xx - 7, y + 26, 0, 4)
+        local xx = x + 3 + (#ent.recipe.ingredients * 14) + 2
+        prints('= ', xx - 5, y + 25, 0, 11)
         draw_item_stack(xx, y + 24, {id = ent.recipe.id, count = ent.recipe.count})
         --crafting progress bar
-        box(x + 28, y + 38, 69, 6, 0, 9)
+        box(x + 3, y + 38, 69, 6, 0, 9)
         if ent.state == 'crafting' then
           rect(x + 29, y + 39, remap(ent.progress, 0, ent.recipe.crafting_time, 0, 67), 4, 5)
         end
@@ -225,8 +226,7 @@ function Crafter:open()
         end
         for i = 1, 4 do
           if ent.input[i].count > 0 and ent.input[i].id ~= 0 then
-            local id, count = ent.input[i].id, ent.input[i].count
-            draw_item_stack(x + 4 + (i - 1)*15, y + 59, {id = id, count = count})
+            draw_item_stack(x + 4 + (i - 1)*15, y + 59, ent.input[i])
           end
         end
         --output slot/items
@@ -237,7 +237,7 @@ function Crafter:open()
         end
         --assembly machine graphic-and terrain background-------------------------
         local sprite_id = CRAFTER_ID
-        local fx, fy = x + 3, y + 12 --crafter icon screen pos
+        local fx, fy = x + w - 26, y + 12 --crafter icon screen pos
         --rectb(fx - 33, fy - 17, w - 18, 50, 14)
         line(x + 1, y + 10, x + w - 2, y + 10, 9)
         line(x + 1, y + 47, x + w - 2, y + 47, 9)
