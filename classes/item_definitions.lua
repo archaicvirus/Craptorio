@@ -20,7 +20,6 @@ local items = {
       },
     }
   },
-
   [2] = {
     name = 'electronic_circuit',
     fancy_name = 'Electronic Circuit',
@@ -40,7 +39,6 @@ local items = {
       }
     },
   },
-
   [3] = {
     name = 'iron_ore',
     fancy_name = 'Iron Ore',
@@ -56,7 +54,6 @@ local items = {
     mining_time = 4 * 60,
     recipe = false,
   },
-
   [4] = {
     name = 'copper_ore',
     fancy_name = 'Copper Ore',
@@ -286,6 +283,7 @@ local items = {
     belt_id = 312,
     color_key = 0,
     type = 'placeable',
+    sub_type = 'craftable',
     stack_size = 50,
     recipe = {
       id = 21,
@@ -329,6 +327,26 @@ local items = {
       count = 2,
       ingredients = {
         [1] = {id = 16, count = 1}
+      },
+    }
+  },
+  [22] = {
+    name = 'research_lab',
+    fancy_name = 'Research Lab',
+    sprite_id = 399,
+    belt_id = 281,
+    color_key = 6,
+    type = 'placeable',
+    sub_type = 'craftable',
+    stack_size = 50,
+    recipe = {
+      id = 22,
+      crafting_time = 60*5,
+      count = 1,
+      ingredients = {
+        [1] = {id = 2, count = 10},
+        [2] = {id = 20, count = 10},
+        [3] = {id = 9, count = 4}
       },
     }
   }

@@ -39,7 +39,7 @@ function inventory:draw()
           print(num, x + 2, y + 1, 0, true, 1, true)
           local id = self.slots[90 + col].item_id
           if id ~= 0 then
-            sspr(ITEMS[id].sprite_id, x, y, 0)
+            sspr(ITEMS[id].sprite_id, x, y, ITEMS[id].color_key)
           end
         end
       end
@@ -65,7 +65,7 @@ function inventory:draw()
       print(num, x + 2, y + 1, 0, true, 1, true)
       local id = self.slots[90 + col].item_id
       if id ~= 0 then
-        sspr(ITEMS[id].sprite_id, x, y, 0)
+        sspr(ITEMS[id].sprite_id, x, y, ITEMS[id].color_key)
       end
     end
   end
@@ -147,7 +147,7 @@ function new_slot(index)
   local slot = {
     item_id = 0,
     count = 0,
-    callback = function (self) trace('hello world! From Slot: ' .. self.index) end,
+    callback = function (self) if self.index >= 91 then set_active_slot(self.index - 90) end end,
     index = index,
   }
   return slot

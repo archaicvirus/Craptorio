@@ -48,13 +48,19 @@ function underground_belt:draw()
   end
 end
 
-function underground_belt:draw_hover_widget(x, y)
-  x, y = x or cursor.x + 3, y or cursor.y + 3
-  w, h = 50, 50
+function underground_belt:draw_hover_widget(other)
+  local txt = 'Underground Belt'
+  local x, y = cursor.x + 3, cursor.y + 3
+  local width = print(txt, 0, -10, 0, false, 1, true)
+  local w, h = width + 4, 50
   box(x, y, w, h, 8, 9)
   rect(x + 1, y + 1, w - 2, 9, 9)
-  prints('Underground Belt', x + w/2 - (print('Underground Belt', 0, -10, 0, false, 1, true)/2), y + 2, 0, 4)
-  sspr(ITEMS[self.item_id].sprite_id, x + 5, y + 15, ITEMS[self.item_id].color_keys, 2, self.flip, self.rot)
+  prints(txt, x + w/2 - width/2, y + 2, 0, 4)
+  if other then
+    sspr(UBELT_OUT + UBELT_TICK, x + w/2 - 12, y + 15, ITEMS[self.item_id].color_key, 3, ENTS[other].flip, ENTS[other].rot)
+  else
+    sspr(UBELT_IN + UBELT_TICK, x + w/2 - 12, y + 15, ITEMS[self.item_id].color_key, 3, self.flip, self.rot)
+  end  
 end
 
 function underground_belt:draw_items()

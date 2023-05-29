@@ -242,6 +242,32 @@ callbacks = {
   ['assembly_machine'] = function(x, y)
     add_assembly_machine(x, y)
   end,
+
+  ['research_lab'] = function(x, y)
+    local tile, wx, wy = get_world_cell(x, y)
+    local k = wx .. '-' ..wy
+    if tile.is_land and not ENTS[k] then
+      for i = 0, 2 do
+        for j = 0, 2 do
+          if ENTS[wx + j .. '-' .. i + wy] then 
+            sound('deny')
+            return
+          end
+        end      
+    end
+      --else place dummy ents to reserve 3x3 tile area, and create the crafter
+    local dummy_keys = {k}
+    for i = 0, 2 do
+      for j = 0, 2 do
+        local dk = wx + j .. '-' .. i + wy
+        ENTS[dk] = {type = 'dummy_lab', other_key = k}
+        table.insert(dummy_keys, dk)
+      end
+    end
+    sound('place_belt')
+    ENTS[k] = new_lab(wx, wy, dummy_keys)
+    end
+  end,
 }
 --Item entry Template
 -- [] = {

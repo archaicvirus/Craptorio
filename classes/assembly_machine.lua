@@ -157,7 +157,7 @@ function Crafter:open()
           --assembly machine graphic-and terrain background-------------------------
           line(x + 1, y + 35, x + w - 2, y + 35, 9)
           sspr(CRAFTER_ID, x + w/2 - 12, y + 10, 0, 1, 0, 0, 3, 3)
-          sspr(437, x + w - 7, y + 2, 0)
+          sspr(CLOSE_ID, x + w - 7, y + 2, 0)
           local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
           prints('Assembly Machine', x + w/2 - width/2 + 1, y + 2, 0, 4)
         else
@@ -170,8 +170,8 @@ function Crafter:open()
     return {
       width = 100,
       height = 75,
-      x = 70,
-      y = 18,
+      x = 139,
+      y = 1,
       close = function(self, sx, sy)
         -- 5x5 close button sprite
         local cx, cy, cw, ch = self.x + self.width - 7, self.y + 2, 5, 5
@@ -242,7 +242,7 @@ function Crafter:open()
         line(x + 1, y + 10, x + w - 2, y + 10, 9)
         line(x + 1, y + 47, x + w - 2, y + 47, 9)
         sspr(sprite_id, fx, fy, 0, 1, 0, 0, 3, 3)
-        sspr(437, x + w - 7, y + 2, 0)
+        sspr(CLOSE_ID, x + w - 7, y + 2, 0)
         local width = print('Assembly Machine', 0, -10, 0, true, 1, true)
         prints('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, 4)
         -- print('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, true, 1, true)

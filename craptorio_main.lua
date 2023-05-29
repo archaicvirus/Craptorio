@@ -5,22 +5,23 @@
 -- license: MIT License
 -- version: 0.3
 -- script: lua
+ITEMS                = require('\\classes\\item_definitions')
+DEFS                 = require('\\classes\\defs')
+ui                   = require('\\classes\\ui')
+make_inventory       = require('\\classes\\inventory')
 new_underground_belt = require('\\classes\\underground_belt')
 new_belt             = require('\\classes\\transport_belt')
 new_splitter         = require('\\classes\\splitter')
 new_inserter         = require('\\classes\\inserter')
-ITEMS                = require('\\classes\\item_definitions')
-DEFS                 = require('\\classes\\defs')
 draw_cable           = require('\\classes\\cable')
 new_pole             = require('\\classes\\power_pole')
-make_inventory       = require('\\classes\\inventory')
 new_drill            = require('\\classes\\mining_drill')
 new_furnace          = require('\\classes\\furnace')
 new_assembly_machine = require('\\classes\\assembly_machine')
-ui                   = require('\\classes\\ui')
-                       require('\\classes\\crafting_definitions')
+new_lab              = require('\\classes\\research_lab')
 simplex              = require('\\classes\\open_simplex_noise')
 TileManager          = require('\\classes\\TileManager')
+require('\\classes\\crafting_definitions')
 
 math.randomseed(tstamp())
 --local seed = math.random(-1000000000, 1000000000)
@@ -107,6 +108,7 @@ inv.slots[95].item_id = 13
 inv.slots[96].item_id = 14
 inv.slots[97].item_id = 18
 inv.slots[98].item_id = 19
+inv.slots[99].item_id = 22
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
 show_mini_map = false
@@ -209,6 +211,7 @@ function get_visible_ents()
     ['underground_belt'] = {},
     --['underground_belt_exit'] = {},
     ['assembly_machine'] = {},
+    ['research_lab'] = {},
   }
   for x = 1, 31 do
     for y = 1, 18 do
@@ -232,6 +235,8 @@ function get_ent(x, y)
   local k = get_key(x, y)
   if not ENTS[k] then return false end
   if ENTS[k].type == 'splitter' then return k end
+  if ENTS[k].type == 'underground_belt_exit' then return ENTS[k].other_key, true end
+  if ENTS[k].type == 'underground_belt' then return k end
   if ENTS[k].other_key then return ENTS[k].other_key else return k end
 end
 
@@ -287,6 +292,11 @@ end
 
 function highlight_ent(k)
 
+end
+
+function pal(c0,c1)
+  if(c0==nil and c1==nil)then for i=0,15 do poke4(0x3FF0*2+i,i)end
+  else poke4(0x3FF0*2+c0,c1)end
 end
 
 function draw_item_stack(x, y, stack)
@@ -350,7 +360,24 @@ function is_facing(self, other, side)
   }
   if rotations[self.rot][side] == other.rot then return true else return false end
 end
---------ADD-+-REMOVE-ENTS------------------------------------------------
+--------ADD-+-REMOVE-ENTS-------------------------------------------------
+function remove_research_lab(x, y)
+  local tile, wx, wy = get_world_cell(x, y)
+  local k = wx .. '-' .. wy
+  if not ENTS[k] then return end
+  if ENTS[k].type == 'dummy_lab' then
+    trace('removing dummy lab')
+    k = ENTS[k].other_key
+  end
+
+  if window and window.ent_key == k then window = nil end
+  local keys = ENTS[k].dummy_keys
+  for dk, v in ipairs(keys) do
+    trace('removing DUMMY KEYS')
+    ENTS[v] = nil
+  end
+end
+
 function add_assembly_machine(x, y)
   local tile, wx, wy = get_world_cell(x, y)
   local k = wx .. '-' .. wy
@@ -433,27 +460,6 @@ function remove_underground_belt(x, y)
     sound('delete')
   end
 end
-
--- function add_belt(x, y, rotation)
---   --trace('adding belt')
---   local tile, cell_x, cell_y = get_world_cell(x, y)
---   local k = cell_x .. '-' .. cell_y
---   local belt = {}
---   if ENTS[k] and ENTS[k].type ~= 'transport_belt' then
---     sound('deny')
---     return
---   end
-
---   if not ENTS[k] then
---     ENTS[k] = new_belt({x = cell_x, y = cell_y}, cursor.rot)
---     ENTS[k]:rotate(rotation)
---     ENTS[k]:update_neighbors()
---     sound('place_belt')
---   elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= rotation then
---     ENTS[k]:rotate(rotation)
---     sound('rotate')
---   end
--- end
 
 function remove_belt(x, y)
   local k = get_key(x, y)
@@ -912,6 +918,8 @@ function draw_cursor()
       sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
     elseif cursor.item == 'assembly_machine' then
       sspr(CRAFTER_ID, cursor.tx, cursor.ty, 0, 1, 0, 0, 3, 3)
+    elseif cursor.item == 'research_lab' then
+      sspr(LAB_ID, cursor.tx, cursor.ty, 6, 1, 0, 0, 3, 3)
     end
   end
   if cursor.type == 'pointer' then
@@ -994,6 +1002,8 @@ function remove_tile(x, y)
       remove_underground_belt(x, y)
     elseif ent.type == 'assembly_machine' or ent.type == 'dummy_assembler' then
       remove_assembly_machine(x, y)
+    elseif ent.type == 'research_lab' or ent.type == 'dummy_lab' then
+      remove_research_lab(x, y)
     end
   elseif not tile.ore then
     TileMan:set_tile(wx, wy)
@@ -1066,7 +1076,7 @@ function dispatch_input()
 
   if window and window:is_hovered(cursor.x, cursor.y) and cursor.l and not cursor.ll then
     if window:click(cursor.x, cursor.y) then
-      return
+      --return
     end
   end
   --begin mouse-over priority dispatch
@@ -1074,16 +1084,15 @@ function dispatch_input()
   --check crafting menu
   if craft_menu.vis and craft_menu:is_hovered(cursor.x, cursor.y) then
     if cursor.l and not cursor.ll then
-      craft_menu:click(cursor.x, cursor.y, 'left')
+      if craft_menu:click(cursor.x, cursor.y, 'left') then return end
     elseif cursor.r and cursor.lr then
-      craft_menu:click(cursor.x, cursor.y, 'right')
+      if craft_menu:click(cursor.x, cursor.y, 'right') then return end
     end
     --consumed = true
     --check inventory
-    return
+    --return
   elseif inv.vis and inv:is_hovered(cursor.x, cursor.y) then
-    inv:clicked(cursor.x, cursor.y)
-    return
+    if inv:clicked(cursor.x, cursor.y) then return end
     --consumed = true
   end
 
@@ -1135,7 +1144,7 @@ function dispatch_input()
   --Q
   if keyp(17) then pipette() end
   --I or TAB
-  if keyp(9) or keyp(49) then toggle_inventory() end
+  if keyp(9) or keyp(49) then toggle_inventory() cursor.type = 'pointer' end
   --H
   if keyp(8) then toggle_hotbar() end
   --C
@@ -1191,6 +1200,7 @@ function dispatch_input()
     if ENTS[k].type == 'dummy_furnace' or
     ENTS[k].type == 'dummy_assembler' or
     ENTS[k].type == 'dummy_drill' or
+    ENTS[k].type == 'dummy_lab' or
     ENTS[k].type == 'dummy_splitter' then
       k = ENTS[k].other_key
     end
@@ -1207,6 +1217,10 @@ function dispatch_input()
     if ENTS[k].type == 'splitter' then
     end
     if ENTS[k].type == 'transport_belt' then
+    end
+    if ENTS[k].type == 'research_lab' then
+      cursor.type = 'pointer'
+      window = ENTS[k]:open()
     end
     return
     --consumed = true
@@ -1301,6 +1315,9 @@ function draw_ents()
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['assembly_machine']) do
+    if ENTS[k] then ENTS[k]:draw() end
+  end
+  for i, k in pairs(vis_ents['research_lab']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['inserter']) do
@@ -1500,12 +1517,16 @@ function TIC()
   --draw_debug2(info)
   info[10] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
   if debug then ui.draw_text_window(info, 2, 2) end
-  local k = get_ent(cursor.x, cursor.y)
+  local k, u = get_ent(cursor.x, cursor.y)
   if k and alt_mode and ENTS[k] then
     -- if ENTS[k].other_key then
     --   k = ENTS[k].other_key
     -- end
-    ENTS[k]:draw_hover_widget()
+    if u then
+      ENTS[k]:draw_hover_widget(ENTS[k].other_key)
+    else
+      ENTS[k]:draw_hover_widget()
+    end
   end
   for k, v in pairs(ENTS) do
     v.updated = false
@@ -1565,6 +1586,8 @@ end
 -- 045:6666666666666676666667776666776766677777667677776677777767777777
 -- 046:6666666666666666666666666666666666666666667777666777777677777777
 -- 047:6777767667777776767777666677776766776766677777767677776667777776
+-- 064:00112233001122338899aabb8899aabb00000000000000000000000000000000
+-- 065:4455667744556677ccddeeffccddeeff00000000000000000000000000000000
 -- 079:9999999999899989999999999999999999999999999899999899989999999999
 -- 160:4ce4ce44cdd4edc4dec44cf4444444444ecd4de4edf44ece4ee4ecdc444444e4
 -- 161:c2111121342f331133f144f112c142f1111111111431142ff323132f1d2f1f11
@@ -1793,6 +1816,18 @@ end
 -- 017:eddfe226edddf2262211f222ee3321222e3321223ee221124de33212cde33266
 -- </TILES3>
 
+-- <TILES4>
+-- 000:6666666d66666dcc666fdccc66fddcc966dccac96dddaacd6dd9adcc6dddcccc
+-- 001:dcccccddcccdccccccccc9dc9acccddd9ccddaaacc9dd909a90acd0cccdaadcc
+-- 002:d6666666ddd66666c9ddd666cc0ddd66dcdddd66ccddddd6c9d0ddd699d00df6
+-- 016:ddd9dcdadd09dddddd0dd99ddfdda9adfdff9a9ddff0ddcdf00d09df000d999f
+-- 017:ddccccd9aaaaddddaaaccddd99cca9d9dcca99d9dcaaa9d9fdaaa9dd00dddddd
+-- 018:000d00d0909d0dffdd0ddff090ddd00f99dd00009ddfff00dd0f0000909f0000
+-- 032:6f0d09d960f0fdd066000090666600f066666600666666660000000000000000
+-- 033:0aaaa0dd9d0990fd90d00f09000ff00000fddf00666666660000000000000000
+-- 034:d90f0006f800f0060f0000668000666600666666666666660000000000000000
+-- </TILES4>
+
 -- <SPRITES>
 -- 000:ffffffffeeeeeeee4fdd4fddfdd4fdd4fdd4fdd44fdd4fddeeeeeeeeffffffff
 -- 001:ffffffffeeeeeeeefdd4fdd4dd4fdd4fdd4fdd4ffdd4fdd4eeeeeeeeffffffff
@@ -1913,9 +1948,10 @@ end
 -- 137:111111111111111111111111111111111111111111111111111111111111111d
 -- 138:111111df11111dcd1111dccc111dccce11dcccee1dccceeddccceedfccceedf1
 -- 139:11111111f1111111df111111edf11111df111111f11111111111111111111111
--- 140:111111111111111111111111111111111111111111111111111111111111111f
--- 141:11111111111111111111111f111111fd11111fdd1111fdddf11fdddddfedddde
--- 142:1fef1111fdfe1111dddf1111dde11111de111111e1111111e111111111111111
+-- 140:6666666d66666dcc666fdccc66fddcc966dccac96dddaacd6dd9adcc6dddcccc
+-- 141:dcccccddcccdccccccccc9dc9acccddd9ccddaaacc9dd909a90acd0cccdaadcc
+-- 142:d6666666ddd66666c9ddd666cc0ddd66dcdddd66ccddddd6c9d0ddd699d00df6
+-- 143:00bbbd000bbbbbc0ccbbccdcc9acb9dfd9caccdfdcaad9efe9dc9d8f0e9ee8f0
 -- 144:f0000000f0000000f0000000f0000000f0000000ff000000cdf00000ccffffff
 -- 145:000e0000000c0000000e000000ccc00000d4d0000dfffd000d4f4d00fdf4fdff
 -- 146:0000000f0000000f0000000f0000000f0000000f000000ff00000fdcffffffcc
@@ -1928,9 +1964,9 @@ end
 -- 153:1111111111111111111ed1e11edfddfd1efdeedf11dedfed1ddefded1efdeedf
 -- 154:dceedf111dedf11111df134411116666e1113444d111666611113444e1116666
 -- 155:1111111111111111446656116646651146644311646666116644431146666611
--- 156:111111fd1111111f1111111e111111ed11111edd1111fddd111feedd11edeeef
--- 157:fededde1ddedde11ddddedf1dddeddeeddedddddde11edddede11eedddd1111e
--- 158:11111111111111111111111111111111ee111111dde11111de111111e1111111
+-- 156:ddd9dcdadd09dddddd0dd99ddfdda9adfdff9a9ddff0ddcdf00d09df000d999f
+-- 157:ddccccd9aaaaddddaaaccddd99cca9d9dcca99d9dcaaa9d9fdaaa9dd00dddddd
+-- 158:000d00d0909d0dffdd0ddff090ddd00f99dd00009ddfff00dd0f0000909f0000
 -- 161:4310000000400000431000000000000000000000000000000000000000000000
 -- 163:11111fff11111111111111111111111111111111111111111111111111111111
 -- 164:dfffeeedfdfffedf1fdffdf111fddf11111ff111111111111111111111111111
@@ -1941,14 +1977,14 @@ end
 -- 169:11dfddfd111e1de1111111111111111111111111111111111111111111111111
 -- 170:e111111611111116111111111111111111111111111111111111111111111111
 -- 171:6444431166666511111111111111111111111111111111111111111111111111
--- 172:1edddef1edddddf1eddddf111eddf11111ed1111111111111111111111111111
--- 173:fddd11111fde1111111111111111111111111111111111111111111111111111
--- 174:1111111111111111111111111111111111111111111111111111111111111111
+-- 172:6f0d09d960f0fdd066000090666600f066666600666666666666666666666666
+-- 173:0aaaa0dd9d0990fd90d00f09000ff00000fddf00666666666666666666666666
+-- 174:d90f0006f800f0060f0000668000666600666666666666666666666666666666
 -- 176:0d000000cec000000d0000000000000000000000000000000000000000000000
 -- 177:04fe00000eee000004fe00000000000000000000000000000000000000000000
 -- 178:f4f000004ee00000f4f000000000000000000000000000000000000000000000
--- 179:fffff000ffcff000fcecf000fefcf000fefcf000fcccf000fcccf000fffff000
--- 180:fffff000fffff000ffcff000fcfcf000fcfcf000fcccf000fcccf000fffff000
+-- 179:ffffffffffdffffffdbdfffffbfbfffffbfbfffffbbbfffffbbbffffffffffff
+-- 180:ffffffffffbffffffbdbfffffdfbfffffdfbfffffbbbfffffbbbffffffffffff
 -- 181:222220002f2f200022f220002f2f200022222000000000000000000000000000
 -- 182:fffff000eefdcf004ffe43f0fcf43ddffcf43ccf4ffc43dfeeefcdcffffffff0
 -- 183:fffff000eefdcf00fcfe43f0cdf43ddfcdf43ccffcfc43dfeeefcdcffffffff0
@@ -2270,6 +2306,7 @@ end
 -- 086:cccddddcddddddccdddddcccdddddcccdddddcccdddddcccdddddcc0dddddc00
 -- 087:cc000000cc000000cc000000cc000000c0000000000000000000000000000000
 -- 163:00000000000000000000000000000000000cdd8000ccdd8000ccc88000000000
+-- 255:0000000000000000000000000000000000000000000000020000000200002222
 -- </SPRITES4>
 
 -- <WAVES>
@@ -2285,9 +2322,9 @@ end
 -- </WAVES>
 
 -- <SFX>
--- 000:020802080201020802010208020802080201020802010208020802080201020802010208020802080201020802010208020802080201020802010208b0b000000004
+-- 000:02000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020030b000000000
 -- 001:8000800080009000a000c000e000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000220000000000
--- 002:04f0f4000400f4000400f4000400f4000400f4000400f4000400f4000400040004000400040004000400040004000400040004000400040004000400c04000000000
+-- 002:040004000400040004000400040004000400040004000400040004000400040004000400040004000400040004000400040004000400040004000400c04000000000
 -- 003:050005100520153025504560659085b095f0a5f0b5f0c5f0d5f0e5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0404000000000
 -- 004:00ec00c170a4f076f037f00ff00df00af008f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000a0b000000000
 -- 005:34073407340734073407f400f400f400f400040704070407040704070407040704070407040704070407040704070407040704070407040704070407200000000000
@@ -2328,4 +2365,8 @@ end
 -- <PALETTE4>
 -- 000:1c1c1c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f6eaeaea919191b2b2b2656c79333434
 -- </PALETTE4>
+
+-- <PALETTE5>
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
+-- </PALETTE5>
 

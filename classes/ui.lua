@@ -1,4 +1,5 @@
 CRAFT_ANCHOR_ID = 435
+CLOSE_ID = 437
 
 local ui = {windows = {}}
 
@@ -121,7 +122,7 @@ local CraftPanel = {
   grid_fg = 9,
   border = 12,
   vis = false,
-  docked = false,
+  docked = true,
   active_tab = 0,
   current_output = 'player',
   tab = {
@@ -149,14 +150,14 @@ local CraftPanel = {
       spr_id = 393,
       slots = {},
     },
-    [3] = {
-      x = 69,
-      y = 2,
-      w = 22,
-      h = 22,
-      spr_id = 396,
-      slots = {},
-    }
+    -- [3] = {
+    --   x = 69,
+    --   y = 2,
+    --   w = 22,
+    --   h = 22,
+    --   spr_id = 396,
+    --   slots = {},
+    -- }
   }
 }
 
@@ -192,17 +193,18 @@ function CraftPanel:draw()
     end
 
     --close button
-    rect(self.x + self.w - 6, self.y + 1, 5, 6, 2)
-    print('x', self.x + self.w - 5, self.y + 1, 0, false, 1, true)
+    sspr(CLOSE_ID, x + w - 7, y + 2, 0)
+    -- rect(self.x + self.w - 6, self.y + 1, 5, 6, 2)
+    -- print('x', self.x + self.w - 5, self.y + 1, 0, false, 1, true)
 
     --anchor button
-    spr(self.docked == true and CRAFT_ANCHOR_ID or CRAFT_ANCHOR_ID + 1, self.x + self.w - 6, self.y + 8, 0)
+    spr(self.docked == true and CRAFT_ANCHOR_ID or CRAFT_ANCHOR_ID + 1, self.x + self.w - 7, self.y + 8, 15)
 
     --Sprites for tab images
-    spr(self.tab[0].spr_id, self.tab[0].x + x, self.tab[0].y + y, 1, 1, 0, 0, 3, 3)
-    spr(self.tab[1].spr_id, self.tab[1].x + x, self.tab[1].y + y, 1, 1, 0, 0, 3, 3)
-    spr(self.tab[2].spr_id, self.tab[2].x + x, self.tab[2].y + y, 1, 1, 0, 0, 3, 3)
-    spr(self.tab[3].spr_id, self.tab[3].x + x + 1, self.tab[3].y + y, 1, 1, 0, 0, 3, 3)
+    for i = 0, 2 do
+      spr(self.tab[i].spr_id, self.tab[i].x + x, self.tab[i].y + y, 1, 1, 0, 0, 3, 3)
+    end
+    --spr(self.tab[3].spr_id, self.tab[3].x + x + 1, self.tab[3].y + y, 6, 1, 0, 0, 3, 3)
 
     --Crafting grid-------------------------------
 
@@ -275,7 +277,7 @@ function CraftPanel:click(x, y, side)
       return true
     end
     --category tabs
-    for i = 0, 3 do
+    for i = 0, 2 do
       if x >= self.x + self.tab[i].x - 1 and x < self.x + self.tab[i].x + self.tab[i].w and y >= self.y + self.tab[i].y - 1 and y < self.y + self.tab[i].y - 1 + self.tab[i].h then
         self.active_tab = i
         return true
