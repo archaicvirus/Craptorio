@@ -329,9 +329,8 @@ function Furnace:request_output(keep)
   return false
 end
 
-function NewFurnace(x, y, keys)
-  local new_furnace = --{x = x, y = y, dummy_keys = keys}
-  {
+function new_furnace(x, y, keys)
+  local new_furnace = {
   x = x,
   y = y,
   type = 'stone_furnace',
@@ -353,5 +352,3 @@ function NewFurnace(x, y, keys)
   setmetatable(new_furnace, {__index = Furnace})
   return new_furnace
 end
-
-return NewFurnace

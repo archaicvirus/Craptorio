@@ -308,7 +308,7 @@ function Crafter:deposit(id)
   return false
 end
 
-return function(wx, wy)
+function new_assembly_machine(wx, wy)
   local obj = {x = wx, y = wy}
   obj.output = {id = 0, count = 0, sprite = 0, stack_size = 0}
   obj.input = {

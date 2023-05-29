@@ -83,7 +83,7 @@ function Pole.get_sockets(self)
   return pwr_socket, red_socket, grn_socket
 end
 
-return function(pos)
+function new_pole(pos)
   local new_pole = {pos = pos}
   setmetatable(new_pole, {__index = Pole})
   return new_pole

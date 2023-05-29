@@ -309,7 +309,7 @@ function Inserter.update(self)
   end
 end
 
-return function(position, rotation)
+function new_inserter(position, rotation)
   local new_inserter = {pos = position, rot = rotation}
   setmetatable(new_inserter, {__index = Inserter})
   --new_Inserter.pos = position

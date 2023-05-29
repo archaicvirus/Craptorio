@@ -1,5 +1,29 @@
-local TileMgr = {}
-TileMgr.__index = TileMgr
+TileManager = {}
+TileManager.__index =  TileManager
+
+auto_map = {
+  --N E S W
+  --tiles surrounding land
+  --0 is land, 1 is water or other biome
+
+  ['1000'] = {sprite_id = 1, rot = 0},
+  ['0100'] = {sprite_id = 1, rot = 1},
+  ['0010'] = {sprite_id = 1, rot = 2},
+  ['0001'] = {sprite_id = 1, rot = 3},
+
+  ['1100'] = {sprite_id = 2, rot = 1},
+  ['0110'] = {sprite_id = 2, rot = 2},
+  ['0011'] = {sprite_id = 2, rot = 3},
+  ['1001'] = {sprite_id = 2, rot = 0},
+
+  ['1101'] = {sprite_id = 3, rot = 0},
+  ['1110'] = {sprite_id = 3, rot = 1},
+  ['0111'] = {sprite_id = 3, rot = 2},
+  ['1011'] = {sprite_id = 3, rot = 3},
+  ['0101'] = {sprite_id = 4, rot = 0},
+  ['1010'] = {sprite_id = 4, rot = 1},
+  ['1111'] = {sprite_id = 0, rot = 0},
+}
 
 function ore_sample(x, y, tile)
   local biome = tile.biome
@@ -52,18 +76,18 @@ function AutoMap(x, y)
   TileMan.tiles[y][x].rot = new_tile.rot
 end
 
-function TileMgr.new()
+function  TileManager.new()
   --Creates a TileManager instance - cache's all the generated terrain in memory
 
   --Here, using __index metemethod, we can automatically trigger the create_tile
   --method whenever a non-existent value is indexed
 
 
-  local self = setmetatable({}, TileMgr)
+  local self = setmetatable({},  TileManager)
   local tile_mt = {
     __index = function(row, x)
       --Here's where the magic happens, in create_tile
-      local tile = TileMgr.create_tile(x, row.y)
+      local tile =  TileManager.create_tile(x, row.y)
       row[x] = tile
       return tile
     end
@@ -79,7 +103,7 @@ function TileMgr.new()
   return self
 end
 
-function TileMgr.create_tile(x, y)
+function  TileManager.create_tile(x, y)
   --Replace with your own function, this gets called once whenever a 'new' tile is indexed
 
   local scale  = 0.0005
@@ -151,7 +175,7 @@ function TileMgr.create_tile(x, y)
   return tile
 end
 
-function TileMgr:set_tile(x, y, tile_id)
+function  TileManager:set_tile(x, y, tile_id)
   local tile = self.tiles[y][x]
   tile_id = tile_id or biomes[tile.biome].tile_id_offset
   if tile.is_land and not tile.ore and not tile.is_border then
@@ -165,7 +189,7 @@ function TileMgr:set_tile(x, y, tile_id)
   end
 end
 
-function TileMgr:draw_terrain(player, screenWidth, screenHeight)
+function  TileManager:draw_terrain(player, screenWidth, screenHeight)
   local cameraTopLeftX = player.x - 116
   local cameraTopLeftY = player.y - 64
   local subTileX = cameraTopLeftX % 8
@@ -224,7 +248,7 @@ function TileMgr:draw_terrain(player, screenWidth, screenHeight)
   end
 end
 
-function TileMgr:draw_clutter(player, screenWidth, screenHeight)
+function  TileManager:draw_clutter(player, screenWidth, screenHeight)
   local cameraTopLeftX = player.x - 116
   local cameraTopLeftY = player.y - 64
   local subTileX = cameraTopLeftX % 8
@@ -257,7 +281,7 @@ function TileMgr:draw_clutter(player, screenWidth, screenHeight)
   end
 end
 
-function TileMgr:draw_worldmap(player, x, y, width, height, center)
+function  TileManager:draw_worldmap(player, x, y, width, height, center)
   --Simple pixel map, using the tile's assigned biome in - biome[i].map_col
   x, y, width, height = x or 0, y or 0, width or 240, height or 136
   if center then
@@ -285,5 +309,3 @@ end
 -- for i = 1, #biomes do
 --   biome_count[i] = {}
 -- end
-
-return TileMgr

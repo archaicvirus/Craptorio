@@ -1,7 +1,7 @@
 CRAFT_ANCHOR_ID = 435
 CLOSE_ID = 437
 
-local ui = {windows = {}}
+ui = {windows = {}}
 
 local Panel = {
   x = 0,

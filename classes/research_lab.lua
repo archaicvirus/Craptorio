@@ -93,7 +93,7 @@ function Lab:update()
   return
 end
 
-function NewLab(x, y, dummy_keys)
+function new_lab(x, y, dummy_keys)
   local newlab = {
     x = x,
     y = y,
@@ -107,5 +107,3 @@ function NewLab(x, y, dummy_keys)
   setmetatable(newlab, {__index = Lab})
   return newlab
 end
-
-return NewLab

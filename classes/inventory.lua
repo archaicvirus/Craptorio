@@ -153,7 +153,7 @@ function new_slot(index)
   return slot
 end
 
-function create_inventory()
+function make_inventory()
   local inv = {}
   setmetatable(inv, {__index = inventory})
   local i = 1
@@ -165,5 +165,3 @@ function create_inventory()
   end
   return inv
 end
-
-return create_inventory

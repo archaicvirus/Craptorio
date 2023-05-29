@@ -206,7 +206,7 @@ function Drill.draw(self)
   -- spr(DRILL_BELT_ID + DRILL_ANIM_TICK, self.pos.x + pos3.x - 4, self.pos.y + pos3.y - 4, 0, 1, 0, self.rot, 1, 1)
 end
 
-function newDrill(pos, rot, tiles)
+function new_drill(pos, rot, tiles)
   local out_pos = DRILL_OUTPUT_MAP[rot]
   local output_key = pos.x + out_pos.x .. '-' .. pos.y + out_pos.y
   trace(output_key)
@@ -214,5 +214,3 @@ function newDrill(pos, rot, tiles)
   setmetatable(newdrill, {__index = Drill})
   return newdrill
 end
-
-return newDrill

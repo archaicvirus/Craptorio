@@ -592,7 +592,7 @@ function Belt.draw_items(self)
   -- end
 end
 
-return function(pos, rotation, children)
+function new_belt(pos, rotation, children)
   local newBelt = {pos = pos, rot = rotation or 0}
   newBelt.id = BELT_ID_STRAIGHT
   if children then

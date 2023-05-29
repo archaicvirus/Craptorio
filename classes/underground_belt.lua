@@ -353,7 +353,7 @@ function underground_belt:deposit(id, side)
   return false
 end
 
-return function (x, y, rot)
+function new_underground_belt(x, y, rot)
   local new_belt = {x = x, y = y, lanes = {[1] = {0,0,0,0,0,0,0,0}, [2] = {0,0,0,0,0,0,0,0}}, rot = rot, flip = UBELT_ROT_MAP[rot].in_flip}
   setmetatable(new_belt, {__index = underground_belt})
   return new_belt

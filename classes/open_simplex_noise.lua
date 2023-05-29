@@ -11,7 +11,7 @@ local ipairs = ipairs
 local error = error
 --local bit = require("bit")
 
-local simplex = {}
+simplex = {}
 
 simplex.DIR_X = 0
 simplex.DIR_Y = 1

@@ -1,5 +1,5 @@
 --draws a hanging cable between two points
-return function (p1, p2, color)
+function draw_cable(p1, p2, color)
   -- calculate the length and midpoint of the cable
   local dx = p2.x - p1.x
   local dy = p2.y - p1.y

@@ -1,4 +1,4 @@
-local items = {
+ITEMS = {
   [1] = {
     name = 'advanced_circuit',
     fancy_name = 'Advanced Circuit',
@@ -351,17 +351,3 @@ local items = {
     }
   }
 }
-
-local item_types = {
-  ['ore'] = {
-    stack_size = 50,
-  },
-  ['consumable'] = {
-    stack_size = 100,
-  },
-  ['placeable'] = {
-    stack_size = 50,
-  },
-}
-
-return items

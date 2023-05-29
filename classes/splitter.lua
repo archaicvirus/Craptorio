@@ -459,7 +459,7 @@ function Splitter.draw_items(self)
   -- end
 end
 
-return function(x, y, rot)
+function new_splitter(x, y, rot)
   local new_splitter = {x = x, y = y, rot = rot}
   setmetatable(new_splitter, {__index = Splitter})
   new_splitter.lanes = {}
