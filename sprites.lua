@@ -1042,11 +1042,11 @@ function update_cursor_state()
   local _, wx, wy = get_world_cell(x, y)
   local tx, ty = get_screen_cell(x, y)
   --update hold state for left and right click
-  if l and cursor.l and not cursor.held_left and not cursor.r then
+  if l and cursor.l and not cursor.held_left and not cursor.held_r then
     cursor.held_left = true
   end
 
-  if r and cursor.r and not cursor.held_right and not cursor.l then
+  if r and cursor.r and not cursor.held_right and not cursor.held_l then
     cursor.held_right = true
   end
 
@@ -1064,46 +1064,19 @@ function update_cursor_state()
   cursor.x, cursor.y, cursor.l, cursor.m, cursor.r, cursor.sx, cursor.sy = x, y, l, m, r, sx, sy
 end
 
-function dispatch_keypress()
-  --F
-  if key(6) then add_item(cursor.x, cursor.y, 1) end
-  --G
-  if key(7) then add_item(cursor.x, cursor.y, 2) end
-  --M
-  if keyp(13) then show_mini_map = not show_mini_map end
-  --R
-  if keyp(18) and not keyp(63) then rotate_cursor() end
-  --Q
-  if keyp(17) then pipette() end
-  --I or TAB
-  if keyp(9) or keyp(49) then toggle_inventory() cursor.type = 'pointer' end
-  --H
-  if keyp(8) then toggle_hotbar() end
-  --C
-  if keyp(3) then toggle_crafting() end
-  --Y
-  if keyp(25) then debug = not debug end
-  --SHIFT
-  if key(64) then show_tile_widget = true else show_tile_widget = false end
-  if keyp(65) then alt_mode = not alt_mode end
-  --0-9
-  for i = 1, 10 do
-    local key_n = 27 + i
-    if i == 10 then key_n = 27 end
-    if keyp(key_n) then set_active_slot(i) end
-  end
-end
-
 function dispatch_input()
   update_cursor_state()
-  dispatch_keypress()
   local k = get_key(cursor.x, cursor.y)
   if cursor.sy ~= 0 then cycle_hotbar(cursor.sy*-1) end
   if not cursor.l and cursor.ll and cursor.drag then
+    local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
     cursor.drag = false
+    -- if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
+    --   cursor.tx = sy
+    -- else      
+    --   cursor.ty = sx
+    -- end
   end
-
-  --if ui.check_mouse() then
 
   if window and window:is_hovered(cursor.x, cursor.y) and cursor.l and not cursor.ll then
     if window:click(cursor.x, cursor.y) then
@@ -1164,7 +1137,33 @@ function dispatch_input()
     --check for held item placement/deposit
   
 
-  
+  --F
+  if key(6) then add_item(cursor.x, cursor.y, 1) end
+  --G
+  if key(7) then add_item(cursor.x, cursor.y, 2) end
+  --M
+  if keyp(13) then show_mini_map = not show_mini_map end
+  --R
+  if keyp(18) and not keyp(63) then rotate_cursor() end
+  --Q
+  if keyp(17) then pipette() end
+  --I or TAB
+  if keyp(9) or keyp(49) then toggle_inventory() cursor.type = 'pointer' end
+  --H
+  if keyp(8) then toggle_hotbar() end
+  --C
+  if keyp(3) then toggle_crafting() end
+  --Y
+  if keyp(25) then debug = not debug end
+  --SHIFT
+  if key(64) then show_tile_widget = true else show_tile_widget = false end
+  if keyp(65) then alt_mode = not alt_mode end
+  --0-9
+  for i = 1, 10 do
+    local key_n = 27 + i
+    if i == 10 then key_n = 27 end
+    if keyp(key_n) then set_active_slot(i) end
+  end
 
   --if left and not cursor.last_left then place_tile(x, y, cursor.rot) end
   if cursor.r then remove_tile(cursor.x, cursor.y) return end
@@ -1211,11 +1210,11 @@ function dispatch_input()
     end
 
     if ENTS[k].type == 'stone_furnace' then
-      ui.active_window = ENTS[k]:open()
+      window = ENTS[k]:open()
     end
     if ENTS[k].type == 'assembly_machine' then
       cursor.type = 'pointer'
-      ui.active_window = ENTS[k]:open()
+      window = ENTS[k]:open()
     end
     if ENTS[k].type == 'mining_drill' then
     end
@@ -1225,7 +1224,7 @@ function dispatch_input()
     end
     if ENTS[k].type == 'research_lab' then
       cursor.type = 'pointer'
-      ui.active_window = ENTS[k]:open()
+      window = ENTS[k]:open()
     end
     return
     --consumed = true
@@ -1539,8 +1538,6 @@ function TIC()
     v.is_hovered = false
     if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
   end
-  --ui.draw_panel(70, 18, 50, 75, 8, 9, 'Crafting')
-  --ui.draw_grid(10, 10, 5, 5, 8, 9, 9)
   --draw_item_stack(0, 0, {id = 4, count = TICK%45})
 end
 
@@ -1659,9 +1656,10 @@ end
 -- 009:00000000f0000000df000000cdf00000edf00000fdf00000edf00000edf00000
 -- 010:000fffff00fddddd0fdcfff9fdc9f4f9fd999d99fd99f4f9fd99fff9fd999899
 -- 011:ffffffffdcfcddddcfdfc99cfcfcf99999999999ff4d4ffff9999dd98999defd
--- 012:111111111111f441111143f411114f34111114411ff11441f44f1441f444f44f
--- 013:11111f441111f4414443441144434411111114411ff11144f44f1dff444fdeef
--- 014:4f1111111111111111111111111111111111111141111111df111111fdf11111
+-- 012:00000000f0000000df000000cdf000009df00000fdf000009df000009df00000
+-- 013:000fffff00fddddd0fdcfff4fdc4f4f4fd444d44fd44f4f4fd44fff4fd444844
+-- 014:ffffffffdcfcddddcfdfc44cfcfcf44444444444ff4d4ffff4444dd48444defd
+-- 015:00000000f0000000df000000cdf000004df00000fdf000004df000004df00000
 -- 016:10effe0110feef1010effe101deeee1d118ff81111411f111111141111111111
 -- 017:10effe0101feef0101effe01d1eeeed1118ff81111f114111141111111111111
 -- 023:fdeeecccfdeeeeeefdeedddefdedfffdfdedeeedfdedfffdfdedeeedfdedfffd
@@ -1669,9 +1667,10 @@ end
 -- 025:edf00000edf00000edf00000fdf000004df00000fdf00000edf00000edf00000
 -- 026:fd999888fd999999fd99ddd9fd9dcccdfd9defedfd9dcccdfd9dfefdfd9dcccd
 -- 027:8899dfed98999dd9989999999899999f9888888f9998999f9998999994fff499
--- 028:1f44433411f4f44f11f4f44f11f44ff4111f444d1111f4df1111f4df1111144d
--- 029:44fdeeee4fdffe444dffffeedeeffffeeeeefffffe4440ffffee40fffffe40ef
--- 030:ffdf111140fdf11140ffdf1140efdf11eeedf111fedf1111fdf11111df111111
+-- 028:9df000009df000009df00000fdf000004df00000fdf000009df000009df00000
+-- 029:fd444888fd444444fd44ddd4fd4dcccdfd4defedfd4dcccdfd4dfefdfd4dcccd
+-- 030:8844dfed48444dd4484444444844444f4888888f4448444f4448444444fff444
+-- 031:4df000004df000004df00000fdf000004df00000fdf000004df000004df00000
 -- 032:11efef111efefef11eeeeee11efefee11f6f6ff11efdfed111dddd11110dd011
 -- 033:11fefe111fefefe11eeeeee11eefefe11ff6f6f11defdfe111dddd11110dd011
 -- 034:1fffff11ffefeff1fcccccf1cffcffc1f5ff5ff1cffcffc11ccccc1110eee011
@@ -1684,9 +1683,10 @@ end
 -- 041:cdf00000df000000f00000000000000000000000000000000000000000000000
 -- 042:fdceddd90fdc999900fddddd000fffff00000000000000000000000000000000
 -- 043:9d999d999899989cddddddddffffffff00000000000000000000000000000000
--- 044:11111fff11111111111111111111111111111111111111111111111111111111
--- 045:dfffeeedfdfffedf1fdffdf111fddf11111ff111111111111111111111111111
--- 046:1111111111111111111111111111111111111111111111111111111111111111
+-- 044:cdf00000df000000f00000000000000000000000000000000000000000000000
+-- 045:fdceddd40fdc444400fddddd000fffff00000000000000000000000000000000
+-- 046:4d444d444844484cddddddddffffffff00000000000000000000000000000000
+-- 047:cdf00000df000000f00000000000000000000000000000000000000000000000
 -- 048:10effe0110feef0110effe011deeeed1118ff81111f11f111141141111111111
 -- 049:10effe0110feef0110effe011deeeed1118ff81111f11f111141141111111111
 -- 050:0dfffd010fffff010efffe010eeeee01cedddec11ed1de111ff1ff1114414411
@@ -1703,6 +1703,7 @@ end
 -- 071:00000000000fffff00fddddd0fdffccf0fdf47740fdffccf0fdccccc0fdccccc
 -- 072:00000000ffffffffddddddddfcccccccf888ccccfcc8cc88ccc8cc8cffffffff
 -- 073:00000000fffff000dddddf00ceeecdf0efefedf08efeedf0efefedf0ce8ecdf0
+-- 075:0ffffff0feeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeeffeeeeeef0ffffff0
 -- 080:00fefcec0feefecc0feefecc0fcedfec0fccffcc00000fcc00000fec0000fecc
 -- 081:cecfef00ccefeef0ccefeef0cefdecf0ccffccf0ccf00000cef00000ccef0000
 -- 082:00000000000000000000000000f0f0f00f0f0f0000f0f0f00f0f0f0000000000
@@ -1840,9 +1841,9 @@ end
 -- 005:00ffffff0feeeeeefeddddd4fefddf4ffe4ff44ffed44dd4fedddddefefddfef
 -- 006:00ffffff0feeeeeefeeddd4ffeddd4fdfefdd4fdfe4ff44ffed44ddefeddddef
 -- 007:00ffffff0feeeeeefeedd4fdfedd4fddfedd4fddfefdf4fdfe4ff4defed44def
--- 008:ffffffd1fffffd11ffffd11fdddd11ff111111ffffff111ffffff111ffffff1d
--- 009:ffffffff44ffffff004fffffff044434ff044434004fffff44ffffffffffffff
--- 010:ff04fffffff04fff0ff04fff40004ffff44444ffffff444ffffff444ffffff44
+-- 008:ffffff1dfffff1d1ffff111fd11111ffd11111ffffff111ffffff1d1ffffff1d
+-- 009:ffffffff44ffffffff4ffffffff44443fff44434ff4fffff44ffffffffffffff
+-- 010:fff4ffffffff4fffffff4fff4fff4ffff44444ffffff444ffffff434ffffff43
 -- 011:0000000099000000009000000009999300f99939ff9000009900000000000000
 -- 012:0009000000009000f00090009fff900009999900000099900000093900000093
 -- 013:0000008a000008980000888fc88888f0c8888800000088800000f89800000f8a
@@ -1857,10 +1858,10 @@ end
 -- 023:02f00f2002f00f20002ff2000002200000033000000220000002200000022000
 -- 024:6560000034500000654000000000000000000000000000000000000000000000
 -- 025:0300000034300000030000000000000000000000000000000000000000000000
--- 027:44444444444ef04444f000444400f0044f000004400f00f444f00f4444444444
+-- 027:44444444444ef04444f000444400f0044f000004400f00f444f00fe444444444
 -- 028:0000000004300980032408fd003300e800000000003300ed03240efe04300dd0
 -- 029:000000000e0d00000eff00000de0000000000000000000000000000000000000
--- 030:b0000000bb000000bbc00000bde0000000000000000000000000000000000000
+-- 030:c0000000cc000000ccd00000cde0000000000000000000000000000000000000
 -- 031:0000000000300000034000003433333344444444040000000040000000000000
 -- 032:3030303000000003300000000000000330000000000000033000000003030303
 -- 033:d0000000d0000000c0000000c0000000d0000000d0000000c0000000ccddccdd
@@ -1888,7 +1889,6 @@ end
 -- 056:00000000000ccccc00cfcfff0cccfddd0ccfdfff0cdfdfef0cdfdfff0ccfdccc
 -- 057:00000000ccccccccffffffffddddddddccfffccfccfefccfccfffccfcccccccc
 -- 058:00000000ccccc000fffcfc00dddfccc0ffcdfcc0efcdfdc0ffcdfdc0cccdfcc0
--- 060:00ed0e00edfddfd0efdeedfe0dedfeddddefded0efdeedfe0dfddfde00e0de00
 -- 062:cdeeeeeed000dddde00c32eee00d232de00c323cd00d23eee000eccce000c000
 -- 063:eeeeeedcdddd000deeeee00ecdcdc00edcdcd00eeeeee00dccce000e000c000e
 -- 064:00c0000000c0000000ccc000c0ccc0000cccc00000dd00000000000000000000
@@ -1917,7 +1917,6 @@ end
 -- 092:0000000000000000000220000020020000200200000220000000000000000000
 -- 093:0000000000022000002002000200002002000020002002000002200000000000
 -- 094:0022220002000020200000022000000220000002200000020200002000222200
--- 096:0011110001111100111888001188880011888800118888000000000000000000
 -- 099:000fff0f0f888888f8884888f884888408848884f8884888f8888888f848848f
 -- 100:ff0fff0f888888884888488888848884888488844888488888888888ff0fff0f
 -- 101:000fff0f0f888888f8884888f884888408848884f8884888f8888888f848848f
@@ -1944,39 +1943,53 @@ end
 -- 128:f0000000f0000000f00000d0f0000de0f000defdf0000ff0f00000e0f0000000
 -- 129:000e0000000c0000000e0000000c0000ddcedddd000c0000000e0000000c0000
 -- 130:0000000f0000000fe000000fff00000ffed0000fed00000fd000000f0000000f
--- 136:00000000000000000000000000cccc000cfefed00cfefbc00eddbffc0eeebffc
--- 137:00000000000000000ee00000effe0000feef0000ffff0000effeeb4deeeebb3d
--- 138:000000000000000000000000000000000000000000000000ddd00000ddded000
+-- 131:111111111111f441111143f411114f34111114411ff11441f44f1441f444f44f
+-- 132:11111f441111f4414443441144434411111114411ff11144f44f1dff444fdeef
+-- 133:4f1111111111111111111111111111111111111141111111df111111fdf11111
+-- 134:111fffff11fddddd1fdcfffefdcef4fefdeeedeefdeef4fefdeefffefdeeecee
+-- 135:ffffffffdcfcddddcfdfceecfcfcfeeeeeeeeeeeff4d4ffffeeeeddeceeedefd
+-- 136:11111111f1111111df111111cdf11111edf11111fdf11111edf11111edf11111
+-- 137:111111111111111111111111111111111111111111111111111111111111111d
+-- 138:111111df11111dcd1111dccc111dccce11dcccee1dccceeddccceedfccceedf1
+-- 139:11111111f1111111df111111edf11111df111111f11111111111111111111111
 -- 140:6666666d66666dcc666fdccc66fddcc966dccac96dddaacd6dd9adcc6dddcccc
 -- 141:dcccccddcccdccccccccc9dc9acccddd9ccddaaacc9dd909a90acd0cccdaadcc
 -- 142:d6666666ddd66666c9ddd666cc0ddd66dcdddd66ccddddd6c9d0ddd699d00df6
--- 143:66bbbd666bbbbbc6ccbbccdcc9acb9dfd9caccdfdcaad9efe9dc9d8f6e9ee8f6
+-- 143:00bbbd000bbbbbc0ccbbccdcc9acb9dfd9caccdfdcaad9efe9dc9d8f0e9ee8f0
 -- 144:f0000000f0000000f0000000f0000000f0000000ff000000cdf00000ccffffff
 -- 145:000e0000000c0000000e000000ccc00000d4d0000dfffd000d4f4d00fdf4fdff
 -- 146:0000000f0000000f0000000f0000000f0000000f000000ff00000fdcffffffcc
--- 150:0000000000c423320c43cdcc0ccccdcd0dc432330d4221220c31cccc0c21deee
--- 151:00000d003000d0d03323edf0feedeef02332eff01221eef0eddceffddddceefd
--- 152:0feeccce0fffcdde0999caca9889aaca9cccc9999ddd99999ceeeeee8ceeeeee
--- 153:ddeebd2ddddeee2eeddeeeeeeeeebbc4eeeebcc3ffffffffdddddddddddddddd
--- 154:edeeed00eeefee00eedfee00ddefe000eeeedd00ffdffd00dddfe000ffdfe000
+-- 147:1f44433411f4f44f11f4f44f11f44ff4111f444d1111f4df1111f4df1111144d
+-- 148:44fdeeee4fdffe444dffffeedeeffffeeeeefffffe4440ffffee40fffffe40ef
+-- 149:ffdf111140fdf11140ffdf1140efdf11eeedf111fedf1111fdf11111df111111
+-- 150:fdeeecccfdeeeeeefdeedddefdedfffdfdedeeedfdedfffdfdedeeedfdedfffd
+-- 151:cceedfedeceeeddeeceeeeeeeceeeeefeccccccfeeeceeefeeeceeeee4fff4ee
+-- 152:edf11111edf11111edf11111fdf111114df11111fdf11111edf11111edf11111
+-- 153:1111111111111111111ed1e11edfddfd1efdeedf11dedfed1ddefded1efdeedf
+-- 154:dceedf111dedf11111df134411116666e1113444d111666611113444e1116666
+-- 155:1111111111111111446656116646651146644311646666116644431146666611
 -- 156:ddd9dcdadd09dddddd0dd99ddfdda9adfdff9a9ddff0ddcdf00d09df000d999f
 -- 157:ddccccd9aaaaddddaaaccddd99cca9d9dcca99d9dcaaa9d9fdaaa9dd00dddddd
 -- 158:000d00d0909d0dffdd0ddff090ddd00f99dd00009ddfff00dd0f0000909f0000
 -- 161:4310000000400000431000000000000000000000000000000000000000000000
--- 166:0ecdefee0deefffc0edeefc30deeffc20edeefcc0deefddd0deed00000dd0000
--- 167:eeeeccdfcccfeeff232ceefd342ceefdcccceed0dddddd000000000000000000
--- 168:8d888dfe0d88dfff0de8dffecee0dfffeccdfffe0eedffff000dfffe00000000
--- 169:fffffffefccccccfc343343cc344443cc222222cfccccccffffffffe00000000
--- 170:ffdff000fffdf000fffdf000fffdf000ffffd000ffffd000ffffd00000000000
+-- 163:11111fff11111111111111111111111111111111111111111111111111111111
+-- 164:dfffeeedfdfffedf1fdffdf111fddf11111ff111111111111111111111111111
+-- 165:1111111111111111111111111111111111111111111111111111111111111111
+-- 166:fdceddde1fdceeee11fddddd111fffff11111111111111111111111111111111
+-- 167:eeeeeeeeeeeeeeecddddddddffffffff11111111111111111111111111111111
+-- 168:cdf11111df111111f11111111111111111111111111111111111111111111111
+-- 169:11dfddfd111e1de1111111111111111111111111111111111111111111111111
+-- 170:e111111611111116111111111111111111111111111111111111111111111111
+-- 171:6444431166666511111111111111111111111111111111111111111111111111
 -- 172:6f0d09d960f0fdd066000090666600f066666600666666666666666666666666
 -- 173:0aaaa0dd9d0990fd90d00f09000ff00000fddf00666666666666666666666666
 -- 174:d90f0006f800f0060f0000668000666600666666666666666666666666666666
 -- 176:0d000000cec000000d0000000000000000000000000000000000000000000000
 -- 177:04fe00000eee000004fe00000000000000000000000000000000000000000000
 -- 178:f4f000004ee00000f4f000000000000000000000000000000000000000000000
--- 179:fdffffffdbdfffffbfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
--- 180:fbffffffbdbfffffdfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
--- 181:22222fff20202fff22022fff20202fff22222fffffffffffffffffffffffffff
+-- 179:ffffffffffdffffffdbdfffffbfbfffffbfbfffffbbbfffffbbbffffffffffff
+-- 180:ffffffffffbffffffbdbfffffdfbfffffdfbfffffbbbfffffbbbffffffffffff
+-- 181:222220002f2f200022f220002f2f200022222000000000000000000000000000
 -- 182:fffff000eefdcf004ffe43f0fcf43ddffcf43ccf4ffc43dfeeefcdcffffffff0
 -- 183:fffff000eefdcf00fcfe43f0cdf43ddfcdf43ccffcfc43dfeeefcdcffffffff0
 -- 184:fffff000eefdcf00cdfe43f0d4f43ddfd4f43ccfcdfc43dfeeefcdcffffffff0
@@ -1985,11 +1998,11 @@ end
 -- 189:0700000057700000767000000000000000000000000000000000000000000000
 -- 190:0f0000004ff00000f6e000000000000000000000000000000000000000000000
 -- 191:09000000a9900000989000000000000000000000000000000000000000000000
--- 192:fffc0fffffccc0fffcbccc0fccccccc0fccccc0fffccc0fffffc0fffffffffff
--- 193:fff30fffff3330fff343330f33333330f333330fff3330fffff30fffffffffff
--- 194:ffffffffffcc0ffffccdc0fffcdcdc0fffcdcdc0fffcdcc0ffffcc0fffffffff
+-- 192:00fdf0000fdddf00fdcdddf0dddddddffdddddf00fdddf0000fdf000000f0000
+-- 193:00f3f0000f333f00f34333f03333333ff33333f00f333f0000f3f000000f0000
+-- 194:00df00000dcdf000dedcdf000dedcdf000dedcdf000dedf00000df0000000000
 -- 195:0ffffff003334430034434400ffffff003334430043443400000000000000000
--- 196:00ed0e00edfddfd0efdeedfe0dedfeddddefded0efdeedfe0dfddfde00e0de00
+-- 196:0000000000ddcf000c0c0df00dc0cdf00d0c0cf000cddf000000000000000000
 -- 197:0000000000003f00003003f003f303f003f303f003fff3f000333f0000000000
 -- 198:000000000c0d00000d0c00000d0d00000c0d00000c0c00000d0d000000000000
 -- 199:000000000cd00000cccd00000cccd00000cccd00000cccd00000cd0000000000
@@ -2190,7 +2203,7 @@ end
 -- 049:111111111dd11111dffd1111eeffd111eeeffd11e4440fd1fee40ffdffe40efd
 -- 064:11deeeef1dffe4441dfffee411dfffe4111dfffe1111dfff11111dff111111dd
 -- 065:fffeeeed0fffeed10ffffd110effd111eeed1111eed11111fd111111d1111111
--- 080:0099990009999900999888009988880099888800998888000000000000000000
+-- 080:0099999909999999998888889988888899888888998888889988888899888888
 -- 081:9999990099999990888888998888889988888899888888998888889988888899
 -- 096:9988888899888888998888889988888899888888998888880999999900999999
 -- 097:8888889988888899888888998888889988888899888888999999999099999900
@@ -2325,22 +2338,7 @@ end
 -- 085:bbbddddcbbbbddddbbbbbdddbbbbbddd0bbbbddd00bbbddd000bbddd0000bddd
 -- 086:cccddddcddddddccdddddcccdddddcccdddddcccdddddcccdddddcc0dddddc00
 -- 087:cc000000cc000000cc000000cc000000c0000000000000000000000000000000
--- 114:00000000000000000000000000cccc000cfefed00cfefbc00eddbffc0eeebffc
--- 115:00000000000000000ee00000effe0000feef0000ffff0000effeeb4deeeebb3d
--- 116:000000000000000000000000000000000000000000000000ddd00000ddded000
--- 128:0000000000c423320c43cdcc0ccccdcd0dc432330d4221220c31cccc0c21deee
--- 129:00000d003000d0d03323edf0feedeef02332eff01221eef0eddceffddddceefd
--- 130:0feeccce0fffcdde0999caca9889aaca9cccc9999ddd99999ceeeeee8ceeeeee
--- 131:ddeebd2ddddeee2eeddeeeeeeeeebbc4eeeebcc3ffffffffdddddddddddddddd
--- 132:edeeed00eeefee00eedfee00ddefe000eeeedd00ffdffd00dddfe000ffdfe000
--- 144:0ecdefee0deefffc0edeefc30deeffc20edeefcc0deefddd0deed00000dd0000
--- 145:eeeeccdfcccfeeff232ceefd342ceefdcccceed0dddddd000000000000000000
--- 146:8d888dfe0d88dfff0de8dffecee0dfffeccdfffe0eedffff000dfffe00000000
--- 147:fffffffefccccccfc343343cc344443cc222222cfccccccffffffffe00000000
--- 148:ffdff000fffdf000fffdf000fffdf000ffffd000ffffd000ffffd00000000000
--- 180:000fffff00fcdfee0f34efcffdd34fdcfcc34fdcfd34cfcffcdcfeee0fffffff
--- 196:000fffff00fcdfee0f34efdcfdd34f4dfcc34f4dfd34cfdcfcdcfeee0fffffff
--- 212:000fffff00fcdfee0f34ef4dfdd34ff4fcc34ff4fd34cf4dfcdcfeee0fffffff
+-- 163:00000000000000000000000000000000000cdd8000ccdd8000ccc88000000000
 -- 255:0000000000000000000000000000000000000000000000020000000200002222
 -- </SPRITES4>
 

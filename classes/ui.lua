@@ -1,6 +1,11 @@
 CRAFT_ANCHOR_ID = 435
 CLOSE_ID = 437
-
+CRAFT_ROWS = 6
+CRAFT_COLS = 8
+UI_CORNER = 352
+UI_CORNER_ = 352
+LOGISTICS_ID = 387
+--TODO: hardcode all main ui windows here, then show/hide
 ui = {windows = {}}
 
 local Panel = {
@@ -112,52 +117,56 @@ end
 local CraftPanel = {
   x = 70,
   y = 23,
-  grid_x = 4,
-  grid_y = 26,
-  w = 100,
-  h = 84,
+  grid_x = 1,
+  grid_y = 33,
+  w = 76,
+  h = 92,
   fg = 9,
   bg = 8,
   grid_bg = 8,
   grid_fg = 9,
-  border = 12,
-  vis = false,
+  dock_x = 62,
+  dock_y = 2,
+  close_x = 68,
+  close_y = 2,
+  border = 9,
+  vis = true,
   docked = true,
-  active_tab = 0,
+  active_tab = 3,
   current_output = 'player',
   tab = {
-    [0] = {
-      x = 2,
-      y = 2,
-      w = 22,
-      h = 22,
-      spr_id = 387,
-      slots = {},
-    },
     [1] = {
-      x = 25,
-      y = 2,
-      w = 20,
-      h = 22,
-      spr_id = 390,
+      x = 2,
+      y = 10,
+      w = 24,
+      h = 24,
+      spr_id = LOGISTICS_ID,
       slots = {},
     },
     [2] = {
-      x = 45,
-      y = 2,
-      w = 23,
-      h = 22,
-      spr_id = 393,
+      x = 26,
+      y = 10,
+      w = 24,
+      h = 24,
+      spr_id = 390,
       slots = {},
     },
     [3] = {
-      x = 69,
-      y = 2,
-      w = 22,
-      h = 22,
-      spr_id = 497,
+      x = 50,
+      y = 10,
+      w = 23,
+      h = 24,
+      spr_id = 393,
       slots = {},
-    }
+    },
+    -- [3] = {
+    --   x = 74,
+    --   y = 2,
+    --   w = 24,
+    --   h = 24,
+    --   spr_id = 497,
+    --   slots = {},
+    -- }
   }
 }
 
@@ -166,70 +175,97 @@ CraftPanel.tab['production'] = CraftPanel.tab[1]
 CraftPanel.tab['intermediate'] = CraftPanel.tab[2]
 CraftPanel.tab['combat'] = CraftPanel.tab[3]
 
+function ui.draw_panel(x, y, w, h, bg, fg, label)
+  local text_width = print(label, 0, -10, 0, false, 1, true)
+  if text_width > w + 7 then w = text_width + 7 end
+  pal(1, fg)
+  pal(8, fg)
+  sspr(UI_CORNER, x, y, 0)
+  sspr(UI_CORNER, x + w - 8, y, 0, 1, 1)
+  pal(8, 8)
+  sspr(UI_CORNER, x + w - 8, y + h - 8, {0, 8}, 1, 3)
+  sspr(UI_CORNER, x, y + h - 8, {0, 8}, 1, 2)
+  pal()
+  rect(x + 6, y, w - 12, 6, fg) -- top header
+  rect(x, y + 6, w, 3, fg) -- header lower-fill
+  rect(x + 2, y + 9, w - 4, h - 12, bg) -- background fill
+  rect(x, y + 7, 2, h - 13, fg) -- left border
+  rect(x + w - 2, y + 7, 2, h - 13, fg) -- right border
+  rect(x + 6, y + h - 2, w - 12, 2, fg) -- bottom border
+  rect(x + 2, y + h - 3, w - 4, 1, fg) -- bottom footer fill
+  prints(label, x + w/2 - text_width/2, y + 2, 0, 4) -- header text
+  --sspr(CLOSE_ID, x + w - 9, y + 2, 0) -- close button
+end
+
+function ui.draw_grid(x, y, rows, cols, bg, fg, size)
+  size = size or 9
+  rect(x + 1, y + 1, cols * size - 1, rows * size - 1, bg)
+  for i = 1, cols - 1 do
+    local x1 = x + i*size
+    line(x1, y, x1, y + cols*7 - 1, fg)
+  end
+  for i = 1, rows do
+    local y1 = y + i*size
+    line(x, y1, x + (cols*size) - 1, y1, fg)
+    --   line(x, y1, x + cols*size - 1, y1, fg)
+  end
+end
+
 function CraftPanel:draw()
   if self.vis == true then
+    ui.draw_panel(self.x, self.y, self.w, self.h, 9, 9, 'Crafting')
     local mouse_x, mouse_y = mouse()
-    local x, y, w, h, active_tab, ax, ay, aw, ah = self.x, self.y, self.w, self.h, self.active_tab, self.tab[self.active_tab].x, self.tab[self.active_tab].y, self.tab[self.active_tab].w, self.tab[self.active_tab].h
-    --outer border
-    rectb(x, y, w, h, self.border)
-
-    --fill
-    rect(x + 1, y + 1, w - 2, h - 2, self.fg)
-
-    --tab background area
-    rect(x + 1, y + 1, w - 2, 23, self.bg)
-
-    --bottom tab divider
-    line(x, y + 23, x + w - 1, y + 23, self.border)
-
-    --selected tab background fill
-    rect(ax + x - 1, ay + y - 1, aw + 1, ah + 2, self.fg)
-
-    --right divider for selected tab
-    line(x + ax + aw, y + ay - 1, x + ax + aw, y + ay + ah - 1, self.border)
-    --left divider
-    if active_tab > 0 then
-      line(x + ax - 1, y + ay - 1, x + ax - 1, y + ay + ah - 1, self.border)
-    end
-
-    --close button
-    sspr(CLOSE_ID, x + w - 7, y + 2, 0)
-    -- rect(self.x + self.w - 6, self.y + 1, 5, 6, 2)
-    -- print('x', self.x + self.w - 5, self.y + 1, 0, false, 1, true)
-
-    --anchor button
-    sspr(self.docked == true and CRAFT_ANCHOR_ID or CRAFT_ANCHOR_ID + 1, self.x + self.w - 7, self.y + 8, 15)
-
-    --Sprites for tab images
-    for i = 0, 3 do
-      if i < 3 then
-        sspr(self.tab[i].spr_id, self.tab[i].x + x, self.tab[i].y + y, 1, 1, 0, 0, 3, 3)
-      else
-        sspr(self.tab[i].spr_id, self.tab[i].x + x + 3, self.tab[i].y + y + 2, 0, 2.5, 0, 0, 1, 1)
+    local x, y, w, h = self.x, self.y, self.w, self.h
+    local active_tab, ax, ay, aw, ah = self.active_tab, self.tab[self.active_tab].x, self.tab[self.active_tab].y, 24, 24
+    local tw, th = 24, 24
+    --rectb(x, y, w, h, self.border)--outer border
+    --rect(x + 1, y + 1, w - 2, h - 2, self.fg)--fill
+    rect(x + 2, y + 9, w - 5, 23, self.bg)--tab background area
+    --line(x + 2, y + 33, x + w - 2, y + 33, self.border)--bottom tab divider
+    rect(x + ax, y + 9, tw, th, self.fg)--selected tab background fill
+    line(x + 26, y + 9, x + 26, y + 33, self.fg)
+    line(x + 50, y + 9, x + 50, y + 33, self.fg)
+    sspr(UBELT_IN, x + 4, y + self.tab[1].y + 2, 0, 1) --TAB 1
+    sspr(SPLITTER_ID_SMALL, x + 15, y + self.tab[1].y + 2, 0, 1) --TAB 1
+    sspr(BELT_ID_STRAIGHT, x + 15, y + self.tab[1].y + 12, 0, 1, 0, 1) --TAB 1
+    sspr(INSERTER_ARM_ID, x + 4, y + self.tab[1].y + 12, 15, 1, 0, 1) --TAB 1
+    sspr(331, x + self.tab[2].x + 14, y + self.tab[2].y + 12, 0)-- TAB 2
+    sspr(399, x + self.tab[2].x + 3, y + self.tab[2].y + 12, 6)-- TAB 2
+    sspr(316, x + self.tab[2].x + 14, y + self.tab[2].y + 2, 0)-- TAB 2
+    sspr(456, x + self.tab[2].x + 3, y + self.tab[2].y + 2, 0)-- TAB 2
+    sspr(460, x + self.tab[3].x + 3, y + self.tab[3].y + 12, 0)-- TAb 3
+    sspr(482, x + self.tab[3].x + 3, y + self.tab[3].y + 2, 0)-- TAb 3
+    sspr(283, x + self.tab[3].x + 14, y + self.tab[3].y + 13, 4)-- TAb 3
+    sspr(164, x + self.tab[3].x + 14, y + self.tab[3].y + 2, 4)-- TAb 3
+    ui.draw_grid(x + self.grid_x, y + self.grid_y, CRAFT_ROWS, CRAFT_COLS, self.grid_bg, self.grid_fg, 9)
+    for i = 1, #self.tab do
+      if i ~= self.active_tab then
+        local sx, sy, tx, ty, tw, th, fg = self.x, self.y, self.tab[i].x, self.tab[i].y, self.tab[i].w, self.tab[i].h, self.fg
+        if i ~= 1 then
+          pix(sx + tx + 1, sy + ty - 1, fg)
+          pix(sx + tx + 1, sy + ty + th - 3, fg)
+        else
+          pix(sx + tx, sy + ty - 1, fg)
+          pix(sx + tx, sy + ty + th - 3, fg)
+        end
+        pix(sx + tx + tw - 1, sy + ty - 1, fg)
+        pix(sx + tx + tw - 1, sy + ty + th - 3, fg)
       end
     end
-    --spr(self.tab[3].spr_id, self.tab[3].x + x + 1, self.tab[3].y + y, 6, 1, 0, 0, 3, 3)
-
-    --Crafting grid-------------------------------
-
-    --Grid background (grid lines)
-    --rect(self.x + 4, self.y + 26, self.w - 8, self.h - 28, 14)
-
-    --grid tiles
-    for i = 1, 10 do
-      for j = 1, 6 do
-        rect(self.x + 5 + (i*9) - 9, self.y + 27 + (j*9) - 9, 8, 8, 8)
-      end
-    end
-    
+    sspr(CLOSE_ID, x + self.close_x, y + self.close_y, 15)--close button
+    sspr(self.docked == true and CRAFT_ANCHOR_ID or CRAFT_ANCHOR_ID + 1, self.x + self.dock_x, self.y + self.dock_y, 15)--anchor button
     --item sprites
 
     for i = 1, #recipes[self.active_tab] do
       for j = 1, #recipes[self.active_tab][i] do
-        spr(ITEMS[recipes[self.active_tab][i][j]].sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, 0)
+        local item = ITEMS[recipes[self.active_tab][i][j]]
+        spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
       end
     end
-
+    pix(x + self.grid_x + 1, y + self.grid_y + 1, self.grid_fg)
+    pix(x + self.grid_x + 1, y + self.grid_y + CRAFT_ROWS * 9 - 1, self.grid_fg)
+    pix(x + self.grid_x + CRAFT_COLS * 9 - 1, y + self.grid_y + CRAFT_ROWS * 9 - 1, self.grid_fg)
+    pix(x + self.grid_x + CRAFT_COLS * 9 - 1, self.grid_y + 2, self.grid_fg)
 
     --Hovered-item recipe widget
     if self:is_hovered(x, y) then
@@ -269,19 +305,19 @@ function CraftPanel:click(x, y, side)
       --print(slot_index, mouse_x + 8, mouse_y - 3, 12, false, 1, true)
     end
     --close button
-    local cx, cy, w, h = self.x + self.w - 6, self.y + 1, 5, 6
+    local cx, cy, w, h = self.x + self.close_x, self.y + self.close_y, 5, 5
     if x >= cx and x < cx + w and y >= cy and y < cy + h then
       self.vis = false
       return true
     end
     --dock button
-    local cx, cy, w, h = self.x + self.w - 6, self.y + 8, 5, 8
+    local cx, cy, w, h = self.x + self.dock_x, self.y + self.dock_y, 5, 5
     if x >= cx and x < cx + w and y >= cy and y < cy + h then
       self.docked = not self.docked
       return true
     end
     --category tabs
-    for i = 0, 3 do
+    for i = 1, #self.tab do
       if x >= self.x + self.tab[i].x - 1 and x < self.x + self.tab[i].x + self.tab[i].w and y >= self.y + self.tab[i].y - 1 and y < self.y + self.tab[i].y - 1 + self.tab[i].h then
         self.active_tab = i
         return true
@@ -312,7 +348,7 @@ function CraftPanel:get_hovered_slot(x, y)
   local slot_pos_x = start_x + slot_x * 9
   local slot_pos_y = start_y + slot_y * 9
   local slot_index = slot_y * 10 + slot_x + 1
-  if slot_x >= 0 and slot_x < 10 and slot_y >= 0 and slot_y < 10 then
+  if slot_x >= 0 and slot_x <= CRAFT_COLS - 1 and slot_y >= 0 and slot_y <= CRAFT_ROWS - 1 then
     return true, slot_pos_x, slot_pos_y, slot_index
   else
     return nil
@@ -360,14 +396,16 @@ end
 function draw_recipe_widget(x, y, id)
   local item = ITEMS[id]
   local w, h = 10, 12
-  for k, v in ipairs(item.recipe.ingredients) do
-    local str_w = print(ITEMS[v.id].name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
-    if str_w > w then w = str_w + 4 end
-    h = h + 6
+  if item.recipe.ingredients then
+    for k, v in ipairs(item.recipe.ingredients) do
+      local str_w = print(ITEMS[v.id].name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
+      if str_w > w then w = str_w + 4 end
+      h = h + 6
+    end
   end
   h = h + 8
   local str_w2 = print(item.name, 0, -6, 0, false, 1, true)
-  if str_w2 > w then w = str_w2 + 2 end
+  if str_w2 > w then w = str_w2 + 4 end
   --local sx, sy = x - w/2, y + 8
   local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
   box(sx, sy, w, h, 8, 9)
@@ -375,12 +413,14 @@ function draw_recipe_widget(x, y, id)
   prints(item.fancy_name, sx + 3, sy + 2, 0, 4)
   line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
   local i = 0
-  for k, v in ipairs(item.recipe.ingredients) do
-    prints(ITEMS[v.id].fancy_name .. ' - ' .. v.count, sx + 3, sy + 10 + (i * 6), 0, 11)
-    i = i + 1
+  if item.recipe.ingredients then
+    for k, v in ipairs(item.recipe.ingredients) do
+      prints(ITEMS[v.id].fancy_name .. ' - ' .. v.count, sx + 3, sy + 10 + (i * 6), 0, 11)
+      i = i + 1
+    end
+    sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
+    prints(item.recipe.crafting_time/60 .. 's', sx + 12, sy + h - 8, 0, 5)
   end
-  sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
-  prints(item.recipe.crafting_time/60 .. 's', sx + 12, sy + h - 8, 0, 5)
 end
 
 function ui.check_input(c)
