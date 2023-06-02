@@ -417,34 +417,34 @@ function Splitter.draw_items(self)
     -- end
   local function get_id(side, lane, slot)
     if side == 1 then --left
-      return ITEMS[self.lanes.left[lane][slot]].belt_id
+      return ITEMS[self.lanes.left[lane][slot]]
     else
-      return ITEMS[self.lanes.right[lane][slot]].belt_id
+      return ITEMS[self.lanes.right[lane][slot]]
     end
   end
 
 
     for k = 1, 8 do
       if self.rot == 0 then
-        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x + (k - 1), wy + a.y, 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x + (k - 1), wy + b.y, 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x + (k - 1), wy + c.y, 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x + (k - 1), wy + d.y, 0) end
+        if self.lanes.right[1][k] ~= 0 then local item = get_id(0, 1, k) sspr(item.belt_id, wx + a.x + (k - 1), wy + a.y, item.color_key) end
+        if self.lanes.right[2][k] ~= 0 then local item = get_id(0, 2, k) sspr(item.belt_id, wx + b.x + (k - 1), wy + b.y, item.color_key) end
+        if self.lanes.left[1][k] ~= 0  then local item = get_id(1, 1, k) sspr(item.belt_id, wx + c.x + (k - 1), wy + c.y, item.color_key) end
+        if self.lanes.left[2][k] ~= 0  then local item = get_id(1, 2, k) sspr(item.belt_id, wx + d.x + (k - 1), wy + d.y, item.color_key) end
       elseif self.rot == 1 then
-        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x, wy + a.y + (k - 1), 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x, wy + b.y + (k - 1), 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x, wy + c.y + (k - 1), 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x, wy + d.y + (k - 1), 0) end
+        if self.lanes.right[1][k] ~= 0 then local item = get_id(0, 1, k) sspr(item.belt_id, wx + a.x, wy + a.y + (k - 1), item.color_key) end
+        if self.lanes.right[2][k] ~= 0 then local item = get_id(0, 2, k) sspr(item.belt_id, wx + b.x, wy + b.y + (k - 1), item.color_key) end
+        if self.lanes.left[1][k] ~= 0  then local item = get_id(1, 1, k) sspr(item.belt_id, wx + c.x, wy + c.y + (k - 1), item.color_key) end
+        if self.lanes.left[2][k] ~= 0  then local item = get_id(1, 2, k) sspr(item.belt_id, wx + d.x, wy + d.y + (k - 1), item.color_key) end
       elseif self.rot == 2 then
-        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x - (k - 1), wy + a.y, 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x - (k - 1), wy + b.y, 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x - (k - 1), wy + c.y, 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x - (k - 1), wy + d.y, 0) end
+        if self.lanes.right[1][k] ~= 0 then local item = get_id(0, 1, k) sspr(item.belt_id, wx + a.x - (k - 1), wy + a.y, item.color_key) end
+        if self.lanes.right[2][k] ~= 0 then local item = get_id(0, 2, k) sspr(item.belt_id, wx + b.x - (k - 1), wy + b.y, item.color_key) end
+        if self.lanes.left[1][k] ~= 0  then local item = get_id(1, 1, k) sspr(item.belt_id, wx + c.x - (k - 1), wy + c.y, item.color_key) end
+        if self.lanes.left[2][k] ~= 0  then local item = get_id(1, 2, k) sspr(item.belt_id, wx + d.x - (k - 1), wy + d.y, item.color_key) end
       else
-        if self.lanes.right[1][k] ~= 0 then sspr(get_id(0, 1, k), wx + a.x, wy + a.y - (k - 1), 0) end
-        if self.lanes.right[2][k] ~= 0 then sspr(get_id(0, 2, k), wx + b.x, wy + b.y - (k - 1), 0) end
-        if self.lanes.left[1][k] ~= 0  then sspr(get_id(1, 1, k), wx + c.x, wy + c.y - (k - 1), 0) end
-        if self.lanes.left[2][k] ~= 0  then sspr(get_id(1, 2, k), wx + d.x, wy + d.y - (k - 1), 0) end
+        if self.lanes.right[1][k] ~= 0 then local item = get_id(0, 1, k) sspr(item.belt_id, wx + a.x, wy + a.y - (k - 1), item.color_key) end
+        if self.lanes.right[2][k] ~= 0 then local item = get_id(0, 2, k) sspr(item.belt_id, wx + b.x, wy + b.y - (k - 1), item.color_key) end
+        if self.lanes.left[1][k] ~= 0  then local item = get_id(1, 1, k) sspr(item.belt_id, wx + c.x, wy + c.y - (k - 1), item.color_key) end
+        if self.lanes.left[2][k] ~= 0  then local item = get_id(1, 2, k) sspr(item.belt_id, wx + d.x, wy + d.y - (k - 1), item.color_key) end
       end
     end
 
