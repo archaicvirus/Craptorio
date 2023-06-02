@@ -100,14 +100,14 @@ end
 
 function Furnace:open()
   return {
-    x = 240 - 103,
-    y = 3,
+    x = 240 - 74 - 3,
+    y = 2,
     width = 74,
     height = 89,
     close = function(self, sx, sy)
       -- 5x5 close button sprite
-      local cx, cy, cw, ch = self.x + self.width - 7, self.y + 2, 5, 5
-      if sx >= cx and sx < sx + cw and sy >= cy and sy < cy + ch then
+      local cx, cy, cw, ch = self.x + self.width - 9, self.y + 2, 5, 5
+      if sx >= cx and sx < cx + cw and sy >= cy and sy < cy + ch then
         return true
       end
       return false
@@ -115,7 +115,7 @@ function Furnace:open()
     ent_key = self.x .. '-' .. self.y,
     click = function(self, sx, sy)
       if sx >= self.x and sx < self.x + self.width and sy >= self.y and sy < self.y + self.height then
-        if self:close(sx, sy) then window = nil; return true end
+        if self:close(sx, sy) then ui.active_window = nil; return true end
       end
       return false
     end,
@@ -130,15 +130,12 @@ function Furnace:open()
       local x, y, w, h = self.x, self.y, self.width, self.height
       local fx, fy = x + (w / 2) - 8, y + 19 --furnace icon screen pos
       --background window and border
-      box(x, y, w, h, bg, fg)
-      --top header
-      rect(x + 1, y + 1, w - 2, 8, fg)
-      --close button
-      sspr(437, x + w - 7, y + 2, 0)
-      prints('Stone Furnace', fx - 17, y + 2, 0, 4)
+      ui.draw_panel(x, y, w, h, bg, fg, 'Stone Furnace', 0)
+      -- --close button
+       sspr(CLOSE_ID, x + w - 9, y + 2, 15)
       --input slot
-      box(x + 4, y + 45, 10, 10, 0, fg)
-      prints(input.count .. '/' .. FURNACE_BUFFER_INPUT, x + 4, y + 57, 0, 4)
+       box(x + 4, y + 45, 10, 10, 0, fg)
+       prints(input.count .. '/' .. FURNACE_BUFFER_INPUT, x + 4, y + 57, 0, 4)
       if input.count > 0 then
         sspr(ITEMS[input.id].sprite_id, x + 5, y + 46, ITEMS[input.id].color_key)
       end
@@ -152,22 +149,22 @@ function Furnace:open()
       local text_width = print(output.count .. '/' .. FURNACE_BUFFER_OUTPUT, 0, -10, 0, false, 1, true)
       prints(output.count .. '/' .. FURNACE_BUFFER_OUTPUT, x + w - 4 - text_width, y + 57, 0, 4)
       if output.count > 0 then sspr(ITEMS[output.id].sprite_id, x + w - 13, y + 46, ITEMS[output.id].color_key) end
-      --divider
+      -- --divider
       line(x + 4, y + 65, x + w - 5, y + 65, fg)
-      --fuel slot
+      -- --fuel slot
       rectb(x + 4, y + 68, 10, 10, fg)
       if fuel.count > 0 then
         sspr(ITEMS[fuel.id].sprite_id, x + 5, y + 69, ITEMS[fuel.id].color_key)
       else
         sspr(FURNACE_FUEL_ICON, x + 5, y + 69, -1)
       end
-      --fuel progress bar
+      -- --fuel progress bar
       box(x + 16, y + 71, 42, 5, 0, fg)
       if ent.fuel_time > 0 then
         rect(x + 17, y + 72, remap(ent.fuel_time, 0, ITEMS[fuel.id].smelting_time, 0, 40), 3, 2)
       end
       prints(fuel.count .. '/' .. FURNACE_BUFFER_FUEL, x + 4, y + 80, 0, 4)
-      --terrain background-------------------------
+      -- --terrain background-------------------------
       local sprite_id = FURNACE_SPRITE_INACTIVE_ID
       if ent.is_smelting then sprite_id = FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2) end
       for i = -1, 2 do
@@ -185,7 +182,7 @@ function Furnace:open()
           end
         end
       end
-      --terrain border
+      -- --terrain border
       rectb(fx - 25, fy - 8, 66, 33, fg)
       --furnace graphic
       sspr(sprite_id, fx, fy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)

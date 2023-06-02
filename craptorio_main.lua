@@ -30,7 +30,7 @@ math.randomseed(tstamp())
 --local seed = math.random(-1000000000, 1000000000)
 local seed = 902404786
 --math.randomseed(53264)
-math.randomseed(seed)
+--math.randomseed(seed)
 offset = math.random(100000, 500000)
 simplex.seed()
 TileMan = TileManager:new()
@@ -42,7 +42,7 @@ TICK = 0
 -------------GAME-OBJECTS-AND-CONTAINERS---------------
 ENTS = {}
 ORES = {}
-window = nil
+--window = nil
 CURSOR_POINTER = 286
 CURSOR_HIGHLIGHT = 309
 CURSOR_HIGHLIGHT_CORNER = 307
@@ -103,22 +103,36 @@ player = {
   },
 }
 
+dummies = {
+  ['dummy_furnace'] = true,
+  ['dummy_assembler'] = true,
+  ['dummy_drill'] = true,
+  ['dummy_lab'] = true,
+  ['dummy_splitter'] = true
+}
+
+opensies = {
+  ['stone_furnace'] = true,
+  ['assembly_machine'] = true,
+  ['research_lab'] = true
+}
+
 inv = make_inventory()
-inv.slots[91].item_id = 9
-inv.slots[92].item_id = 10
-inv.slots[93].item_id = 11
-inv.slots[94].item_id = 12
-inv.slots[95].item_id = 13
-inv.slots[96].item_id = 14
-inv.slots[97].item_id = 18
-inv.slots[98].item_id = 19
-inv.slots[99].item_id = 22
+inv.slots[1].item_id  = 9  inv.slots[1].count = 10
+inv.slots[57].item_id = 9  inv.slots[57].count = 10
+inv.slots[58].item_id = 10 inv.slots[58].count = 10
+inv.slots[59].item_id = 11 inv.slots[59].count = 10
+inv.slots[60].item_id = 13 inv.slots[60].count = 10
+inv.slots[61].item_id = 14 inv.slots[61].count = 10
+inv.slots[62].item_id = 18 inv.slots[62].count = 10
+inv.slots[63].item_id = 19 inv.slots[63].count = 10
+inv.slots[64].item_id = 22 inv.slots[64].count = 10
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
 show_mini_map = false
 show_tile_widget = false
 debug = false
-alt_mode = true
+alt_mode = false
 --water effect defs
 local num_colors = 3
 local start_color = 8
@@ -298,12 +312,22 @@ function highlight_ent(k)
 
 end
 
-function pal(c0,c1)
-  if(c0==nil and c1==nil)then for i=0,15 do poke4(0x3FF0*2+i,i)end
-  else poke4(0x3FF0*2+c0,c1)end
+function pal(c0, c1)
+  if not c0 and not c1 then
+    for i = 0, 15 do
+      poke4(0x3FF0 * 2 + i, i)
+    end
+  elseif type(c0) == 'table' then
+    for i = 1, #c0, 2 do
+      poke4(0x3FF0*2 + c0[i], c0[i + 1])
+    end
+  else
+    poke4(0x3FF0*2 + c0, c1)
+  end
 end
 
 function draw_item_stack(x, y, stack)
+  --trace('stack count: ' .. stack.count .. ' Stack ID: ' .. stack.id)
   sspr(ITEMS[stack.id].sprite_id, x, y, ITEMS[stack.id].color_key)
   local sx, sy = stack.count < 10 and x + 5 or x + 3, y + 5
   prints(stack.count, sx, sy)
@@ -374,7 +398,7 @@ function remove_research_lab(x, y)
     k = ENTS[k].other_key
   end
 
-  if window and window.ent_key == k then window = nil end
+  if ui.active_window and ui.active_window.ent_key == k then ui.active_window = nil end
   local keys = ENTS[k].dummy_keys
   for dk, v in ipairs(keys) do
     trace('removing DUMMY KEYS')
@@ -728,33 +752,19 @@ function draw_player()
 end
 
 function cycle_hotbar(dir)
-  --cursor_item = cursor_item + dir
   inv.active_slot = inv.active_slot + dir
-  if inv.active_slot < 1 then inv.active_slot = 10 end
-  if inv.active_slot > 10 then inv.active_slot = 1 end
+  if inv.active_slot < 1 then inv.active_slot = INVENTORY_COLS end
+  if inv.active_slot > INVENTORY_COLS then inv.active_slot = 1 end
   set_active_slot(inv.active_slot)
-  --local id = inv.slots[90 + inv.active_slot].item_id
-  -- if id ~= 0 then
-  --   cursor.item_stack = {id = id, count = inv.slots[90 + inv.active_slot].count}
-  --   local name = ITEMS[id].name
-  --   cursor.item = name
-  -- else
-  --   cursor.item = 'pointer'
-  --   cursor.item_stack = {id = 0, count = 0}
-  -- end
-  -- if cursor_item < 0 then cursor_item = 4 end
-  -- if cursor_item > 4 then cursor_item = 0 end
-  -- cursor.item = cursor_items[cursor_item]
 end
 
 function set_active_slot(slot)
-  --cursor.type = 'item'
   inv.active_slot = slot
-  local id = inv.slots[90 + slot].item_id
+  local id = inv.slots[slot + INV_HOTBAR_OFFSET].item_id
   if id ~= 0 then
     trace('setting item to: ' .. ITEMS[id].name)
     cursor.item = ITEMS[id].name
-    cursor.item_stack = {id = id, count = inv.slots[90 + slot].count}
+    cursor.item_stack = {id = id, count = inv.slots[slot + INV_HOTBAR_OFFSET].count}
     cursor.type = 'item'
   else
     cursor.item = false
@@ -818,7 +828,7 @@ function draw_cursor()
     else
       sspr(CURSOR_HAND_ID, cursor.x - 2, cursor.y, 0, 1, 0, 0, 1, 1)
     end
-    return
+  return
   end
 
   if cursor.type == 'item' then
@@ -928,7 +938,7 @@ function draw_cursor()
   end
   if cursor.type == 'pointer' then
     local k = get_key(cursor.x, cursor.y)
-    if window and window:is_hovered(cursor.x, cursor.y) then
+    if ui.active_window and ui.active_window:is_hovered(cursor.x, cursor.y) then
       
     end
     sspr(CURSOR_POINTER, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
@@ -1024,7 +1034,7 @@ function pipette()
       end
       cursor.type = 'item'
       cursor.item = ent.type
-      cursor.item_stack = {id = ent.item_id, count = 0}
+      cursor.item_stack = {id = ent.item_id, count = 5}
       if ent.rot then
         cursor.rot = ent.rot
       end
@@ -1087,9 +1097,9 @@ function dispatch_keypress()
   if key(64) then show_tile_widget = true else show_tile_widget = false end
   if keyp(65) then alt_mode = not alt_mode end
   --0-9
-  for i = 1, 10 do
+  for i = 1, INVENTORY_COLS do
     local key_n = 27 + i
-    if i == 10 then key_n = 27 end
+    --if i == 10 then key_n = 27 end
     if keyp(key_n) then set_active_slot(i) end
   end
 end
@@ -1097,34 +1107,53 @@ end
 function dispatch_input()
   update_cursor_state()
   dispatch_keypress()
-  local k = get_key(cursor.x, cursor.y)
+  local k = get_ent(cursor.x, cursor.y)
   if cursor.sy ~= 0 then cycle_hotbar(cursor.sy*-1) end
-  if not cursor.l and cursor.ll and cursor.drag then
+  if not cursor.l then
+    cursor.panel_drag = false
     cursor.drag = false
   end
-
-  --if ui.check_mouse() then
-
-  if window and window:is_hovered(cursor.x, cursor.y) and cursor.l and not cursor.ll then
-    if window:click(cursor.x, cursor.y) then
-      --return
-    end
-  end
+  
   --begin mouse-over priority dispatch
-
-  --check crafting menu
+  if ui.active_window and ui.active_window:is_hovered(cursor.x, cursor.y) then
+    if cursor.l and not cursor.ll then
+      if ui.active_window:click(cursor.x, cursor.y) then
+        trace('clicked active window')
+      end
+    end
+    return
+  end
+  
   if craft_menu.vis and craft_menu:is_hovered(cursor.x, cursor.y) then
     if cursor.l and not cursor.ll then
       if craft_menu:click(cursor.x, cursor.y, 'left') then return end
     elseif cursor.r and cursor.lr then
       if craft_menu:click(cursor.x, cursor.y, 'right') then return end
     end
-    --consumed = true
-    --check inventory
-    --return
-  elseif inv.vis and inv:is_hovered(cursor.x, cursor.y) then
-    if inv:clicked(cursor.x, cursor.y) then return end
-    --consumed = true
+    if craft_menu.vis and cursor.panel_drag then
+      craft_menu.x = math.max(1, math.min(cursor.x + cursor.drag_offset.x, 239 - craft_menu.w))
+      craft_menu.y = math.max(1, math.min(cursor.y + cursor.drag_offset.y, 135 - craft_menu.h))
+      return
+      --consumed = true
+    end
+    if craft_menu.vis and not cursor.panel_drag and cursor.l and not cursor.ll and craft_menu:is_hovered(cursor.x, cursor.y) then
+      if craft_menu:click(cursor.x, cursor.y) then
+        return
+      elseif not craft_menu.docked then
+        cursor.panel_drag = true
+        cursor.drag_offset.x = craft_menu.x - cursor.x
+        cursor.drag_offset.y = craft_menu.y - cursor.y
+        return
+      end
+    end
+    return
+  end
+  
+  if inv.vis and inv:is_hovered(cursor.x, cursor.y) then
+    if cursor.l and not cursor.ll then
+      inv:clicked(cursor.x, cursor.y)
+    end
+    return
   end
 
     --check other visible widgets
@@ -1139,6 +1168,7 @@ function dispatch_input()
         end
       elseif cursor.r then
         remove_tile(cursor.x, cursor.y)
+        return
       end
     else
 
@@ -1150,50 +1180,19 @@ function dispatch_input()
       elseif cursor.l and not cursor.ll then
         callbacks[cursor.item](cursor.x, cursor.y)
         return
-        --consumed = true
-      -- elseif left and cursor.item == 'transport_belt' then 
-      --   DEFS.callbacks[cursor.item](x, y)
-      --   --consumed = true
       elseif cursor.r then
         remove_tile(cursor.x, cursor.y)
-        --return
-        --consumed = true
+        return
       end
     end
   end
-    --check for held item placement/deposit
-  
-
-  
-
-  --if left and not cursor.last_left then place_tile(x, y, cursor.rot) end
+    --check for held item placement/deposit to other ents
   if cursor.r then remove_tile(cursor.x, cursor.y) return end
   if ENTS[k] then ENTS[k].is_hovered = true end
-
-  if craft_menu.vis and not cursor.panel_drag and cursor.l and not cursor.ll and craft_menu:is_hovered(cursor.x, cursor.y) == true then
-    if craft_menu:click(cursor.x, cursor.y) then
-      return
-    elseif not craft_menu.docked then
-      cursor.panel_drag = true
-      cursor.drag_offset.x = craft_menu.x - cursor.x
-      cursor.drag_offset.y = craft_menu.y - cursor.y
-      return
-    end
-    --consumed = true
-  end
-
-  if not cursor.l then cursor.panel_drag = false end
-  if craft_menu.vis and cursor.panel_drag then
-    craft_menu.x = math.max(1, math.min(cursor.x + cursor.drag_offset.x, 239 - craft_menu.w))
-    craft_menu.y = math.max(1, math.min(cursor.y + cursor.drag_offset.y, 135 - craft_menu.h))
-    return
-    --consumed = true
-  end
-
   if cursor.l and not cursor.ll and not craft_menu:is_hovered(cursor.x, cursor.y) and inv:is_hovered(cursor.x, cursor.y) then
     local slot = inv:get_hovered_slot(cursor.x, cursor.y)
-    --trace('returning: slot_pos_x = ' .. slot.x .. ', slot_pos_y = ' .. slot.y .. ', slot_index = ' .. slot.index)
     if slot then
+      trace(slot.index)
       inv.slots[slot.index]:callback()
       return
     end
@@ -1202,31 +1201,15 @@ function dispatch_input()
   end
 
   if cursor.l and not cursor.ll and ENTS[k] then
-    if ENTS[k].type == 'dummy_furnace' or
-    ENTS[k].type == 'dummy_assembler' or
-    ENTS[k].type == 'dummy_drill' or
-    ENTS[k].type == 'dummy_lab' or
-    ENTS[k].type == 'dummy_splitter' then
+
+    if dummies[ENTS[k].type] then
       k = ENTS[k].other_key
     end
 
-    if ENTS[k].type == 'stone_furnace' then
+    if opensies[ENTS[k].type] then
       ui.active_window = ENTS[k]:open()
     end
-    if ENTS[k].type == 'assembly_machine' then
-      cursor.type = 'pointer'
-      ui.active_window = ENTS[k]:open()
-    end
-    if ENTS[k].type == 'mining_drill' then
-    end
-    if ENTS[k].type == 'splitter' then
-    end
-    if ENTS[k].type == 'transport_belt' then
-    end
-    if ENTS[k].type == 'research_lab' then
-      cursor.type = 'pointer'
-      ui.active_window = ENTS[k]:open()
-    end
+
     return
     --consumed = true
   end
@@ -1447,11 +1430,11 @@ function TIC()
   inv:draw()
   --inv:draw_hotbar()
   craft_menu:draw()
-  if window then
-    if ENTS[window.ent_key] then
-      window:draw()
+  if ui.active_window then
+    if ENTS[ui.active_window.ent_key] then
+      ui.active_window:draw()
     else
-      window = nil
+      ui.active_window = nil
     end
   end
 
@@ -1547,8 +1530,8 @@ end
 -- <TILES>
 -- 000:4444444444444444444444444444444444444444444444444444444444444444
 -- 001:4444444444477446446777474477764744777777647677444777774444776744
--- 002:4445744444477444444775444447774444577444447774444447744444477444
--- 003:4647774444767774477737774767776747776777447777744447774644444444
+-- 002:4474444447644744447446744467474444744744447476444444474444444744
+-- 003:4444444444444444444444444444444444444444444444444444444444444444
 -- 004:44444444444444444444444444444b444444bab444444b444444474444444444
 -- 005:4647774444762764477232774767276746776777447777744447764644444444
 -- 006:4444444445444444447444444474744444747444444444444444444444444444
@@ -1873,8 +1856,8 @@ end
 -- 040:2210000034200000124000000000000000000000000000000000000000000000
 -- 041:0ed00000efe00000dd0000000000000000000000000000000000000000000000
 -- 042:fe000000efd000000ef000000000000000000000000000000000000000000000
--- 043:bcc00000ccc00000ccd000000000000000000000000000000000000000000000
--- 044:4330000033300000334000000000000000000000000000000000000000000000
+-- 043:bccfffffcccfffffccdfffffffffffffffffffffffffffffffffffffffffffff
+-- 044:433fffff333fffff334fffffffffffffffffffffffffffffffffffffffffffff
 -- 045:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
 -- 046:000fffff00fcdfee0fe21fcdfd21dfd2fc21cfd2fdc21fcdfcdcfeee0fffffff
 -- 047:000fffff00fcdfee0fea9fcdfda9dfd9fca9cfd9fdca9fcdfcdcfeee0fffffff
@@ -1962,7 +1945,9 @@ end
 -- 156:ddd9dcdadd09dddddd0dd99ddfdda9adfdff9a9ddff0ddcdf00d09df000d999f
 -- 157:ddccccd9aaaaddddaaaccddd99cca9d9dcca99d9dcaaa9d9fdaaa9dd00dddddd
 -- 158:000d00d0909d0dffdd0ddff090ddd00f99dd00009ddfff00dd0f0000909f0000
+-- 160:cec00000efe00000cec000000000000000000000000000000000000000000000
 -- 161:4310000000400000431000000000000000000000000000000000000000000000
+-- 162:e4f000004df00000d4f000000000000000000000000000000000000000000000
 -- 166:0ecdefee0deefffc0edeefc30deeffc20edeefcc0deefddd0deed00000dd0000
 -- 167:eeeeccdfcccfeeff232ceefd342ceefdcccceed0dddddd000000000000000000
 -- 168:8d888dfe0d88dfff0de8dffecee0dfffeccdfffe0eedffff000dfffe00000000
@@ -1972,8 +1957,8 @@ end
 -- 173:0aaaa0dd9d0990fd90d00f09000ff00000fddf00666666666666666666666666
 -- 174:d90f0006f800f0060f0000668000666600666666666666666666666666666666
 -- 176:0d000000cec000000d0000000000000000000000000000000000000000000000
--- 177:04fe00000eee000004fe00000000000000000000000000000000000000000000
--- 178:f4f000004ee00000f4f000000000000000000000000000000000000000000000
+-- 177:0f4d000000fc00000f4d00000000000000000000000000000000000000000000
+-- 178:f4f000004cd00000f4f000000000000000000000000000000000000000000000
 -- 179:fdffffffdbdfffffbfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
 -- 180:fbffffffbdbfffffdfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
 -- 181:22222fff20202fff22022fff20202fff22222fffffffffffffffffffffffffff

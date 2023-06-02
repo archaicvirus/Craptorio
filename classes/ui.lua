@@ -5,8 +5,11 @@ CRAFT_COLS = 8
 UI_CORNER = 352
 UI_CORNER_ = 352
 LOGISTICS_ID = 387
---TODO: hardcode all main ui windows here, then show/hide
-ui = {windows = {}}
+UI_BG = 8
+UI_FG = 9
+UI_SH = 0
+--TODO: move all main ui windows here
+ui = {windows = {}, active_window = false}
 
 local Panel = {
   x = 0,
@@ -115,12 +118,12 @@ function ui.draw_text_window(data, x, y, border, background, text)
 end
 
 local CraftPanel = {
-  x = 70,
-  y = 23,
+  x = 240 - 78,
+  y = 2,
   grid_x = 1,
-  grid_y = 33,
-  w = 76,
-  h = 92,
+  grid_y = 34,
+  w = 75,
+  h = 91,
   fg = 9,
   bg = 8,
   grid_bg = 8,
@@ -130,7 +133,7 @@ local CraftPanel = {
   close_x = 68,
   close_y = 2,
   border = 9,
-  vis = true,
+  vis = false,
   docked = true,
   active_tab = 3,
   current_output = 'player',
@@ -175,34 +178,53 @@ CraftPanel.tab['production'] = CraftPanel.tab[1]
 CraftPanel.tab['intermediate'] = CraftPanel.tab[2]
 CraftPanel.tab['combat'] = CraftPanel.tab[3]
 
-function ui.draw_panel(x, y, w, h, bg, fg, label)
+function ui.draw_panel(x, y, w, h, bg, fg, label, shadow)
+  bg, fg = bg or UI_BG, fg or UI_FG
   local text_width = print(label, 0, -10, 0, false, 1, true)
   if text_width > w + 7 then w = text_width + 7 end
-  pal(1, fg)
-  pal(8, fg)
-  sspr(UI_CORNER, x, y, 0)
-  sspr(UI_CORNER, x + w - 8, y, 0, 1, 1)
-  pal(8, 8)
-  sspr(UI_CORNER, x + w - 8, y + h - 8, {0, 8}, 1, 3)
-  sspr(UI_CORNER, x, y + h - 8, {0, 8}, 1, 2)
-  pal()
-  rect(x + 6, y, w - 12, 6, fg) -- top header
-  rect(x, y + 6, w, 3, fg) -- header lower-fill
-  rect(x + 2, y + 9, w - 4, h - 12, bg) -- background fill
+  rect(x + 2, y + 2, w - 4, h - 4, bg) -- background fill
+  if label then
+    pal(1, fg)
+    pal(8, fg)
+    sspr(UI_CORNER, x, y, 0)
+    sspr(UI_CORNER, x + w - 8, y, 0, 1, 1)
+    pal()
+    pal(1, fg)
+    sspr(UI_CORNER, x + w - 8, y + h - 8, 0, 1, 3)
+    sspr(UI_CORNER, x, y + h - 8, 0, 1, 2)
+    pal()
+    rect(x, y + 6, w, 3, fg) -- header lower-fill
+    rect(x + 2, y + h - 3, w - 4, 1, fg) -- bottom footer fill
+    rect(x + 6, y + 2, w - 12, 4, fg)--header fill
+    --rect(x + 2, y + 9, w - 4, h - 12, bg) -- background fill
+    prints(label, x + w/2 - text_width/2, y + 2, 0, 4) -- header text
+  else
+    pal(1, fg)
+    sspr(UI_CORNER, x + w - 8, y + h - 8, {0, 8}, 1, 3)
+    sspr(UI_CORNER, x, y + h - 8, {0, 8}, 1, 2)
+    sspr(UI_CORNER, x, y, {0, 8})
+    sspr(UI_CORNER, x + w - 8, y, {0, 8}, 1, 1)
+    pal()
+  end
+  rect(x + 6, y, w - 12, 2, fg) -- top border
   rect(x, y + 7, 2, h - 13, fg) -- left border
   rect(x + w - 2, y + 7, 2, h - 13, fg) -- right border
   rect(x + 6, y + h - 2, w - 12, 2, fg) -- bottom border
-  rect(x + 2, y + h - 3, w - 4, 1, fg) -- bottom footer fill
-  prints(label, x + w/2 - text_width/2, y + 2, 0, 4) -- header text
+  if shadow then
+    --line(x + w - 1, y + 1, x + w, y + 3, shadow) -- shadow
+    line(x + 4, y + h, x + w - 3, y + h, shadow) -- shadow
+    line(x + w - 2, y + h - 1, x + w, y + h - 3, shadow)-- shadow
+    line(x + w, y + 3, x + w, y + h - 4, shadow)-- shadow
+  end
   --sspr(CLOSE_ID, x + w - 9, y + 2, 0) -- close button
 end
 
-function ui.draw_grid(x, y, rows, cols, bg, fg, size)
+function ui.draw_grid(x, y, rows, cols, bg, fg, size, draw_top)
   size = size or 9
-  rect(x + 1, y + 1, cols * size - 1, rows * size - 1, bg)
-  for i = 1, cols - 1 do
+  rect(x + 1, y + 1, (cols * size) - 1, (rows * size) - 1, bg)
+  for i = 1, cols do
     local x1 = x + i*size
-    line(x1, y, x1, y + cols*7 - 1, fg)
+    line(x1, y, x1, y + (rows*size) - 1, fg)
   end
   for i = 1, rows do
     local y1 = y + i*size
@@ -213,18 +235,17 @@ end
 
 function CraftPanel:draw()
   if self.vis == true then
-    ui.draw_panel(self.x, self.y, self.w, self.h, 9, 9, 'Crafting')
+    ui.draw_panel(self.x, self.y, self.w, self.h, 8, 9, 'Crafting')
     local mouse_x, mouse_y = mouse()
-    local x, y, w, h = self.x, self.y, self.w, self.h
+    local x, y, w, h, bg, fg = self.x, self.y, self.w, self.h, self.bg, self.fg
     local active_tab, ax, ay, aw, ah = self.active_tab, self.tab[self.active_tab].x, self.tab[self.active_tab].y, 24, 24
     local tw, th = 24, 24
     --rectb(x, y, w, h, self.border)--outer border
-    --rect(x + 1, y + 1, w - 2, h - 2, self.fg)--fill
-    rect(x + 2, y + 9, w - 5, 23, self.bg)--tab background area
-    --line(x + 2, y + 33, x + w - 2, y + 33, self.border)--bottom tab divider
-    rect(x + ax, y + 9, tw, th, self.fg)--selected tab background fill
-    line(x + 26, y + 9, x + 26, y + 33, self.fg)
-    line(x + 50, y + 9, x + 50, y + 33, self.fg)
+    rect(x + 2, y + 32, w - 4, 3, fg)--fill
+    rect(x + 2, y + 9, w - 5, 23, bg)--tab background area
+    rect(x + ax, y + 9, tw, th, fg)--selected tab background fill
+    line(x + 26, y + 9, x + 26, y + 33, fg) --tab dividers
+    line(x + 50, y + 9, x + 50, y + 33, fg) --tab dividers
     sspr(UBELT_IN, x + 4, y + self.tab[1].y + 2, 0, 1) --TAB 1
     sspr(SPLITTER_ID_SMALL, x + 15, y + self.tab[1].y + 2, 0, 1) --TAB 1
     sspr(BELT_ID_STRAIGHT, x + 15, y + self.tab[1].y + 12, 0, 1, 0, 1) --TAB 1
@@ -240,7 +261,7 @@ function CraftPanel:draw()
     ui.draw_grid(x + self.grid_x, y + self.grid_y, CRAFT_ROWS, CRAFT_COLS, self.grid_bg, self.grid_fg, 9)
     for i = 1, #self.tab do
       if i ~= self.active_tab then
-        local sx, sy, tx, ty, tw, th, fg = self.x, self.y, self.tab[i].x, self.tab[i].y, self.tab[i].w, self.tab[i].h, self.fg
+        local sx, sy, tx, ty, tw, th, fg = self.x, self.y, self.tab[i].x, self.tab[i].y, self.tab[i].w, self.tab[i].h, fg
         if i ~= 1 then
           pix(sx + tx + 1, sy + ty - 1, fg)
           pix(sx + tx + 1, sy + ty + th - 3, fg)
@@ -265,7 +286,7 @@ function CraftPanel:draw()
     pix(x + self.grid_x + 1, y + self.grid_y + 1, self.grid_fg)
     pix(x + self.grid_x + 1, y + self.grid_y + CRAFT_ROWS * 9 - 1, self.grid_fg)
     pix(x + self.grid_x + CRAFT_COLS * 9 - 1, y + self.grid_y + CRAFT_ROWS * 9 - 1, self.grid_fg)
-    pix(x + self.grid_x + CRAFT_COLS * 9 - 1, self.grid_y + 2, self.grid_fg)
+    pix(x + self.grid_x + CRAFT_COLS * 9 - 1, y + self.grid_y + 1, self.grid_fg)
 
     --Hovered-item recipe widget
     if self:is_hovered(x, y) then
@@ -296,7 +317,7 @@ function CraftPanel:click(x, y, side)
           if ENTS[self.current_output] then
             ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
             toggle_crafting()
-            window = ENTS[self.current_output]:open()
+            ui.active_window = ENTS[self.current_output]:open()
             self.current_output = 'player'
             return true
           end
@@ -388,7 +409,7 @@ function ui:furnace_widget(ent)
 end
 
 function ui.NewCraftPanel(x, y)
-  local new_panel = {x = x, y = y}
+  local new_panel = {}
   setmetatable(new_panel, {__index = CraftPanel})
   return new_panel
 end
@@ -408,10 +429,11 @@ function draw_recipe_widget(x, y, id)
   if str_w2 > w then w = str_w2 + 4 end
   --local sx, sy = x - w/2, y + 8
   local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
-  box(sx, sy, w, h, 8, 9)
-  rect(sx + 1, sy + 1, w - 2, 8, 9)
-  prints(item.fancy_name, sx + 3, sy + 2, 0, 4)
-  line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
+  ui.draw_panel(sx, sy, w, h + 1, 8, 9, item.fancy_name, 0)
+  --box(sx, sy, w, h, 8, 9)
+  --rect(sx + 1, sy + 1, w - 2, 8, 9)
+  --prints(item.fancy_name, sx + 3, sy + 2, 0, 4)
+  --line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
   local i = 0
   if item.recipe.ingredients then
     for k, v in ipairs(item.recipe.ingredients) do

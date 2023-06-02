@@ -16,13 +16,13 @@ local Lab = {
 
 function Lab:open()
   return {
-    x = 240 - 83 - 1,
+    x = 240 - 83 - 2,
     y = 1,
     w = 83,
     h = 66,
     ent_key = self.x .. '-' .. self.y,
     close = function(self, sx, sy)
-      local btn = {x = self.x + self.w - 7, y = self.y + 1, w = 5, h = 5}
+      local btn = {x = self.x + self.w - 9, y = self.y + 1, w = 5, h = 5}
       if sx >= btn.x and sy < btn.x + btn.w and sy >= btn.y and sy <= btn.y + btn.h then
         return true
       end
@@ -31,10 +31,11 @@ function Lab:open()
     draw = function(self)
       local txt = ITEMS[ENTS[self.ent_key].id].fancy_name
       local ent = ENTS[self.ent_key]
-      box(self.x, self.y, self.w, self.h, 8, 9)
-      rect(self.x + 1, self.y + 1, self.w - 2, 9, 9)
+      ui.draw_panel(self.x, self.y, self.w, self.h, UI_BG, UI_FG, 'Research Lab', UI_SH)
+      --box(self.x, self.y, self.w, self.h, 8, 9)
+      --rect(self.x + 1, self.y + 1, self.w - 2, 9, 9)
       --close button
-      sspr(CLOSE_ID, self.x + self.w - 7, self.y + 2, 0)
+      sspr(CLOSE_ID, self.x + self.w - 9, self.y + 2, 15)
       prints(txt, self.x + self.w/2 - print(txt, 0, -10, 0, false, 1, true)/2, self.y + 2, 0, 4)
       prints(ent.current_research.name, self.x + self.w/2 - print(ent.current_research.name, 0, -10, 0, false, 1, true)/2, self.y + 12, 0, 4)
       for i = 1, 6 do
@@ -51,7 +52,7 @@ function Lab:open()
     end,
     click = function(self, sx, sy)
       if self:close(sx, sy) then
-        window = nil
+        ui.active_window = nil
         return true
       end
       return false

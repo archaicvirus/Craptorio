@@ -23,7 +23,7 @@ biomes = {
     tree_density = 0.175,
     color_key = 4,
     map_col = 6,
-    clutter = 0.25
+    clutter = 0.09
   },
   [3] = {
     name = 'Forest',
@@ -33,7 +33,7 @@ biomes = {
     t_min = 47,
     t_max = 99,
     tree_id = 201,
-    tree_density = 0.20,
+    tree_density = 0.13,
     color_key = 4,
     map_col = 7,
     clutter = 0.05
