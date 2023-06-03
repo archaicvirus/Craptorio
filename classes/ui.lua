@@ -7,7 +7,9 @@ UI_CORNER_ = 352
 LOGISTICS_ID = 387
 UI_BG = 8
 UI_FG = 9
-UI_SH = 0
+UI_TEXT_BG = 0
+UI_TEXT_FG = 4
+UI_SHADOW = 0
 --TODO: move all main ui windows here
 ui = {windows = {}, active_window = false}
 
@@ -101,19 +103,20 @@ function ui.NewPanel(x, y, w, h, fg, bg, border, children, on_click)
   return new_panel
 end
 
-function ui.draw_text_window(data, x, y, border, background, text)
-  border, background, text = border or 10, background or 8, text or 11
-  local width = 4
-  local height = #data * 7 + 3
+function ui.draw_text_window(data, x, y, label, bg, fg, text_bg, text_fg)
+  x, y, label, fg, bg, text_fg, text_bg = x or 2, y or 2, label or false, fg or UI_FG, bg or UI_BG, text_fg or UI_TEXT_FG, text_bg or UI_TEXT_BG
+  local w = 6
+  local h = #data * 7 + 3 + (label and 9 or 0)
+  --if label then h = h + 9 end
   for i = 1, #data do
-    local string_width = print(data[i], 0, -10, 0, true, 1, true)
-    if string_width > width then width = string_width end
+    local string_width = print(data[i], 0, -10, 0, false, 1, true)
+    if string_width + 6 > w then w = string_width + 6 end
   end
-  width = width + 4
-  rectb(x, y, width, height, border)
-  rect(x + 1, y + 1, width - 2, height - 2, background)
+  ui.draw_panel(x, y, w, h, bg, fg, label, UI_SHADOW)
+  -- rectb(x, y, width, height, border)
+  -- rect(x + 1, y + 1, width - 2, height - 2, background)
   for i = 1, #data do
-    print(data[i], x + 2, y - 5 + i*7, text, true, 1, true)
+    prints(data[i], x + 4, y + ((i-1) * 7) + (label and 10 or 3), UI_TEXT_BG, UI_TEXT_FG)
   end
 end
 
@@ -190,6 +193,7 @@ function ui.draw_panel(x, y, w, h, bg, fg, label, shadow)
     sspr(UI_CORNER, x + w - 8, y, 0, 1, 1)
     pal()
     pal(1, fg)
+    pal(8, bg)
     sspr(UI_CORNER, x + w - 8, y + h - 8, 0, 1, 3)
     sspr(UI_CORNER, x, y + h - 8, 0, 1, 2)
     pal()
@@ -207,14 +211,14 @@ function ui.draw_panel(x, y, w, h, bg, fg, label, shadow)
     pal()
   end
   rect(x + 6, y, w - 12, 2, fg) -- top border
-  rect(x, y + 7, 2, h - 13, fg) -- left border
-  rect(x + w - 2, y + 7, 2, h - 13, fg) -- right border
+  rect(x, y + 6, 2, h - 12, fg) -- left border
+  rect(x + w - 2, y + 6, 2, h - 12, fg) -- right border
   rect(x + 6, y + h - 2, w - 12, 2, fg) -- bottom border
   if shadow then
     --line(x + w - 1, y + 1, x + w, y + 3, shadow) -- shadow
     line(x + 4, y + h, x + w - 3, y + h, shadow) -- shadow
     line(x + w - 2, y + h - 1, x + w, y + h - 3, shadow)-- shadow
-    line(x + w, y + 3, x + w, y + h - 4, shadow)-- shadow
+    line(x + w, y + 4, x + w, y + h - 4, shadow)-- shadow
   end
   --sspr(CLOSE_ID, x + w - 9, y + 2, 0) -- close button
 end
@@ -235,7 +239,7 @@ end
 
 function CraftPanel:draw()
   if self.vis == true then
-    ui.draw_panel(self.x, self.y, self.w, self.h, 8, 9, 'Crafting')
+    ui.draw_panel(self.x, self.y, self.w, self.h, 8, 9, 'Crafting', 0)
     local mouse_x, mouse_y = mouse()
     local x, y, w, h, bg, fg = self.x, self.y, self.w, self.h, self.bg, self.fg
     local active_tab, ax, ay, aw, ah = self.active_tab, self.tab[self.active_tab].x, self.tab[self.active_tab].y, 24, 24
@@ -251,7 +255,7 @@ function CraftPanel:draw()
     sspr(BELT_ID_STRAIGHT, x + 15, y + self.tab[1].y + 12, 0, 1, 0, 1) --TAB 1
     sspr(INSERTER_ARM_ID, x + 4, y + self.tab[1].y + 12, 15, 1, 0, 1) --TAB 1
     sspr(331, x + self.tab[2].x + 14, y + self.tab[2].y + 12, 0)-- TAB 2
-    sspr(399, x + self.tab[2].x + 3, y + self.tab[2].y + 12, 6)-- TAB 2
+    sspr(399, x + self.tab[2].x + 3, y + self.tab[2].y + 12, 0)-- TAB 2
     sspr(316, x + self.tab[2].x + 14, y + self.tab[2].y + 2, 0)-- TAB 2
     sspr(456, x + self.tab[2].x + 3, y + self.tab[2].y + 2, 0)-- TAB 2
     sspr(460, x + self.tab[3].x + 3, y + self.tab[3].y + 12, 0)-- TAb 3

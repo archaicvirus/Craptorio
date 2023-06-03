@@ -1,5 +1,4 @@
-FURNACE_SPRITE_ACTIVE_ID = 490
-FURNACE_SPRITE_INACTIVE_ID = 488
+FURNACE_ID = 488
 FURNACE_FUEL_ICON = 291
 FURNACE_ANIM_TICK = 0
 FURNACE_ANIM_TICKRATE = 9
@@ -10,26 +9,27 @@ FURNACE_BUFFER_OUTPUT = 100
 FURNACE_BUFFER_FUEL = 50
 FURNACE_SMELT_TIME = 3 * 60
 FURNACE_COLORKEY = 6
+FURNACE_FIRE_KEYS = {7,11,10}
 
 
-local Furnace = {
+Furnace = {
   x = 0,
   y = 0,
   type = 'stone_furnace',
   is_hovered = false,
   updated = false,
   drawn = false,
+  id = 14,
   fuel_slots = FURNACE_BUFFER_FUEL,
   output_slots = FURNACE_BUFFER_SIZE,
   output_buffer = {id = 0, count = 0},
-  input_buffer = {id = 0, count = 0},
-  fuel_buffer = {id = 0, count = 0},
+  input_buffer = {id = 3, count = 100},
+  fuel_buffer = {id = 6, count = 50},
   dummy_keys = {},
   fuel_time = 0,
   smelt_timer = 0,
   ore_type = false,
   is_smelting = false,
-  item_id = 14,
 }
 
 function Furnace:draw_hover_widget()
@@ -44,8 +44,7 @@ function Furnace:draw_hover_widget()
   rect(x + 1, y + 1, w - 2, 8, 9)
   prints('Stone Furnace', x + 2, y + 2, 0, 4)
   --furnace sprite icon
-  local id = self.is_smelting and FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2) or FURNACE_SPRITE_INACTIVE_ID
-  sspr(id, x + w/2 - 8, y + 15, 6, 1, 0, 0, 2, 2)
+  Furnace.draw_sprite(x + w/2 - 8, y + 15, self.is_smelting)
   --item slots
   box(x + 5, y + 18, 10, 10, 0, 9)
   box(x + w - 15, y + 18, 10, 10, 0, 9)
@@ -60,43 +59,6 @@ function Furnace:draw_hover_widget()
     draw_item_stack(x + w/2 - 3, y + 36, self.fuel_buffer)
   end
 end
-
--- function Furnace:draw_hover_widget()
---   local sx, sy = cursor.x + 5, cursor.y + 5
---   local width, height = 65, 50
---   --background window and border
---   rectb(sx, sy, width, height, 13)
---   rect(sx + 1, sy + 1, width - 2, height - 2, 0)
-
---   --input slots icon, and item count------------------------------------------
---   local text = self.input_buffer.count .. '/' .. FURNACE_BUFFER_INPUT
---   local text_width = print(text, 0, -10, 0, true, 1, true)
---   local sprite_id = 311
---   print('Input - ', sx + 3, sy + 3, 11, true, 1, true)
---   print(text, sx + width - 2 - text_width, sy + 3, 4, true, 1, true)
---   if self.input_buffer.count > 0 then sprite_id = ITEMS[self.input_buffer[1]].sprite_id end
---   sspr(sprite_id, sx + width - 12 - text_width, sy + 2, 4)
-
---   --output slots icon and item count---------------------------------------------
---   local text = self.output_buffer.count .. '/' .. FURNACE_BUFFER_OUTPUT
---   local text_width = print(text, 0, -10, 0, true, 1, true)
---   local sprite_id = 311
---   print('Output - ', sx + 3, sy + 15, 11, true, 1, true)
---   print(text, sx + width - 2 - text_width, sy + 15, 4, true, 1, true)
---   if self.output_buffer.count > 0 then sprite_id = ITEMS[self.output_buffer[1]].sprite_id end
---   sspr(sprite_id, sx + width - 12 - text_width, sy + 13, 4)
-  
---   --fuel buffer slot icon etc-----------------------------------------------------
---   local text = self.fuel_buffer.count .. '/' .. FURNACE_BUFFER_FUEL
---   local text_width = print(text, 0, -10, 0, true, 1, true)
---   local sprite_id = 283
---   print('Fuel - ', sx + 3, sy + 24, 11, true, 1, true)
---   print(text, sx + width - 2 - text_width, sy + 24, 4, true, 1, true)
---   if self.fuel_buffer.count > 0 then sprite_id = ITEMS[self.fuel_buffer[1]].sprite_id end
---   sspr(sprite_id, sx + width - 12 - text_width, sy + 24, 4)
-
-  
--- end
 
 function Furnace:open()
   return {
@@ -165,8 +127,7 @@ function Furnace:open()
       end
       prints(fuel.count .. '/' .. FURNACE_BUFFER_FUEL, x + 4, y + 80, 0, 4)
       -- --terrain background-------------------------
-      local sprite_id = FURNACE_SPRITE_INACTIVE_ID
-      if ent.is_smelting then sprite_id = FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2) end
+      local sprite_id = FURNACE_ID
       for i = -1, 2 do
         for j = -3, 4 do
           local tile = TileMan.tiles[ent.y + i][ent.x + j]
@@ -185,9 +146,20 @@ function Furnace:open()
       -- --terrain border
       rectb(fx - 25, fy - 8, 66, 33, fg)
       --furnace graphic
-      sspr(sprite_id, fx, fy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
+      Furnace.draw_sprite(fx, fy, self.is_smelting)
     end
   }
+end
+
+function Furnace.draw_sprite(x, y, smelting)
+  local color_keys = {2, 3, 4}
+  local fire_keys = {7,11,10}
+  if smelting then
+    for y = 0, 3 do
+      set_sprite_pixel(505, 0, 4 + y, floor(math.random(2, 4)))
+    end
+  end
+  sspr(FURNACE_ID, x, y, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
 end
 
 function Furnace.update(self)
@@ -243,23 +215,19 @@ end
 
 function Furnace.draw(self)
   local sx, sy = world_to_screen(self.x, self.y)
+  Furnace.draw_sprite(sx, sy, self.is_smelting)
   --if self.is_hovered then self:draw_hover_widget() end
-  if self.is_smelting then
-    sspr(FURNACE_SPRITE_ACTIVE_ID + (FURNACE_ANIM_TICK * 2), sx, sy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
-  else
-    sspr(FURNACE_SPRITE_INACTIVE_ID, sx, sy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
-  end  
 end
 
-function Furnace.deposit(self, item_id, keep)
+function Furnace.deposit(self, id, keep)
   keep = keep or false
-  local item = ITEMS[item_id]
+  local item = ITEMS[id]
   if item.type ~= 'ore' and item.type ~= 'fuel' then return false end
   --trace(item.type)
-  if item.type == 'fuel' and (item_id == self.fuel_buffer.id or self.fuel_buffer.id == 0 or self.fuel_buffer.count == 0) then
+  if item.type == 'fuel' and (id == self.fuel_buffer.id or self.fuel_buffer.id == 0 or self.fuel_buffer.count == 0) then
     if self.fuel_buffer.count < 5 then
       if not keep then
-        self.fuel_buffer.id = item_id
+        self.fuel_buffer.id = id
         self.fuel_buffer.count = self.fuel_buffer.count + 1
       end
       return true
@@ -273,7 +241,7 @@ function Furnace.deposit(self, item_id, keep)
   -- if not self.ore_type then
   --   if not keep then
   --     self.ore_type = item.name
-  --     table.insert(self.input_buffer, item_id)
+  --     table.insert(self.input_buffer, id)
   --   end
   --   return true
   if item.type ~= 'ore' then return false end
@@ -282,7 +250,7 @@ function Furnace.deposit(self, item_id, keep)
 
     if not keep then
       self.ore_type = item.name
-      self.input_buffer.id = item_id
+      self.input_buffer.id = id
       self.input_buffer.count = self.input_buffer.count + 1
     end
     return true
@@ -311,7 +279,7 @@ end
 
 function Furnace:request_output(keep)
   if self.output_buffer.count > 0 then
-    local item_id = self.output_buffer.id
+    local id = self.output_buffer.id
     if self.output_buffer.count < 0 then
       --set ore_type to nil?
       --self.output_buffer.id = 0
@@ -320,7 +288,7 @@ function Furnace:request_output(keep)
       return true
     else
       self.output_buffer.count = self.output_buffer.count - 1
-      return item_id
+      return id
     end
   end
   return false
@@ -337,14 +305,13 @@ function new_furnace(x, y, keys)
   fuel_slots = FURNACE_BUFFER_FUEL,
   output_slots = FURNACE_BUFFER_SIZE,
   output_buffer = {id = 0, count = 0},
-  input_buffer = {id = 0, count = 0},
-  fuel_buffer = {id = 0, count = 0},
+  -- input_buffer = {id = 0, count = 0},
+  -- fuel_buffer = {id = 0, count = 0},
   dummy_keys = keys,
   fuel_time = 0,
   smelt_timer = 0,
   ore_type = false,
   is_smelting = false,
-  item_id = 14,
 }
   setmetatable(new_furnace, {__index = Furnace})
   return new_furnace

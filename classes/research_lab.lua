@@ -74,10 +74,10 @@ function Lab:draw()
     else
       pal(10, 11)
     end
-    sspr(LAB_ID, sx, sy, 6, 1, 0, 0, 3, 3)
+    sspr(LAB_ID, sx, sy, ITEMS[Lab.id].color_key, 1, 0, 0, 3, 3)
     pal()
   else
-    sspr(LAB_ID, sx, sy, 6, 1, 0, 0, 3, 3)
+    sspr(LAB_ID, sx, sy, ITEMS[Lab.id].color_key, 1, 0, 0, 3, 3)
   end
 end
 

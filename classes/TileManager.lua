@@ -144,6 +144,7 @@ function  TileManager.create_tile(x, y)
     --Water tile
     tile.color = floor(math.random(2)) + 8
     tile.sprite_id = 79
+    tile.rot = floor(math.random(0,3))
   else
     tile.sprite_id = biomes[tile.biome].tile_id_offset
     tile.color = biomes[tile.biome].map_col
