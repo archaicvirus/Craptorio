@@ -53,9 +53,10 @@ function underground_belt:draw_hover_widget(other)
   local x, y = cursor.x + 3, cursor.y + 3
   local width = print(txt, 0, -10, 0, false, 1, true)
   local w, h = width + 4, 50
-  box(x, y, w, h, 8, 9)
-  rect(x + 1, y + 1, w - 2, 9, 9)
-  prints(txt, x + w/2 - width/2, y + 2, 0, 4)
+  ui.draw_panel(x, y, w, h, UI_BG, UI_FG, other and 'Underground Belt Exit' or 'Underground Belt')
+  --box(x, y, w, h, 8, 9)
+  --rect(x + 1, y + 1, w - 2, 9, 9)
+  --prints(txt, x + w/2 - width/2, y + 2, 0, 4)
   if other then
     sspr(UBELT_OUT + UBELT_TICK, x + w/2 - 12, y + 15, ITEMS[self.item_id].color_key, 3, ENTS[other].flip, ENTS[other].rot)
   else

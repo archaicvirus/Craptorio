@@ -23,8 +23,8 @@ Furnace = {
   fuel_slots = FURNACE_BUFFER_FUEL,
   output_slots = FURNACE_BUFFER_SIZE,
   output_buffer = {id = 0, count = 0},
-  input_buffer = {id = 3, count = 100},
-  fuel_buffer = {id = 6, count = 50},
+  input_buffer = {id = 0, count = 0},
+  fuel_buffer = {id = 0, count = 0},
   dummy_keys = {},
   fuel_time = 0,
   smelt_timer = 0,
@@ -38,8 +38,9 @@ function Furnace:draw_hover_widget()
   local w, h = print('Stone Furnace', 0, -10, 0, false, 1, true) + 4, 50
   local x, y = clamp(sx + offset.x, 0, 240 - w - offset.x), clamp(sy + offset.y, 0, 136 - h - offset.y)
   --window fill and border
-  rectb(x, y, w, h, 9)
-  rect(x + 1, y + 1, w - 2, h - 2, 8)
+  ui.draw_panel(x, y, w, h, _, _, 'Stone Furnace', 0)
+  -- rectb(x, y, w, h, 9)
+  -- rect(x + 1, y + 1, w - 2, h - 2, 8)
   --top bar for text
   rect(x + 1, y + 1, w - 2, 8, 9)
   prints('Stone Furnace', x + 2, y + 2, 0, 4)
@@ -146,7 +147,7 @@ function Furnace:open()
       -- --terrain border
       rectb(fx - 25, fy - 8, 66, 33, fg)
       --furnace graphic
-      Furnace.draw_sprite(fx, fy, self.is_smelting)
+      Furnace.draw_sprite(fx, fy, ent.is_smelting)
     end
   }
 end
@@ -154,12 +155,10 @@ end
 function Furnace.draw_sprite(x, y, smelting)
   local color_keys = {2, 3, 4}
   local fire_keys = {7,11,10}
-  if smelting then
-    for y = 0, 3 do
-      set_sprite_pixel(505, 0, 4 + y, floor(math.random(2, 4)))
-    end
-  end
   sspr(FURNACE_ID, x, y, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
+  if smelting then
+    sspr(490, x + 7, y + 12, 0)
+  end
 end
 
 function Furnace.update(self)

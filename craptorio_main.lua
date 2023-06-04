@@ -25,12 +25,14 @@ require('classes/research_lab')
 require('classes/open_simplex_noise')
 require('classes/TileManager')
 require('classes/crafting_definitions')
+require('classes/research')
 
-math.randomseed(tstamp())
+--math.randomseed(tstamp() * time())
 --local seed = math.random(-1000000000, 1000000000)
-local seed = 902404786
+--local seed = 902404786
+local seed = 747070313
 --math.randomseed(53264)
---math.randomseed(seed)
+math.randomseed(seed)
 offset = math.random(100000, 500000)
 simplex.seed()
 TileMan = TileManager:new()
@@ -50,6 +52,7 @@ CURSOR_HIGHLIGHT_CORNER_S = 336
 CURSOR_HAND_ID = 320
 CURSOR_GRAB_ID = 321
 technology = {}
+current_research = 1
 cursor = {
   x = 8,
   y = 8,
@@ -84,7 +87,7 @@ cursor = {
   item_stack = {id = 9, count = 100}
 }
 player = {
-  x = 0 * 8, y = 0 * 8,
+  x = 77 * 8, y = 600 * 8,
   spr = 362,
   lx = 0, ly = 0,
   shadow = 382,
@@ -133,6 +136,7 @@ show_mini_map = false
 show_tile_widget = false
 debug = false
 alt_mode = false
+show_tech = true
 --water effect defs
 local num_colors = 3
 local start_color = 8
@@ -140,7 +144,7 @@ local tileSize = 8
 local tileCount = 1
 local amplitude = num_colors
 local frequency = 0.22
-local speed = 0.005
+local speed = 0.00300000000
 --------------------
 local sounds = {
   ['deny']        = {id = 5, note = 'C-3', duration = 22, channel = 0, volume = 15, speed = 0},
@@ -206,7 +210,7 @@ function update_water_effect(time)
         local tileY = worldY % (tileSize * tileCount)
         
         -- Calculate the noise value using world coordinates and time
-        local noiseValue = simplex.Noise2D(tileX * frequency, (tileY + time * speed) * frequency)
+        local noiseValue = simplex.Noise2D((tileX * math.cos(frequency)), tileY + time * speed * math.sin(frequency))
         
         -- Convert the noise value to a pixel color (palette index 0-15)
         local color = math.floor(((noiseValue + 1) / 2) * amplitude) + start_color
@@ -1094,7 +1098,10 @@ function dispatch_keypress()
   if keyp(25) then debug = not debug end
   --SHIFT
   if key(64) then show_tile_widget = true else show_tile_widget = false end
+  --ALT
   if keyp(65) then alt_mode = not alt_mode end
+  --T
+  if keyp(20) then show_tech = not show_tech end
   --0-9
   for i = 1, INVENTORY_COLS do
     local key_n = 27 + i
@@ -1106,6 +1113,12 @@ end
 function dispatch_input()
   update_cursor_state()
   dispatch_keypress()
+  if show_tech then
+
+    return
+  end
+
+
   local k = get_ent(cursor.x, cursor.y)
   if cursor.sy ~= 0 then cycle_hotbar(cursor.sy*-1) end
   if not cursor.l then
@@ -1385,6 +1398,10 @@ function TIC()
 
   if TICK % FURNACE_ANIM_TICKRATE == 0 then
     FURNACE_ANIM_TICK = FURNACE_ANIM_TICK + 1
+    for y = 0, 3 do
+      set_sprite_pixel(490, 0, y, floor(math.random(2, 4)))
+      set_sprite_pixel(490, 1, y, floor(math.random(2, 4)))
+    end
     if FURNACE_ANIM_TICK > FURNACE_ANIM_TICKS then
       FURNACE_ANIM_TICK = 0
     end
@@ -1503,6 +1520,7 @@ function TIC()
   -- end
   --draw_debug_window(info)
   info[10] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
+  info[11] = 'Seed: ' .. seed
   --function ui.draw_text_window(data, x, y, label, fg, bg, text_fg, text_bg)
   if debug then ui.draw_text_window(info, 2, 2, 'Debug', 0, 2, 0, 4) end
   local k, u = get_ent(cursor.x, cursor.y)
@@ -1522,6 +1540,7 @@ function TIC()
     v.is_hovered = false
     if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
   end
+  if show_tech then draw_research_screen() end
   --ui.draw_panel(70, 18, 50, 75, 8, 9, 'Crafting')
   --ui.draw_grid(10, 10, 5, 5, 8, 9, 9)
   --draw_item_stack(0, 0, {id = 4, count = TICK%45})
@@ -1557,7 +1576,7 @@ end
 -- 026:666666666666666666cddd666eddddd66ccdcdc666ccce666666666666666666
 -- 027:4444444444466444446666444666666446666664446666444446644444444444
 -- 028:4444444466444646466666666666466666666666666666666666666666666666
--- 029:4444444444444444444446664444666644466666444666664466666644666666
+-- 029:4444444444444464444446664444664644466666446466664466666646666666
 -- 030:4444444444444444444444444444444444444444446666444666666466666666
 -- 031:4646666446666664446666466466664444646644466666644466664646666664
 -- 032:7777777777777777777777777777777777777777777777777777777777777777
@@ -1876,6 +1895,9 @@ end
 -- 057:00000000ccccccccffffffffddddddddccfffccfccfefccfccfffccfcccccccc
 -- 058:00000000ccccc000fffcfc00dddfccc0ffcdfcc0efcdfdc0ffcdfdc0cccdfcc0
 -- 060:00ed0e00edfddfd0efdeedfe0dedfeddddefded0efdeedfe0dfddfde00e0de00
+-- 061:111111111111111111111f441111143f111114f31111114411ff11441f44f144
+-- 062:11111111111111f411111f4444443441444434411111114411ff11141f44f1df
+-- 063:1111111144f111111111111111111111111111111111111144111111fdf11111
 -- 064:00c0000000c0000000ccc000c0ccc0000cccc00000dd00000000000000000000
 -- 065:000000000cc000000ccc0000cccc0000cccc00000dd000000000000000000000
 -- 066:000efffe000fccdf00f4dde00f4defd00f4dfed000f4dde0000fccf0000fccff
@@ -1886,6 +1908,9 @@ end
 -- 073:ffffffffeeeeeeeeffffffffccccccccffffffffffffffffffffffffffffffff
 -- 074:fffdfcc0eefffdc0fffcfdc0ddddfcc0cdddfcc0cedefdc0ccccfcc0ceecfcc0
 -- 075:0cccccc0cececedccdffffdccfeeeefccdffffdccddeedddcddeeddc0cccccc0
+-- 077:1f444f4411f44433111f4f44111f4f44111f44ff1111f44411111f4d11111f4d
+-- 078:f444fdee444fdeeef4fdffe4f4dffffe4deeffffdeeeefffffe4440ffffee40f
+-- 079:ffdf1111effdf111440fdf11e40ffdf1e40efdf1feeedf11ffedf111ffdf1111
 -- 080:1212000020560000150000002600000000000000000000000000000000000000
 -- 081:10bbb1110beceb110becdb110beeeb1110bbb111111111111111111111111111
 -- 082:000fccff000fccf000f4dde00f4dfed00f4defd000f4dde0000fccdf000efffe
@@ -1896,10 +1921,9 @@ end
 -- 088:0cdfcddc0cdfceec0cdfceec0cddfccc0cdddffe00cddddd000ccccc00000000
 -- 089:ffffffffffffffffffffffffffffffffccccccccdcddddcdcccccccc00000000
 -- 090:cddcfdc0ceecfdc0ceecfdc0cccfddc0effdddc0dddddc00ccccc00000000000
--- 091:0000000000000000000000000002300000022000000000000000000000000000
--- 092:0000000000000000000220000020020000200200000220000000000000000000
--- 093:0000000000022000002002000200002002000020002002000002200000000000
--- 094:0022220002000020200000022000000220000002200000020200002000222200
+-- 093:11111144111111ff111111111111111111111111111111111111111111111111
+-- 094:dfffe40efdfffeee1fdfffed11fdffdf111fddf11111ff111111111111111111
+-- 095:fdf11111df111111f11111111111111111111111111111111111111111111111
 -- 096:0011110001111100111888001188880011888800118888000000000000000000
 -- 099:000fff0f0f888888f8884888f884888408848884f8884888f8888888f848848f
 -- 100:ff0fff0f888888884888488888848884888488844888488888888888ff0fff0f

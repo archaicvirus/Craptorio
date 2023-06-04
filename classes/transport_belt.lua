@@ -226,42 +226,29 @@ BELT_TO_UBELT_MAP = {
 function Belt:draw_hover_widget()
   local sx, sy = cursor.x, cursor.y
   local offset = {x = 3, y = 3}
-  local w, h = print('Transport Belt', 0, -10, 0, false, 1, true) + 4, 50
+  local w, h = print('Transport Belt', 0, -10, 0, false, 1, true) + 4, 60
   local x, y = clamp(sx + offset.x, 0, 240 - w - offset.x), clamp(sy + offset.y, 0, 136 - h - offset.y)
-  rectb(x, y, w, h, 9)
-  rect(x + 1, y + 1, w - 2, h - 2, 0)
-  rect(x + 1, y + 1, w - 2, 8, 9)
-  prints('Transport Belt', x + 2, y + 2, 0, 4)
-  --rect(x + w/2 - 5, y + 10, 9, 9, 9)
-  local b = {x = x + w/2 - 17, y = y + 11}
-  sspr(self.id, b.x, b.y, 0, 4, self.flip, self.sprite_rot)
-  -- for i = 1, 2 do
-  --   for j = 1, 8 do
-  --     if self.lanes[i][j] ~= 0 then
-  --       local x, y = x + w/2 - 17 + ((j - 1) * 4), y + 18 + ((i - 1) * 12)
-  --       sspr(ITEMS[self.lanes[i][j]].belt_id, x, y, ITEMS[self.lanes[i][j]].color_key, 1)
-  --     end
-  --   end
-  -- end
-
-
+  ui.draw_panel(x, y, w, h, UI_BG, UI_FG, 'Transport Belt', 0)
+  local b = {x = x + w/2 - 20, y = y + 13}
+  sspr(self.id, b.x, b.y, 0, 5, self.flip, self.sprite_rot)
   local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
   local offsets = {
-    
+    [0] = {x = 0, y = 5},
+    [1] = {x = 0, y = 0},
+    [2] = {x = 7, y = 0},
+    [3] = {x = 7, y = 10}
   }
   for i = 1, 2 do
     for j = 1, 8 do
       if self.lanes[i][j] > 0 then
         --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
-        local xx = b.x + (item_locations[j][i].x * 4)
-        local yy = b.y + (item_locations[j][i].y * 4)
+        local xx = clamp(b.x + (item_locations[j][i].x * 5 + offsets[self.rot].x), b.x, b.x + 40)
+        local yy = clamp(b.y + (item_locations[j][i].y * 5 + offsets[self.rot].y), b.y, b.y + 40)
         local sprite_id = ITEMS[self.lanes[i][j]].sprite_id
         sspr(sprite_id, xx, yy, ITEMS[self.lanes[i][j]].color_key, 1)
       end
     end
-  end    
-
-  -- print('Transport Belt', x + 2, y + 1, 0, true, 1, true)
+  end
 end
 
 function Belt.get_info(self)

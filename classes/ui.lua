@@ -412,6 +412,45 @@ function ui:furnace_widget(ent)
   
 end
 
+function ui.progress_bar(progress, x, y, w, h, bg, fg, fill, option)
+  --Options: 
+  --0 - rounded/fancy
+  --1 - square with border
+  --2 - square no border
+  if option == 0 then
+    ui.draw_panel(x, y, w, h, bg, fg)
+    --rect(x + 1, y + 1, progress * (w-2), h - 2, fill)
+    -- line(x, y + 2, x, y + h - 3, fg)
+    -- line(x + 1, y + 1, x + 1, y + h - 2, fg)
+    -- line(x + w - 1, y + 2, x + w - 1, y + h - 3, fg)
+    -- line(x + w - 2, y + 1, x + w - 2, y + h - 2, fg)
+    -- rectb(x + 2, y, w - 4, h, fg)
+    -- rectb(x + 2, y + 1, w - 4, h - 2, fg)
+    -- rect(x + 2, y + 2, w - 4, h - 4, bg)
+    -- rect(x+2, y+2, w-4, h-4, 2)
+  elseif option == 1 then
+    rectb(x, y, w, h, fg)
+    rect(x + 1, y + 1, progress * (w-2), h - 2, fill)
+    pix(x + 1, y + 1, fg)
+    pix(x + 1, y + h - 2, fg)
+    pix(x + w - 2, y + 1, fg)
+    pix(x + w - 2, y + h - 2, fg)
+    pix(x, y, bg)
+    pix(x, y + h - 1, bg)
+    pix(x + w - 1, y, bg)
+    pix(x + w - 1, y + h - 1, bg)
+  elseif option == 2 then
+    rectb(x, y+1, w, h-2, fg)
+    rectb(x+1, y, w-2, h, fg)
+    rect(x + 1, y + 1, w-2, h - 2, bg)
+    rect(x + 1, y + 1, progress * (w-2), h - 2, fill)
+    pix(x + 1, y + 1, fg)
+    pix(x + 1, y + h - 2, fg)
+    pix(x + w - 2, y + 1, fg)
+    pix(x + w - 2, y + h - 2, fg)
+  end
+end
+
 function ui.NewCraftPanel(x, y)
   local new_panel = {}
   setmetatable(new_panel, {__index = CraftPanel})

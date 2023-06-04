@@ -83,7 +83,7 @@ local Drill = {
   pos = {x = 0, y = 0},
   rot = 0,
   --output = {},
-  ore_type = nil,
+  ore_type = false,
   ore_id = nil,
   output_key = nil,
   output_slots = 5,
@@ -101,10 +101,16 @@ local Drill = {
   item_id = 13,
 }
 
-function Drill.draw_hover_widget(self)
-  local sx, sy = cursor.x, cursor.y
-  rectb(sx, sy, 50, 50, 13)
-  rect(sx + 1, sy + 1, 48, 48, 0)
+function Drill:draw_hover_widget()
+  local sx, sy, w, h = cursor.x + 3, cursor.y + 3, 50, 50
+  ui.draw_panel(sx, sy, w, h, UI_BG, UI_FG, 'Mining Drill', 0)
+  box(sx + w/2 - 4, sy + h/2 - 4, 10, 10, 0, UI_FG)
+  if self.output and #self.output > 0 then
+    local stack = {id = self.output[1], count = #self.output}
+    draw_item_stack(sx + w/2 - 4 + 1, sy + h/2 - 4 + 1, stack)
+  end
+    -- rectb(sx, sy, 50, 50, 13)
+  -- rect(sx + 1, sy + 1, 48, 48, 0)
 end
 
 function Drill.yield(self)
@@ -122,8 +128,7 @@ function Drill.yield(self)
         --trace('WX = ' .. wx .. ', WY = ' .. wy)
         TileMan:set_tile(wx, wy)
         ORES[ore_key] = nil
-      end
-      
+      end      
       table.insert(self.output, ore_id)
     else
       -- self.current_tile = self.current_tile + 1

@@ -218,6 +218,8 @@ function Crafter:open()
         draw_item_stack(xx, y + 15, {id = ent.recipe.id, count = ent.recipe.count})
         --crafting progress bar
         box(x + 4, y + 30, 67, 6, 0, 9)
+        sspr(CRAFTER_TIME_ID, x + 4, y + 38, 1)
+        prints(ent.recipe.crafting_time .. 's', x + 12, y + 38, UI_TEXT_BG, UI_TEXT_FG)
         if ent.state == 'crafting' then
           rect(x + 29, y + 39, remap(ent.progress, 0, ent.recipe.crafting_time, 0, 67), 4, 5)
         end
@@ -240,18 +242,11 @@ function Crafter:open()
         --assembly machine graphic-and terrain background-------------------------
         local sprite_id = CRAFTER_ID
         local fx, fy = x + w - 26, y + 12 --crafter icon screen pos
-        --rectb(fx - 33, fy - 17, w - 18, 50, 14)
-        --line(x + 1, y + 10, x + w - 2, y + 10, 9)
         line(x + 1, y + 47, x + w - 2, y + 47, 9)
         sspr(sprite_id, fx, fy, 0, 1, 0, 0, 3, 3)
         sspr(CLOSE_ID, x + w - 7, y + 2, 15)
-        --local width = print('Assembly Machine', 0, -10, 0, true, 1, true)
-        --prints('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, 4)
-        -- print('Assembly Machine', x + w/2 - width/2 + 1, y + 3, 0, true, 1, true)
-        -- print('Assembly Machine', x + w/2 - width/2 + 0, y + 3, 4, true, 1, true)
-        --Input ingredient icons and count
         for k, v in ipairs(ent.input) do
-          
+          -- ?
         end
       end
     }
