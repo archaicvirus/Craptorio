@@ -79,7 +79,7 @@ function draw_research_screen()
     --sspr(ITEMS[v.id].sprite_id, 48 + (k-1)*8, 19, ITEMS[v.id].color_key)
     draw_item_stack(48 + (k-1)*8, 19, {id = v.id, count = 1})
   end
-  --draw scroll panel for available research
+  --draw panel for available research
   ui.draw_grid(1, left_panel_height + 2, 3, 4, UI_BG, UI_FG, 25, false)
   for y = 0, 2 do
     for x = 0, 3 do
