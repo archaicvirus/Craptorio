@@ -87,7 +87,7 @@ cursor = {
   item_stack = {id = 9, count = 100}
 }
 player = {
-  x = 77 * 8, y = 600 * 8,
+  x = 15 * 8, y = 600 * 8,
   spr = 362,
   lx = 0, ly = 0,
   shadow = 382,
@@ -143,8 +143,8 @@ local start_color = 8
 local tileSize = 8
 local tileCount = 1
 local amplitude = num_colors
-local frequency = 0.22
-local speed = 0.00300000000
+local frequency = 0.185
+local speed = 0.0022
 --------------------
 local sounds = {
   ['deny']        = {id = 5, note = 'C-3', duration = 22, channel = 0, volume = 15, speed = 0},
@@ -210,11 +210,12 @@ function update_water_effect(time)
         local tileY = worldY % (tileSize * tileCount)
         
         -- Calculate the noise value using world coordinates and time
-        local noiseValue = simplex.Noise2D((tileX * math.cos(frequency)), tileY + time * speed * math.sin(frequency))
+        --time = time + math.sin(time)
+        local noiseValue = simplex.Noise2D(((tileX + time * speed) * frequency), (tileY + time * speed) * frequency)
         
         -- Convert the noise value to a pixel color (palette index 0-15)
         local color = math.floor(((noiseValue + 1) / 2) * amplitude) + start_color
-        
+        --local color = math.floor(((noiseValue + 1) / 2) * amplitude)
         -- Set the pixel color in the sprite
         set_sprite_pixel(224, x, y, color)
       end
@@ -1488,41 +1489,10 @@ function TIC()
   local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
   local sx, sy = get_screen_cell(cursor.x, cursor.y)
   local k = get_key(cursor.x, cursor.y)
-  -- local info = {
-  --   [1] = 'World X-Y: ' .. wx ..',' .. wy,
-  --   [2] = 'Player X-Y: ' .. player.x ..',' .. player.y,
-  --   [3] = 'Tile: ' .. tostring(tile.sprite_id),
-  --   [4] = 'Sx,Sy: ' .. sx .. ',' .. sy,
-  --   [5] = 'Key: ' .. key,
-  --   [6] = '#Ents: ' .. ents,
-  --   [7] = 'Frame Time: ' .. floor(time() - start) .. 'ms',
-  --   [8] = 'Seed: ' ..seed,
-  -- }
-  -- local info
-  -- local ent = ENTS[key]
-  -- if ent then
-  --   if ent.type == 'transport_belt' or ent.type == 'splitter' then
-  --     info = ent:get_info()
-  --   else
-  --     info = {
-  --       [1] = 'ENT: ' .. ent.type,
-  --       [2] = 'ROT: ' .. ent.type ~= 'power_pole' and ent.rot or 'nil',
-  --       [3] = 'MAP: ' .. key
-  --     }
-  --   end
-  --   --if ent.other_key then info[4] = 'OTK: ' .. ent.other_key end
-  --   info[#info + 1] = 'MAP: ' .. key
-  -- else
-  --   info = {
-  --     [1] = 'nil',
-  --     [2] = 'KEY: ' .. key
-  --   }
-  -- end
-  --draw_debug_window(info)
   info[10] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
   info[11] = 'Seed: ' .. seed
   --function ui.draw_text_window(data, x, y, label, fg, bg, text_fg, text_bg)
-  if debug then ui.draw_text_window(info, 2, 2, 'Debug', 0, 2, 0, 4) end
+  if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
   local k, u = get_ent(cursor.x, cursor.y)
   if k and alt_mode and ENTS[k] then
     -- if ENTS[k].other_key then

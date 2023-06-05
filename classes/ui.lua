@@ -106,7 +106,7 @@ end
 function ui.draw_text_window(data, x, y, label, bg, fg, text_bg, text_fg)
   x, y, label, fg, bg, text_fg, text_bg = x or 2, y or 2, label or false, fg or UI_FG, bg or UI_BG, text_fg or UI_TEXT_FG, text_bg or UI_TEXT_BG
   local w = 6
-  local h = #data * 7 + 3 + (label and 9 or 0)
+  local h = #data * 7 + 4 + (label and 9 or 0)
   --if label then h = h + 9 end
   for i = 1, #data do
     local string_width = print(data[i], 0, -10, 0, false, 1, true)
@@ -223,17 +223,31 @@ function ui.draw_panel(x, y, w, h, bg, fg, label, shadow)
   --sspr(CLOSE_ID, x + w - 9, y + 2, 0) -- close button
 end
 
-function ui.draw_grid(x, y, rows, cols, bg, fg, size, draw_top)
+function ui.draw_grid(x, y, rows, cols, bg, fg, size, border, rounded)
+  rounded = true
+  border = true
   size = size or 9
-  rect(x + 1, y + 1, (cols * size) - 1, (rows * size) - 1, bg)
-  for i = 1, cols do
+  if border then rectb(x,y,cols*size+1,rows*size+1,fg) end
+  rect(x + 1, y + 1, (cols * size) - 1, (rows * size)-1, bg)
+  for i = 1, cols - 1 do
     local x1 = x + i*size
-    line(x1, y, x1, y + (rows*size) - 1, fg)
+    line(x1, y + 1, x1, y + (rows*size), fg)
   end
-  for i = 1, rows do
+  for i = 1, rows - 1 do
     local y1 = y + i*size
-    line(x, y1, x + (cols*size) - 1, y1, fg)
-    --   line(x, y1, x + cols*size - 1, y1, fg)
+    line(x + 1, y1, x + (cols*size) - 1, y1, fg)
+  end
+  if rounded then
+    for i = 0, rows - 1 do
+      for j = 0, cols  - 1 do
+        local xx, yy = x + 1 + j*size, y + 1 + i*size
+        --rect(xx,yy,size-1,size-1,3)
+        pix(xx, yy, fg)
+        pix(xx + size - 2, yy, fg)
+        pix(xx + size - 2, yy + size - 2, fg)
+        pix(xx, yy + size - 2, fg)
+      end
+    end
   end
 end
 
@@ -498,4 +512,84 @@ function ui.check_input(c)
   return false
 end
 
-return ui
+function rectr(x,y,w,h,bg,fg,b)
+  b=false
+  local offset = 0
+  if b then
+    offset=1
+    rectb(x,y,w,h,fg)
+    rect(x+1,y+1,w-2,h-2,bg)
+    pix(x+1,y+1,fg)
+    pix(x+w-2,y+1,fg)
+    pix(x+w-2,y+h-2,fg)
+    pix(x+1,y+h-2,fg)
+  else
+    rect(x,y,w,h,bg)
+    pix(x,y,fg)
+    pix(x+w-1,y,fg)
+    pix(x+w-1,y+h-1,fg)
+    pix(x,y+h-1,fg)
+  end
+end
+
+-- function tspr(sid, tw, th, sx, sy, ck)
+--   -- Calculate the sprite's UV coordinates
+--   local spriteX = sid % 16 * 8
+--   local spriteY = math.floor(sid / 16) * 8
+
+--   -- Calculate the width and height in pixels
+--   local spriteWidth = tw * 8
+--   local spriteHeight = th * 8
+
+--   -- Draw the sprite using two textured triangles
+--   ttri(
+--     sx, sy, 
+--     sx + spriteWidth, sy, 
+--     sx, sy + spriteHeight, 
+--     spriteX, spriteY, 
+--     spriteX + spriteWidth, spriteY, 
+--     spriteX, spriteY + spriteHeight,
+--     sid < 256 and 1 or 0, ck
+--   )
+  
+--   ttri(
+--     sx + spriteWidth, sy, 
+--     sx, sy + spriteHeight, 
+--     sx + spriteWidth, sy + spriteHeight, 
+--     spriteX + spriteWidth, spriteY, 
+--     spriteX, spriteY + spriteHeight, 
+--     spriteX + spriteWidth, spriteY + spriteHeight,
+--     sid < 256 and 1 or 0, ck
+--   )
+-- end
+
+function tspr(spriteId, tileWidth, tileHeight, screenX, screenY, chromaKey, desiredWidth, desiredHeight)
+  -- Calculate the sprite's UV coordinates
+  local spriteX = spriteId % 16 * 8
+  local spriteY = math.floor(spriteId / 16) * 8
+
+  -- Calculate the width and height in pixels
+  local spriteWidth = tileWidth * 8
+  local spriteHeight = tileHeight * 8
+
+  -- Draw the sprite using two textured triangles
+  ttri(
+    screenX, screenY, 
+    screenX + desiredWidth, screenY, 
+    screenX, screenY + desiredHeight, 
+    spriteX, spriteY, 
+    spriteX + spriteWidth, spriteY, 
+    spriteX, spriteY + spriteHeight,
+    spriteId < 256 and 1 or 0, chromaKey
+  )
+  
+  ttri(
+    screenX + desiredWidth, screenY, 
+    screenX, screenY + desiredHeight, 
+    screenX + desiredWidth, screenY + desiredHeight, 
+    spriteX + spriteWidth, spriteY, 
+    spriteX, spriteY + spriteHeight, 
+    spriteX + spriteWidth, spriteY + spriteHeight,
+    spriteId < 256 and 1 or 0, chromaKey
+  )
+end
