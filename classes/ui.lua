@@ -513,6 +513,7 @@ function ui.check_input(c)
 end
 
 function rectr(x,y,w,h,bg,fg,b)
+  --draws a box with 4-interior pixels (rounded look) with or without outer border
   b=false
   local offset = 0
   if b then
@@ -532,64 +533,30 @@ function rectr(x,y,w,h,bg,fg,b)
   end
 end
 
--- function tspr(sid, tw, th, sx, sy, ck)
---   -- Calculate the sprite's UV coordinates
---   local spriteX = sid % 16 * 8
---   local spriteY = math.floor(sid / 16) * 8
-
---   -- Calculate the width and height in pixels
---   local spriteWidth = tw * 8
---   local spriteHeight = th * 8
-
---   -- Draw the sprite using two textured triangles
---   ttri(
---     sx, sy, 
---     sx + spriteWidth, sy, 
---     sx, sy + spriteHeight, 
---     spriteX, spriteY, 
---     spriteX + spriteWidth, spriteY, 
---     spriteX, spriteY + spriteHeight,
---     sid < 256 and 1 or 0, ck
---   )
-  
---   ttri(
---     sx + spriteWidth, sy, 
---     sx, sy + spriteHeight, 
---     sx + spriteWidth, sy + spriteHeight, 
---     spriteX + spriteWidth, spriteY, 
---     spriteX, spriteY + spriteHeight, 
---     spriteX + spriteWidth, spriteY + spriteHeight,
---     sid < 256 and 1 or 0, ck
---   )
--- end
-
-function tspr(spriteId, tileWidth, tileHeight, screenX, screenY, chromaKey, desiredWidth, desiredHeight)
+function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
   -- Calculate the sprite's UV coordinates
-  local spriteX = spriteId % 16 * 8
-  local spriteY = math.floor(spriteId / 16) * 8
-
+  local spriteX = sprite_id % 16 * 8
+  local spriteY = math.floor(sprite_id / 16) * 8
   -- Calculate the width and height in pixels
-  local spriteWidth = tileWidth * 8
-  local spriteHeight = tileHeight * 8
-
+  local spw = tile_w * 8
+  local sph = tile_h * 8
   -- Draw the sprite using two textured triangles
   ttri(
-    screenX, screenY, 
-    screenX + desiredWidth, screenY, 
-    screenX, screenY + desiredHeight, 
+    sx, sy, 
+    sx + width, sy, 
+    sx, sy + height, 
     spriteX, spriteY, 
-    spriteX + spriteWidth, spriteY, 
-    spriteX, spriteY + spriteHeight,
-    spriteId < 256 and 1 or 0, chromaKey
-  )
+    spriteX + spw, spriteY, 
+    spriteX, spriteY + sph,
+    sprite_id < 256 and 1 or 0, ck  )
   
   ttri(
-    screenX + desiredWidth, screenY, 
-    screenX, screenY + desiredHeight, 
-    screenX + desiredWidth, screenY + desiredHeight, 
-    spriteX + spriteWidth, spriteY, 
-    spriteX, spriteY + spriteHeight, 
-    spriteX + spriteWidth, spriteY + spriteHeight,
-    spriteId < 256 and 1 or 0, chromaKey
+    sx + width, sy, 
+    sx, sy + height, 
+    sx + width, sy + height, 
+    spriteX + spw, spriteY, 
+    spriteX, spriteY + sph, 
+    spriteX + spw, spriteY + sph,
+    sprite_id < 256 and 1 or 0, ck
   )
 end
