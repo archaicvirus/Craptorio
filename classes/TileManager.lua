@@ -69,7 +69,7 @@ function AutoMap(x, y)
 
   TileMan.tiles[y][x].sprite_id = new_tile.sprite_id + 11 + biomes[tile.biome].tile_id_offset
   TileMan.tiles[y][x].is_border = true
-  TileMan.tiles[y][x].is_tree  = false
+  --TileMan.tiles[y][x].is_tree  = false
   TileMan.tiles[y][x].ore = false
   TileMan.tiles[y][x].flip = 0
   --TileMan.tiles[y][x].is_tree = false
@@ -118,7 +118,7 @@ function  TileManager.create_tile(x, y)
 
   local tile = {
     noise = base_noise,
-    is_land = base_noise > 20 and true or false,
+    is_land = base_noise >= 20 and true or false,
     biome = 1,
     --biome = base_noise < 30 and 1 or base_noise < 45 and 2 or 3,
     is_border = false,
@@ -159,11 +159,12 @@ function  TileManager.create_tile(x, y)
   if tile.is_land and not tile.ore then
     --Generate clutter based on biome clutter scale, ex grass, rocks, trees, etc
     scale = 0.001
-    local tree = (simplex.Noise2D(x * scale + offset * scale, (y * scale) + (offset * scale)) / 2 + 0.5) * 100
+    local tree = math.abs((simplex.Noise2D(x * scale + offset * scale, (y * scale) + (offset * scale)) / 2 + 0.5) * 100)
     local tmin = biomes[tile.biome].t_min
     local tmax = biomes[tile.biome].t_max
-    if tree >= tmin and tree <= tmax and math.random(100) <= (biomes[tile.biome].tree_density * 100) then
+    if tree >= biomes[tile.biome].t_min and tree <= biomes[tile.biome].t_max and math.random(0, 100) < (biomes[tile.biome].tree_density * 100) then
       --trace('trying to spawn a tree')
+      if tile.biome == 1 then trace('Created palm tree') end
       tile.is_tree = true
       tile.flip = math.random(1) > 0.5 and 1 or 0
     elseif math.random(100) <= (biomes[tile.biome].clutter * 100) then
@@ -268,7 +269,7 @@ function  TileManager:draw_clutter(player, screenWidth, screenHeight)
       --Here, the 19, 25, and 41 are just randomly chosen biome tiles
       --picked to spawn trees on, but you can use any tiles to limit trees to certain biomes
       if tile.is_tree then
-        --trace('drawing tree')
+        trace('drawing tree')
         sspr(biomes[tile.biome].tree_id, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
       end
       -- if tile.sprite_id == 19 then
