@@ -156,6 +156,80 @@ local sounds = {
 
 local dust = {}
 
+_t = 0
+sprites = {}
+loaded = false
+
+function pokey(bnk,sid,tw,th,x,y,ck)
+  for ty=0,th-1 do
+    for tx=0,tw-1 do
+      for sy=0,7 do
+        for sx=0,7 do
+          local px = x + tx * 8 + sx
+          local py = y + ty * 8 + sy
+          local pixel = sprites[bnk][(sid + tx + ty * 16)][sy * 8 + sx]
+
+          -- Check if pixel matches color_key
+          local skip_pixel = false
+          if type(ck) == 'table' then
+            -- If color_key is a table, check if pixel is in the table
+            for _, value in ipairs(ck) do
+              if pixel == value then
+                skip_pixel = true
+                break
+              end
+            end
+          else
+            -- If color_key is a single value, directly compare with pixel
+            if pixel == ck then
+              skip_pixel = true
+            end
+          end
+
+          -- Skip drawing this pixel if it matches the color_key
+          if skip_pixel then
+            goto continue
+          end
+
+          local addr = (py * 240 + px) // 2
+          if px % 2 == 0 then
+            -- Modify the least significant nibble
+            local byte = peek(addr)
+            byte = (byte & 0xF0) | pixel
+            poke(addr, byte)
+          else
+            -- Modify the most significant nibble
+            local byte = peek(addr)
+            byte = (byte & 0x0F) | (pixel << 4)
+            poke(addr, byte)
+          end
+
+          ::continue::
+        end
+      end
+    end
+  end
+end
+
+
+function load_sprites()
+  local s = "Loading Bank ".. _t .. (("."):rep((_t+1)%4))
+  local _w = print(s,0,-6)
+  prints(s,(240//2)-(_w//2),65)
+  if _t==8 then sync(0,0,false) loaded = true return end
+  sync(0,_t,false)
+  sprites[_t] = {}
+  for i=0,511 do
+    sprites[_t][i] = {}
+    for j=0,31 do
+      local byte = peek(0x4000 + i * 32 + j)
+      sprites[_t][i][j*2] = byte & 0x0F
+      sprites[_t][i][j*2 + 1] = (byte >> 4) & 0x0F
+    end
+  end
+  _t=_t+1
+end
+
 function move(o)
   o.x = o.x + o.vx
   o.y = o.y + o.vy
@@ -1364,6 +1438,10 @@ end
 spawn_player()
 
 function TIC()
+  if not loaded then
+    load_sprites()
+    return
+  end
   local start = time()
   TICK = TICK + 1
   update_water_effect(time())
@@ -2033,8 +2111,8 @@ end
 -- 010:111111fc11111fcc1111fccd111fccdd11fcdddd1fcdddddfcddddddccdddddd
 -- 011:cf111111ccf11111dccf1111ddccf111dddccf11ddddccf1dddddccfdddddccc
 -- 012:111ff11111fcdf111fcdddf1fcdddddffdddddcf1fcddcf111fcdf11111ff111
--- 013:111111ec111111ce111111c6111111d5111111c6111111d611111d761111d566
--- 014:ce111111ec1111116d1111117c1111116d1111115d11111167d11111667c1111
+-- 013:111111ec111111ce111111c6111111d5111111c6111111d611111d761111d666
+-- 014:ce111111ec1111116c1111115d1111116c1111116d11111167d11111665d1111
 -- 015:111dd111111ee111111cc11111d56d111d5666d11c6656c11d6666d111d77d11
 -- 016:1bd811cbfedde1edfedee1c8f8c1ffe81ff1111f188f11111111111111111111
 -- 017:beeece11bdcceee1beca81f1ef18f1f1ff1ee1f11118f11111188f1111111111
@@ -2047,8 +2125,8 @@ end
 -- 025:f0111f0f0e011000f0001e0f110f1ff1f011f1110e01000ff001f0e01f0f1f0f
 -- 026:eccdddddfeccdddd1fecccdd11fecccc111feecc1111feec11111fee111111fe
 -- 027:ddddddccdddddddfddddddf1ddddcf11ccccf111cccf1111eef11111ef111111
--- 029:111d5656111d656611d6566511d6666511d66666111c76661111d76611111cdd
--- 030:6765d1116666fc1156666d1156666c1166666d116667d11167dd1111dd111111
+-- 029:111d5665111d666611d6566511d5656611d65656111c75661111d77511111cdd
+-- 030:6666d1116666d11166566d1166666d1165666d116667c111777d1111ddc11111
 -- 032:6666666667666666667667666676766666767666666666666666666666666666
 -- 033:6666666666667666766776666767766767677676676776766666666666666666
 -- 034:6666666666d666666d2d66d666d66d2d667666d6667666766666666666666666
@@ -2360,7 +2438,7 @@ end
 -- </PALETTE1>
 
 -- <PALETTE2>
--- 000:101010502550b03e51ed9c6dffffa1aae6435bbd31047f50052e471841c75ba8f5634c30aec2bd979aa85b5373362642
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE2>
 
 -- <PALETTE3>
@@ -2368,10 +2446,18 @@ end
 -- </PALETTE3>
 
 -- <PALETTE4>
--- 000:1c1c1c5d245db13e53ef7d57ffcd75a7f07038b76404650029366f3b5dc941a6f6eaeaea919191b2b2b2656c79333434
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE4>
 
 -- <PALETTE5>
 -- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE5>
+
+-- <PALETTE6>
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
+-- </PALETTE6>
+
+-- <PALETTE7>
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
+-- </PALETTE7>
 

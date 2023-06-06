@@ -534,6 +534,7 @@ function rectr(x,y,w,h,bg,fg,b)
 end
 
 function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
+  if not width then width, height = tile_w*8, tile_h*8 end
   -- Calculate the sprite's UV coordinates
   local spriteX = sprite_id % 16 * 8
   local spriteY = math.floor(sprite_id / 16) * 8

@@ -8,35 +8,42 @@
   -- },
 
 --table to store researched technology
-TECH = {23, }
+AVAILABLE_TECH = {1,2,3}
+UNLOCKED_TECH = {}
 
 RESEARCH = {
   [1] = {
     name = 'Logistics 1',
     progress = 0,
     time = 15,
-    requirements = {{id = 23, count = 10}, {id = 24, count = 15},{id = 25, count = 15},{id = 26, count = 15},{id = 27, count = 15},{id = 28, count = 15}},
-    unlocks = {10, 18, 11},
-    sprite_id = 0,
-    sprite_scale = 3
+    requirements = {
+      {id = 23, count = 10},
+      {id = 24, count = 15},
+      {id = 25, count = 15},
+      {id = 26, count = 15},
+      {id = 27, count = 15},
+      {id = 28, count = 15}
+    },
+    unlocks = {9, 18, 10, 11},
+    sprite = {id = 12, w = 3, h = 3, color_key = 1, scale = 1, page = 1},
   },
   [2] = {
     name = 'Automation 1',
     progress = 0,
     time = 15,
-    requirements = {{id = 23, count = 20}},
+    requirements = {
+      {id = 23, count = 20}
+    },
     unlocks = {19, 22},
-    sprite_id = 0,
-    sprite_scale = 3
+    sprite = {id = 392, w = 3, h = 3, color_key = 0, scale = 1, page = 0},
   },
-  [2] = {
+  [3] = {
     name = 'Logistics Pack',
     progress = 0,
     time = 15,
     requirements = {{id = 23, count = 30}},
     unlocks = {24},
-    sprite_id = 0,
-    sprite_scale = 3
+    sprite = {id = 269, w = 2, h = 2, color_key = 1, scale = 1, page = 1},
   },
 }
 
@@ -60,10 +67,10 @@ function draw_research_screen()
   --research queue grid
   ui.draw_grid(left_panel_width + 6, 8, 1, 7, UI_BG, UI_FG, 17, false)
   for i = 1, 7 do
-    tspr(317, 3, 3, left_panel_width + 6 + ((i-1)*17), 8, 1, 18, 18)
+    tspr(392, 3, 3, left_panel_width + 7 + ((i-1)*17), 8, 0, 16, 16)
   end
-  prints('Technology Tree', (240 - left_panel_width)/2 + left_panel_width - sw/2, 34)
-  rectr(left_panel_width + 2, 42, 135, 92, UI_BG, UI_FG, false)
+  rectr(left_panel_width + 2, 36, 135, 98, UI_BG, UI_FG, false)
+  prints('Technology Tree', (240 - left_panel_width)/2 + left_panel_width - sw/2, 29)
   prints('Cost:', 28, 21)
   prints('Unlocks:', 4, 42)
   --available research icons
@@ -82,10 +89,24 @@ function draw_research_screen()
   --3x3 icons
   --draw panel for available research
   ui.draw_grid(1, left_panel_height + 2, 3, 4, UI_BG, UI_FG, 25, false)
+  local i = 1
   for y = 0, 2 do
     for x = 0, 3 do
       --rect(2 + x*25, left_panel_height + 3 + y*25, 24, 24, 2)
-      sspr(317, 3 + x*25, left_panel_height + 3 + y*25, 1, 1, 0, 0, 3, 3)
+      if RESEARCH[i] then
+        local s = RESEARCH[i].sprite
+        if s.page > 0 then
+
+          --sync(3, s.page, false)
+          --sync(2, s.page, false)
+          --sync(1, s.page, false)
+          pokey(s.page, s.id, s.w, s.h, 2 + x*25, left_panel_height + 3 + y*25, s.color_key)
+          --sspr(s.id, 2 + x*25, left_panel_height + 3 + y*25, s.color_key, s.scale, 0, 0, s.w, s.h)
+        else
+          sspr(s.id, 2 + x*25, left_panel_height + 3 + y*25, s.color_key, s.scale, 0, 0, s.w, s.h)
+        end
+      end
+      i = i + 1
     end
   end
   --2x2 icons
