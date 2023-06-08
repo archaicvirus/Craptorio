@@ -137,7 +137,7 @@ show_mini_map = false
 show_tile_widget = false
 debug = false
 alt_mode = false
-show_tech = false
+show_tech = true
 --water effect defs
 local num_colors = 3
 local start_color = 8
