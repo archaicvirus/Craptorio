@@ -126,17 +126,15 @@ function  TileManager.create_tile(x, y)
     visited = false,
     b_visited = false,
     rot = 0,
-    flip = math.random() > 0.5 and 1 or 0,
     offset = {x = math.random(-3, 3), y = math.random(-3, 3)},
   }
-
   for i = 1, #biomes do
     if base_noise > biomes[i].min and base_noise < biomes[i].max then
       tile.biome = i
       break
     end
   end
-
+  tile.flip = math.random() > 0.5 and 1 or 0
   --If base_noise value is high enough, then try to generate an ore type
   tile.ore = tile.is_land and base_noise > 21 and ore_sample(x, y, tile) or false
   
@@ -159,17 +157,19 @@ function  TileManager.create_tile(x, y)
   if tile.is_land and not tile.ore then
     --Generate clutter based on biome clutter scale, ex grass, rocks, trees, etc
     scale = 0.001
-    local tree = math.abs((simplex.Noise2D(x * scale + offset * scale, (y * scale) + (offset * scale)) / 2 + 0.5) * 100)
+    local tree = base_noise
+    --local tree = (simplex.Noise2D((x * scale) + (offset * scale), (y * scale) + (offset * scale)) / 2 + 0.5) * 100
     local tmin = biomes[tile.biome].t_min
     local tmax = biomes[tile.biome].t_max
+    --local flip = math.random(0, 1)
+    --trace('Tspawn try: ' .. biomes[tile.biome].name .. ', tmin: ' .. tmin .. ", tmax" .. tmax .. ', tnoise: ' .. tree .. ', tflip = ' .. flip)
     if tree >= biomes[tile.biome].t_min and tree <= biomes[tile.biome].t_max and math.random(0, 100) < (biomes[tile.biome].tree_density * 100) then
       --trace('trying to spawn a tree')
-      if tile.biome == 1 then trace('Created palm tree') end
       tile.is_tree = true
-      tile.flip = math.random(1) > 0.5 and 1 or 0
+      --tile.flip = flip
     elseif math.random(100) <= (biomes[tile.biome].clutter * 100) then
       tile.sprite_id = biomes[tile.biome].tile_id_offset + floor(math.random(10))
-      tile.flip = math.random(1) > 0.5 and 1 or 0
+      --tile.flip = math.random(1) > 0.5 and 1 or 0
       --tile.rot = 0
     end
   end
@@ -269,7 +269,7 @@ function  TileManager:draw_clutter(player, screenWidth, screenHeight)
       --Here, the 19, 25, and 41 are just randomly chosen biome tiles
       --picked to spawn trees on, but you can use any tiles to limit trees to certain biomes
       if tile.is_tree then
-        trace('drawing tree')
+        --trace('drawing tree')
         sspr(biomes[tile.biome].tree_id, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
       end
       -- if tile.sprite_id == 19 then
