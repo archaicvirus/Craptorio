@@ -136,9 +136,9 @@ function Furnace:open()
           if tile.ore then
             sspr(biomes[tile.biome].tile_id_offset, fx + (j*8), fy + (i*8), -1, 1, 0, tile.rot)
             sspr(ores[tile.ore].tile_id, fx + (j*8), fy + (i*8), 4, 1, 0, tile.rot)
-          elseif tile.is_border and tile.biome > 1 then
-            sspr(biomes[tile.biome - 1].tile_id_offset, fx + (j*8), fy + (i*8), -1, 1, 0, tile.rot)
-            sspr(tile.sprite_id, fx + (j*8), fy + (i*8), 9, 1, 0, tile.rot)
+          elseif tile.is_border and tile.biome == 1 then
+            sspr(WATER_SPRITE, fx + (j*8), fy + (i*8), -1, 1, 0, tile.rot)
+            sspr(tile.sprite_id, fx + (j*8), fy + (i*8), 0, 1, 0, tile.rot)
           else
             sspr(tile.sprite_id, fx + (j*8), fy + (i*8), -1, 1, 0, tile.rot)
           end

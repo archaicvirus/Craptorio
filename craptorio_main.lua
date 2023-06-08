@@ -51,6 +51,7 @@ CURSOR_HIGHLIGHT_CORNER = 307
 CURSOR_HIGHLIGHT_CORNER_S = 336
 CURSOR_HAND_ID = 320
 CURSOR_GRAB_ID = 321
+WATER_SPRITE = 224
 technology = {}
 current_research = 1
 cursor = {
@@ -1434,7 +1435,8 @@ function draw_tile_widget()
     [1] = 'Biome: ' .. biome,
     [2] = 'Type: ' .. tile_type,
     [3] = 'X,Y: ' .. wx .. ',' .. wy,
-    [4] = 'Noise: '  .. tile.noise
+    [4] = 'Noise: '  .. tile.noise,
+    [5] = 'Border: ' .. tostring(tile.is_border),
   }
   ui.draw_text_window(info, x + 5, y + 5, 'Scanning...')
 end
