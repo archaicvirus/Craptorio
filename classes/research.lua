@@ -1,5 +1,14 @@
-AVAILABLE_TECH = {1,2,3}
+AVAILABLE_TECH = {'1','2','3'}
 UNLOCKED_TECH = {}
+UNLOCKED_ITEMS = {}
+local starting_items = {2, 9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 12, 14}
+for i = 1, #ITEMS do
+  UNLOCKED_ITEMS[i] = false
+end
+for k, v in ipairs(starting_items) do
+  UNLOCKED_ITEMS[v] = true
+end
+
 TECH = {
   [1] = {
     name = 'Logistics 1',
@@ -21,7 +30,7 @@ TECH = {
     name = 'Automation 1',
     progress = 0,
     completed = false,
-    time = 15,
+    time = 20,
     requirements = {
       {id = 23, count = 20}
     },
@@ -32,7 +41,7 @@ TECH = {
     name = 'Logistics Pack',
     progress = 0,
     completed = false,
-    time = 15,
+    time = 30,
     requirements = {
       {id = 23, count = 30}
     },
@@ -248,6 +257,9 @@ function update_research_progress()
     TECH[current_research].progress = TECH[current_research].progress + 1
     if TECH[current_research].progress >= TECH[current_research].requirements[1].count then
       TECH[current_research].completed = true
+      for k, v in ipairs(TECH[current_research].unlocks) do
+        UNLOCKED_ITEMS[v] = true
+      end
       current_research = false
     end
     return true

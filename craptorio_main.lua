@@ -137,7 +137,7 @@ show_mini_map = false
 show_tile_widget = false
 debug = false
 alt_mode = false
-show_tech = true
+show_tech = false
 --water effect defs
 local num_colors = 3
 local start_color = 8
@@ -1117,7 +1117,7 @@ function pipette()
     local k = get_key(cursor.x, cursor.y)
     local ent = ENTS[k]
     if ent then
-      if ent.type == 'dummy_splitter' or ent.type == 'dummy_drill' or ent.type == 'dummy_furnace' or ent.type == 'dummy_assembler' then
+      if dummies[ent.type] then
         ent = ENTS[ent.other_key]
       end
       cursor.type = 'item'

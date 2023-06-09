@@ -298,7 +298,9 @@ function CraftPanel:draw()
     for i = 1, #recipes[self.active_tab] do
       for j = 1, #recipes[self.active_tab][i] do
         local item = ITEMS[recipes[self.active_tab][i][j]]
-        spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
+        if UNLOCKED_ITEMS[recipes[self.active_tab][i][j]] then
+          spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
+        end
       end
     end
     pix(x + self.grid_x + 1, y + self.grid_y + 1, self.grid_fg)
@@ -313,7 +315,9 @@ function CraftPanel:draw()
         local row = math.ceil(slot_index / 10)
         local col = ((slot_index - 1) % 10) + 1
         spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
-        if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
+        local id = recipes[self.active_tab][row][col]
+        --if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] and ITEMS[].craftable and  then
+        if UNLOCKED_ITEMS[id] then
           draw_recipe_widget(mouse_x + 8, mouse_y, recipes[self.active_tab][row][col])
         end
         --print(slot_index, mouse_x + 8, mouse_y - 3, 12, false, 1, true)
@@ -333,6 +337,7 @@ function CraftPanel:click(x, y, side)
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
         if self.current_output ~= 'player' then
           if ENTS[self.current_output] then
+            if not ITEMS[recipes[self.active_tab][row][col]].craftable then sound('deny') return end
             ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
             toggle_crafting()
             ui.active_window = ENTS[self.current_output]:open()
@@ -474,16 +479,19 @@ end
 function draw_recipe_widget(x, y, id)
   local item = ITEMS[id]
   local w, h = 10, 12
+  local craft_time = item.recipe.crafting_time/60 .. 's'
+  local cw = print(craft_time, 0, -10, 0, false, 1, true)
   if item.recipe.ingredients then
     for k, v in ipairs(item.recipe.ingredients) do
       local str_w = print(ITEMS[v.id].name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
-      if str_w > w then w = str_w + 4 end
-      h = h + 6
+      if str_w > w then w = str_w + 5 end
+      h = h + 9
     end
   end
   h = h + 8
   local str_w2 = print(item.name, 0, -6, 0, false, 1, true)
-  if str_w2 > w then w = str_w2 + 4 end
+  if str_w2 > w then w = str_w2 + 8 end
+  if cw > w then w = cw + 8 end
   --local sx, sy = x - w/2, y + 8
   local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
   ui.draw_panel(sx, sy, w, h + 1, 8, 9, item.fancy_name, 0)
@@ -494,11 +502,12 @@ function draw_recipe_widget(x, y, id)
   local i = 0
   if item.recipe.ingredients then
     for k, v in ipairs(item.recipe.ingredients) do
-      prints(ITEMS[v.id].fancy_name .. ' - ' .. v.count, sx + 3, sy + 10 + (i * 6), 0, 11)
+      prints(ITEMS[v.id].fancy_name, sx + 3, sy + 10 + (i * 9), 0, 11)
+      draw_item_stack(sx + w-11, sy + 10 + ((k-1) * 9), v)
       i = i + 1
     end
     sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
-    prints(item.recipe.crafting_time/60 .. 's', sx + 12, sy + h - 8, 0, 5)
+    prints(craft_time, sx + 12, sy + h - 8, 0, 5)
   end
 end
 

@@ -46,7 +46,7 @@ function Lab:open()
       end
       --progress bar
       --box(self.x + 10, self.y + 20, self.w - 20, 6, 0, 9)
-      ui.progress_bar(ent.progress/100, self.x + 10, self.y + 20, self.w - 20, 6, UI_BG, UI_FG, 6, 2)
+      ui.progress_bar(ent.progress/(TECH[current_research].time * 60), self.x + 10, self.y + 20, self.w - 20, 6, UI_BG, UI_FG, 6, 2)
     end,
     click = function(self, sx, sy)
       if self:close(sx, sy) then
@@ -94,12 +94,12 @@ function Lab:update()
     self.progress = 0
     return
   end
-  if current_research and self.progress < 100 and not TECH[current_research].completed then
+  if current_research and self.progress < TECH[current_research].time * 60 and not TECH[current_research].completed then
     for i = 1, #TECH[current_research].requirements do
       if self.input[i].count < 1 then return end
     end
     self.progress = self.progress + LAB_TICKRATE
-    if self.progress >= 100 then
+    if self.progress >= TECH[current_research].time * 60 then
       self.progress = 0
       if not update_research_progress() then return end
       --trace('current_research: ' .. tostring(current_research))
