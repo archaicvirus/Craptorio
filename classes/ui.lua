@@ -502,6 +502,26 @@ function draw_recipe_widget(x, y, id)
   end
 end
 
+function draw_tech_widget(x, y, id)
+  local t = TECH[id]
+  local w, h = print(t.name, 0, -6, 0, false, 1, true) + 8, 55
+  local min_width = (#t.requirements * 9) + 8
+  local strw = print(t.completed and 'Finished' or 'Progress: ' .. t.progress .. '%', 0, -10, 0, false, 1, true)
+  if w < strw then w = strw + 8 end
+  if w < min_width then w = min_width end
+  local sx, sy = clamp(x, 1, 240 - w - 2), clamp(y, 1, 136 - h - 2)
+  ui.draw_panel(sx, sy, w, h, UI_BG, UI_FG, t.name, 0)
+  prints('Cost: ' .. t.requirements[1].count .. 'x', sx + 4, sy + 10)
+  for k, v in ipairs(t.requirements) do
+    sspr(ITEMS[v.id].sprite_id, sx + 4 + ((k-1)*9), sy + 17, ITEMS[v.id].color_key)
+  end
+  prints('Unlocks:', sx + 4, sy + 27)
+  for k, v in ipairs(t.unlocks) do
+    sspr(ITEMS[v].sprite_id, sx + 4 + ((k-1)*9), sy + 34, ITEMS[v].color_key)
+  end
+  prints((t.completed and 'Finished') or ('Progress: ' .. floor(100* t.progress/t.requirements[1].count) .. '%'), sx + 4, sy + 44)
+end
+
 function ui.check_input(c)
   local x, y, l, m, r, sx, sy, lx, ly, ll, lm, lr, lsx, lsy = c.x, c.y, c.l, c.m, c.r, c.sx, c.sy, c.lx, c.ly, c.ll, c.lm, c.lr, c.lsx, c.lsy
   for k, v in pairs(self.windows) do
@@ -560,4 +580,21 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
     spriteX + spw, spriteY + sph,
     sprite_id < 256 and 1 or 0, ck
   )
+end
+
+function get_hovered_slot(x, y, grid_x, grid_y, grid_size, rows, cols)
+  local rel_x = x - grid_x
+  local rel_y = y - grid_y
+  
+  local slot_x = math.floor(rel_x / grid_size)
+  local slot_y = math.floor(rel_y / grid_size)
+  
+  local slot_pos_x = grid_x + slot_x * grid_size
+  local slot_pos_y = grid_y + slot_y * grid_size
+  local slot_index = slot_y * rows + slot_x + 1
+  if slot_x >= 0 and slot_x < cols and slot_y >= 0 and slot_y < rows then
+    return {x = slot_pos_x, y = slot_pos_y, index = slot_index}
+  else
+    return nil
+  end
 end

@@ -156,11 +156,16 @@ sounds = {
   ['move_cursor'] = {id = 0, note = 'C-4', duration =  4, channel = 0, volume = 15, speed = 5},
 }
 
-local dust = {}
+dust = {}
 
 _t = 0
 sprites = {}
 loaded = false
+function BOOT()
+  spawn_player()
+  poke(0x03FF8, UI_BG)
+end
+
 
 function pokey(bnk,sid,tw,th,x,y,ck)
   for ty=0,th-1 do
@@ -1446,8 +1451,6 @@ function lapse(fn, ...)
 	fn(...)
 	return floor((time() - t))
 end
-
-spawn_player()
 
 function TIC()
   if not loaded then
