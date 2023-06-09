@@ -28,7 +28,11 @@ I do intend to add as many features and mechanics from the original as technical
 - Research will include upgrades to the player robot, such as increased fly speed, further range, etc
 - You now play as an advanced logistics robot, capable of flying over any terrain or obstacles
 - ~Working on finishing new splitters~
-- ~Currently working on crafting mechanics, inventory, and item systems.~
+ ~Currently working on crafting mechanics, inventory, and item systems.~
+ -![new_recipe_widgets](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/90b5c7d6-3b59-43c2-be45-35783bc8732b)
+- ![lab_research_test](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/9294fb0f-8e91-41e4-bbcc-46e668efbb34)
+- ![tech_hover_ex](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/33f77957-508f-4127-b120-758bbee6a32c)
+- ![tech_scrn_active](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/ebf71445-6970-4d6f-8b39-5a775934bd48)
 - ![furnace_ui_v5](https://github.com/archaicvirus/Craptorio-Internal/assets/25288625/8197e646-1259-421f-b6cf-b210370a55bb)
 - ![new_furnace_ui](https://github.com/archaicvirus/Craptorio/assets/25288625/6ed8d134-03e4-4e61-b566-973309a34b36)
 - ![assembly_ui_layout_4](https://github.com/archaicvirus/Craptorio/assets/25288625/7f3aef5d-6e93-4471-95db-4b4932bc33be)
