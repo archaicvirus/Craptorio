@@ -518,4 +518,17 @@ ITEMS = {
     smelting_time = 10,
     recipe = {[1] = {name = 'iron_ore', item_id = 3, count = 1}},
   },
+  [30] = {
+    name = 'steel_plate',
+    fancy_name = 'Steel Plate',
+    id = 30,
+    sprite_id = 387,
+    belt_id = 299,
+    color_key = 0,
+    type = 'intermediate',
+    craftable = false,
+    stack_size = 100,
+    smelting_time = 10,
+    recipe = {[1] = {name = 'iron_plate', item_id = 29, count = 2}},
+  },
 }

@@ -504,8 +504,8 @@ function draw_recipe_widget(x, y, id)
   local i = 0
   if item.recipe.ingredients then
     for k, v in ipairs(item.recipe.ingredients) do
-      prints(ITEMS[v.id].fancy_name, sx + 3, sy + 10 + (i * 9), 0, 11)
-      draw_item_stack(sx + w-11, sy + 10 + ((k-1) * 9), v)
+      prints(ITEMS[v.id].fancy_name, sx + 3, sy + 10 + (i * 11), 0, 11)
+      draw_item_stack(sx + w-13, sy + 10 + ((k-1) * 11), v)
       i = i + 1
     end
     sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
@@ -621,15 +621,17 @@ function ui.highlight(x, y, w, h, animate)
 end
 
 function ui.draw_button(x, y, flip, id)
-  if hovered({x = cursor.x, y = cursor.y}, {x = x, y = y, w = 8, h = 8}) and cursor.l then
-    pal{2, 11}
-    spr(id, x, y, {1, 4}, 1, flip)
-    pal()
-    if not cursor.ll then return true end
-  else
-    pal{4, 11, 2, 0}
-    spr(id, x, y, 1, 1, flip)
-    pal()
+  local _mouse, _box, ck, p = {x = cursor.x, y = cursor.y}, {x = x, y = y, w = 8, h = 8}, 1, {4, 12, 2, 0}
+  local hov = hovered(_mouse, _box)
+  if hov and not cursor.l then
+    p = {2, 0, 12, 11, 4, 11}
+  elseif hov and cursor.l then
+    p = {2, 11, 12, 11, 4, 11}
+    ck = {1, 4}
   end
+  pal(p)
+  spr(id, x, y, ck, 1, flip)
+  pal()
+  if hov and cursor.l and not cursor.ll then return true end
   return false
 end
