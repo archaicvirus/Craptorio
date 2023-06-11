@@ -46,7 +46,8 @@ function Lab:open()
       end
       --progress bar
       --box(self.x + 10, self.y + 20, self.w - 20, 6, 0, 9)
-      ui.progress_bar(ent.progress/(TECH[current_research].time * 60), self.x + 10, self.y + 20, self.w - 20, 6, UI_BG, UI_FG, 6, 2)
+      local time = current_research and TECH[current_research].time or 0
+      ui.progress_bar(ent.progress/(time * 60), self.x + 10, self.y + 20, self.w - 20, 6, UI_BG, UI_FG, 6, 2)
     end,
     click = function(self, sx, sy)
       if self:close(sx, sy) then

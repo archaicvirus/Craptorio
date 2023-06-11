@@ -93,13 +93,14 @@ function inventory:draw()
       if col == self.active_slot then
         --spr(CURSOR_HIGHLIGHT, x, y, 0)
         --rectb(x, hy, 10, 10, 4)
-        pal({5,4,6,3})
-        local offset = floor(player.anim_frame/4)
-          sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, hy - 1 + offset, {0,1,2})
-          sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, hy - 1 + offset, {0,1,2}, 1, 1, 0)
-          sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, hy + 3 - offset, {0,1,2}, 1, 3, 0)
-          sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, hy + 3 - offset, {0,1,2}, 1, 2, 0)
-        pal()
+        -- pal({5,4,6,3})
+        -- local offset = floor(player.anim_frame/4)
+        --   sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, hy - 1 + offset, {0,1,2})
+        --   sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, hy - 1 + offset, {0,1,2}, 1, 1, 0)
+        --   sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, hy + 3 - offset, {0,1,2}, 1, 3, 0)
+        --   sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, hy + 3 - offset, {0,1,2}, 1, 2, 0)
+        -- pal()
+        ui.highlight(x, hy, 8, 8, true)
       end
     end
     local xx = (INVENTORY_SLOT_SIZE * INVENTORY_COLS) + INVENTORY_SLOT_SIZE - 2

@@ -251,6 +251,7 @@ ITEMS = {
     type = 'intermediate',
     craftable = false,
     stack_size = 100,
+    smelting_time = 10,
     recipe = {[1] = {name = 'iron_ore', item_id = 3, count = 1}},
   },
   [16] = {
@@ -263,6 +264,7 @@ ITEMS = {
     type = 'intermediate',
     craftable = false,
     stack_size = 100,
+    smelting_time = 10,
     recipe = {[1] = {name = 'copper_ore', item_id = 4, count = 1}},
   },
   [17] = {
@@ -275,6 +277,7 @@ ITEMS = {
     type = 'intermediate',
     craftable = false,
     stack_size = 100,
+    smelting_time = 10,
     recipe = {nil},
   },
   [18] = {
@@ -501,5 +504,18 @@ ITEMS = {
         [4] = {id = 17, count = 50} --oil
       },
     }
+  },
+  [29] = {
+    name = 'iron_plate',
+    fancy_name = 'Iron Plate',
+    id = 15,
+    sprite_id = 448,
+    belt_id = 299,
+    color_key = 15,
+    type = 'intermediate',
+    craftable = false,
+    stack_size = 100,
+    smelting_time = 10,
+    recipe = {[1] = {name = 'iron_ore', item_id = 3, count = 1}},
   },
 }

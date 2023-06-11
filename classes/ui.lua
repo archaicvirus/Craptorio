@@ -3,13 +3,15 @@ CLOSE_ID = 437
 CRAFT_ROWS = 6
 CRAFT_COLS = 8
 UI_CORNER = 352
-UI_CORNER_ = 352
 LOGISTICS_ID = 387
 UI_BG = 8
 UI_FG = 9
 UI_TEXT_BG = 0
 UI_TEXT_FG = 4
 UI_SHADOW = 0
+UI_ARROW = 353
+UI_PAUSE = 354
+UI_STOP = 371
 --TODO: move all main ui windows here
 ui = {windows = {}, active_window = false}
 
@@ -479,7 +481,7 @@ end
 function draw_recipe_widget(x, y, id)
   local item = ITEMS[id]
   local w, h = 10, 12
-  local craft_time = item.recipe.crafting_time/60 .. 's'
+  local craft_time = (item.recipe.crafting_time or item.smelting_time)/60 .. 's'
   local cw = print(craft_time, 0, -10, 0, false, 1, true)
   if item.recipe.ingredients then
     for k, v in ipairs(item.recipe.ingredients) do
@@ -606,4 +608,28 @@ function get_hovered_slot(x, y, grid_x, grid_y, grid_size, rows, cols)
   else
     return nil
   end
+end
+
+function ui.highlight(x, y, w, h, animate)
+  pal({5,4,6,3})
+  local offset = (animate and floor(player.anim_frame/4)) or 0
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y - 1 + offset, {0,1,2})
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y - 1 + offset, {0,1,2}, 1, 1, 0)
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y + (h - 5) - offset, {0,1,2}, 1, 3, 0)
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y + (h - 5) - offset, {0,1,2}, 1, 2, 0)
+  pal()
+end
+
+function ui.draw_button(x, y, flip, id)
+  if hovered({x = cursor.x, y = cursor.y}, {x = x, y = y, w = 8, h = 8}) and cursor.l then
+    pal{2, 11}
+    spr(id, x, y, {1, 4}, 1, flip)
+    pal()
+    if not cursor.ll then return true end
+  else
+    pal{4, 11, 2, 0}
+    spr(id, x, y, 1, 1, flip)
+    pal()
+  end
+  return false
 end
