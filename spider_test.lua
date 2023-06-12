@@ -12,18 +12,7 @@ y=24
 require('classes/vec2D')
 require('classes/ik')
 require('classes/ui')
--- joint1: position of the first leg joint (positioned on the spiders body)
--- joint2: position of the second leg joint (dist = bone1Length)
--- foot: position of the legs foot (based on the target position)
--- bone1Length: length of the bone between joint1 and joint2
--- bone2Length: length of the bone between joint2 and foot
--- angle1: angle between joint1 and joint2
--- angle2: angle between joint2 and foot
--- offset: the offsetted position the legs first joint is placed based on the spiders position
--- targetPos: new target position for the leg which is calculated after a certain
--- distance to the previous position has been reached
--- currentTargetPos: for animating the leg movement
---function new_leg(offset, bone1Length, bone2Length, updateDist, flipped)
+
 UI_CORNER = 0
 sspr = spr
 spider = {
@@ -92,18 +81,6 @@ function pal(c0, c1)
   end
 end
 
--- joint1: position of the first leg joint (positioned on the spiders body)
--- joint2: position of the second leg joint (dist = bone1Length)
--- foot: position of the legs foot (based on the target position)
--- bone1Length: length of the bone between joint1 and joint2
--- bone2Length: length of the bone between joint2 and foot
--- angle1: angle between joint1 and joint2
--- angle2: angle between joint2 and foot
--- offset: the offsetted position the legs first joint is placed based on the spiders position
--- targetPos: new target position for the leg which is calculated after a certain
--- distance to the previous position has been reached
--- currentTargetPos: for animating the leg movement
-
 function rotatePoint(cx, cy, angle, px, py)
   local s = math.sin(angle)
   local c = math.cos(angle)
@@ -123,16 +100,14 @@ function rotatePoint(cx, cy, angle, px, py)
   return px, py
 end
 
-
 function TIC()
+  if key(23) then spider.y = spider.y - 1 end
+  if key(1)  then spider.x = spider.x - 1 end
+  if key(19) then spider.y = spider.y + 1 end
+  if key(4)  then spider.x = spider.x + 1 end
 
-	if key(23) then spider.y = spider.y - 1 end
-	if key(1)  then spider.x = spider.x - 1 end
-	if key(19) then spider.y = spider.y + 1 end
-	if key(4)  then spider.x = spider.x + 1 end
-
-	cls(0)
-	print("CR4P-SPYD3RT40N",84,68, 8)
+  cls(0)
+  print("CR4P-SPYD3RTR0N",84,68, 8)
   spider:update()
   spider:draw()
   local info = {
@@ -147,9 +122,8 @@ function TIC()
     [ 9] = 'TargetPos:       ' .. tostring(spider.legs[4].targetPos),
     [10] = 'CurrentTargetPos:' .. tostring(spider.legs[4].currentTargetPos),
   }
-  --data, x, y, label, bg, fg, text_bg, text_fg)
   --ui.draw_text_window(info, 0, 0, 'Left-leg', 0, 2, 0, 4)
-	t=t+1
+  t=t+1
 end
 
 -- <TILES>

@@ -186,27 +186,9 @@ function drawLeg(self)
   drawTexturedLeg(self.joint1.x, self.joint1.y, self.joint2.x, self.joint2.y, 6, self.bone1Length, 3, 0)
   drawTexturedLeg(self.joint2.x, self.joint2.y, self.foot.x, self.foot.y, 6, self.bone2Length, 3, 0)
   sspr(4, self.joint2.x - 3, self.joint2.y - 3, 0)
-  --line(self.joint1.x, self.joint1.y, self.joint2.x, self.joint2.y, 8)
-  --line(self.joint2.x, self.joint2.y, self.foot.x, self.foot.y, 8)
-  --circ(self.foot.x, self.foot.y, 2, 9)
-  --tspr(2, 1, 1, self.foot.x, self.foot.y, 0, 6, 8)
   drawFootSprite(self.foot.x, self.foot.y, self.joint2.x, self.joint2.y, 6, 8, 2, 0)
-  --circ(self.joint2.x, self.joint2.y, 2, 9)
-  -- circb(self.currentTargetPos.x, self.currentTargetPos.y, 4, 2)
-  -- circb(self.targetPos.x, self.targetPos.y, 4, 6)
 end
 
--- joint1: position of the first leg joint (positioned on the spiders body)
--- joint2: position of the second leg joint (dist = bone1Length)
--- foot: position of the legs foot (based on the target position)
--- bone1Length: length of the bone between joint1 and joint2
--- bone2Length: length of the bone between joint2 and foot
--- angle1: angle between joint1 and joint2
--- angle2: angle between joint2 and foot
--- offset: the offsetted position the legs first joint is placed based on the spiders position
--- targetPos: new target position for the leg which is calculated after a certain
--- distance to the previous position has been reached
--- currentTargetPos: for animating the leg movement
 function new_leg(offset, bone1Length, bone2Length, updateDist, flipped)
 	flipped = flipped or false
 
