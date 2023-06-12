@@ -172,8 +172,11 @@ function draw_research_screen()
       draw_tech_widget(cursor.x + 5, cursor.y + 5, slot.index)
     end
     if cursor.l and not cursor.ll then
+      trace('slot # ' .. slot.index)
       if TECH[slot.index] then
         selected_research = slot.index
+      else
+        selected_research = false
       end
       if not current_research then
       elseif current_research ~= slot.index then

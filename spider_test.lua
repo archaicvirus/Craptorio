@@ -41,28 +41,29 @@ spider = {
     -- new_leg(vec2( 35, 0), 75, 150, 62),
     -- new_leg(vec2( 50, 0), 75, 150, 52),
     -- new_leg(vec2( 55, 0), 75, 200, 46),
-    new_leg(vec2(-15, 0), 20, 45, 25, true),
-    new_leg(vec2(-10, 5), 20, 45, 30, true),
-    -- new_leg(vec2(-13, 0), 20, 45, 24, true),
-    -- new_leg(vec2( -8, 0), 20, 45, 24, true),
+    new_leg(vec2(-8, 0), 15, 34, 20, true),
+    new_leg(vec2( 8, 0), 15, 34, 20),
+    new_leg(vec2(-5, 5), 15, 34, 20, true),
+    new_leg(vec2( 5, 5), 15, 34, 20),
+    --new_leg(vec2(-11, 2), 20, 38, 24, true),
+    --new_leg(vec2( -8, 0), 20, 45, 24, true),
 
     -- new_leg(vec2(  8, 0), 20, 22, 24),
     -- new_leg(vec2( 13, 0), 30, 30, 24),
-    new_leg(vec2( 10, 5), 30, 40, 30),
-    new_leg(vec2( 15, 0), 30, 40, 25)
 
   },
   draw = function (self)
-    elli(self.x, self.y, self.radius.x, self.radius.y, self.color)
-    circ(self.x + self.eyes.left.x, self.y + self.eyes.left.y, self.eyes.radius, self.eyes.color)
-    circ(self.x + self.eyes.right.x, self.y + self.eyes.right.y, self.eyes.radius, self.eyes.color)
-    circ(self.x + self.eyes.left.x, self.y + self.eyes.left.y, self.eyes.radius - 2, 11)
-    circ(self.x + self.eyes.right.x, self.y + self.eyes.right.y, self.eyes.radius - 2, 11)
+    -- elli(self.x, self.y, self.radius.x, self.radius.y, self.color)
+    -- circ(self.x + self.eyes.left.x, self.y + self.eyes.left.y, self.eyes.radius, self.eyes.color)
+    -- circ(self.x + self.eyes.right.x, self.y + self.eyes.right.y, self.eyes.radius, self.eyes.color)
+    -- circ(self.x + self.eyes.left.x, self.y + self.eyes.left.y, self.eyes.radius - 2, 11)
+    -- circ(self.x + self.eyes.right.x, self.y + self.eyes.right.y, self.eyes.radius - 2, 11)
     for k, v in pairs(self.legs) do
       
       v:draw()
     end
-    pix(self.x, self.y, 9)
+    sspr(16, self.x - 12, self.y - 8, 1, 1, 0, 0, 3, 2)
+    --pix(self.x, self.y, 9)
   end,
   update = function (self)
     for k, v in pairs(self.legs) do
@@ -102,6 +103,27 @@ end
 -- targetPos: new target position for the leg which is calculated after a certain
 -- distance to the previous position has been reached
 -- currentTargetPos: for animating the leg movement
+
+function rotatePoint(cx, cy, angle, px, py)
+  local s = math.sin(angle)
+  local c = math.cos(angle)
+
+  -- translate point back to origin:
+  px = px - cx
+  py = py - cy
+
+  -- rotate point
+  local xnew = px * c - py * s
+  local ynew = px * s + py * c
+
+  -- translate point back
+  px = xnew + cx
+  py = ynew + cy
+
+  return px, py
+end
+
+
 function TIC()
 
 	if key(23) then spider.y = spider.y - 1 end
@@ -131,7 +153,18 @@ function TIC()
 end
 
 -- <TILES>
--- 000:0011110001111100111888001188880011888800118888000000000000000000
+-- 000:0111110011111100111888001188880011888800118888000000000000000000
+-- 001:00444400002222000022220000bbbb0000bbbb00002222000022220000444400
+-- 002:098c8900098f8900098c8900098f8900098c8900098f890000999000000a0000
+-- 003:0a998a000a998a000a998a000a998a000a998a000a998a000a998a000a998a00
+-- 004:000000000000000000dbbd0000bceb0000becb0000dbbd000000000000000000
+-- 016:11111111111111a91111aa99111a999911a9999a1a99999a1a9999991a999999
+-- 017:1111112199dd88d89c77c9c8c7657c99ce77eca9decceda9aceeca999aaaa999
+-- 018:1111111111111111881111118881111198881111998881119988811199988111
+-- 019:000000000000000000000000000000000000000000000000200dd00200300300
+-- 032:1a9999991a99999211a99999111a99291111aa99111111aa1111111a11111111
+-- 033:9999999999999929999999992999929299999999999999aaaaaaaa1111111111
+-- 034:99988111999881119998111199911111aa111111111111111111111111111111
 -- </TILES>
 
 -- <WAVES>

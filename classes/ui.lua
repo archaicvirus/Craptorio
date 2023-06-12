@@ -580,7 +580,8 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
     spriteX, spriteY, 
     spriteX + spw, spriteY, 
     spriteX, spriteY + sph,
-    sprite_id < 256 and 1 or 0, ck  )
+    ck
+  )
   
   ttri(
     sx + width, sy, 
@@ -589,20 +590,20 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
     spriteX + spw, spriteY, 
     spriteX, spriteY + sph, 
     spriteX + spw, spriteY + sph,
-    sprite_id < 256 and 1 or 0, ck
+    ck
   )
 end
 
 function get_hovered_slot(x, y, grid_x, grid_y, grid_size, rows, cols)
-  local rel_x = x - grid_x
-  local rel_y = y - grid_y
-  
+  local start_x = grid_x
+  local start_y = grid_y  
+  local rel_x = x - start_x
+  local rel_y = y - start_y  
   local slot_x = math.floor(rel_x / grid_size)
-  local slot_y = math.floor(rel_y / grid_size)
-  
-  local slot_pos_x = grid_x + slot_x * grid_size
-  local slot_pos_y = grid_y + slot_y * grid_size
-  local slot_index = slot_y * rows + slot_x + 1
+  local slot_y = math.floor(rel_y / grid_size)  
+  local slot_pos_x = start_x + slot_x * grid_size
+  local slot_pos_y = start_y + slot_y * grid_size
+  local slot_index = slot_y * cols + slot_x + 1
   if slot_x >= 0 and slot_x < cols and slot_y >= 0 and slot_y < rows then
     return {x = slot_pos_x, y = slot_pos_y, index = slot_index}
   else
