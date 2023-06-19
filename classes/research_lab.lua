@@ -29,7 +29,7 @@ function Lab:open()
     end,
     draw = function(self)
       local txt = ITEMS[ENTS[self.ent_key].id].fancy_name
-      local txt2 = current_research and TECH[current_research].name or 'No Active Research'
+      local txt2 = current_research and TECH[AVAILABLE_TECH[current_research]].name or 'No Active Research'
       local ent = ENTS[self.ent_key]
       ui.draw_panel(self.x, self.y, self.w, self.h, UI_BG, UI_FG, 'Research Lab', UI_SH)
       --box(self.x, self.y, self.w, self.h, 8, 9)
@@ -46,7 +46,7 @@ function Lab:open()
       end
       --progress bar
       --box(self.x + 10, self.y + 20, self.w - 20, 6, 0, 9)
-      local time = current_research and TECH[current_research].time or 0
+      local time = current_research and TECH[AVAILABLE_TECH[current_research]].time or 0
       ui.progress_bar(ent.progress/(time * 60), self.x + 10, self.y + 20, self.w - 20, 6, UI_BG, UI_FG, 6, 2)
     end,
     click = function(self, sx, sy)
@@ -95,17 +95,17 @@ function Lab:update()
     self.progress = 0
     return
   end
-  if current_research and self.progress < TECH[current_research].time * 60 and not TECH[current_research].completed then
-    for i = 1, #TECH[current_research].requirements do
+  if current_research and self.progress < TECH[AVAILABLE_TECH[current_research]].time * 60 and not TECH[AVAILABLE_TECH[current_research]].completed then
+    for i = 1, #TECH[AVAILABLE_TECH[current_research]].science_packs do
       if self.input[i].count < 1 then return end
     end
     self.progress = self.progress + LAB_TICKRATE
-    if self.progress >= TECH[current_research].time * 60 then
+    if self.progress >= TECH[AVAILABLE_TECH[current_research]].time * 60 then
       self.progress = 0
       if not update_research_progress() then return end
       --trace('current_research: ' .. tostring(current_research))
       if current_research then
-        for i = 1, #TECH[current_research].requirements do
+        for i = 1, #TECH[AVAILABLE_TECH[current_research]].science_packs do
           if self.input[i].count < 1 then return end
           self.input[i].count = self.input[i].count - 1
         end

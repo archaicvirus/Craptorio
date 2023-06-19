@@ -1,7 +1,7 @@
 SPLITTER_ID       = 322
-SPLITTER_ID_SMALL = 500
-SPLITTER_ID_TOP   = 409
-SPLITTER_ID_BTM   = 425
+SPLITTER_ID_SMALL = 323
+SPLITTER_ID_TOP   = 322
+SPLITTER_ID_BTM   = 338
 SPLITTER_TICKRATE = 5
 
 SPLITTER_ROTATION_MAP = {
@@ -356,8 +356,8 @@ function Splitter.draw(self)
     self.drawn = true
     local rot_map = SPLITTER_ROTATION_MAP[self.rot]
     local wx, wy = world_to_screen(self.x, self.y)
-    sspr(BELT_ID_STRAIGHT + BELT_TICK, wx, wy, 0, 1, 0, self.rot)
-    sspr(BELT_ID_STRAIGHT + BELT_TICK, wx + (rot_map.x * 8), wy + (rot_map.y * 8), 0, 1, 0, self.rot)
+    sspr(BELT_ID_STRAIGHT + BELT_TICK, wx, wy, BELT_COLORKEY, 1, 0, self.rot)
+    sspr(BELT_ID_STRAIGHT + BELT_TICK, wx + (rot_map.x * 8), wy + (rot_map.y * 8), BELT_COLORKEY, 1, 0, self.rot)
 
     -- if ENTS[self.output_key_l] then
     --   if ENTS[self.output_key_l].type == 'transport_belt' then

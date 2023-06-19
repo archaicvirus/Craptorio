@@ -123,7 +123,6 @@ function drawFootSprite(footx, footy, joint2x, joint2y, width, height, sprite_id
   )
 end
 
-
 function drawTexturedLeg(joint1x, joint1y, joint2x, joint2y, width, height, sprite_id, ck)
   -- Calculate the angle between the two joints
   local dx = joint2x - joint1x

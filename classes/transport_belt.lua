@@ -1,6 +1,7 @@
 BELT_ID_STRAIGHT  = 256
 BELT_ID_CURVED    = 260
 BELT_ARROW_ID     = 287
+BELT_COLORKEY     = 1
 BELT_TICKRATE     = 5
 BELT_MAXTICK      = 3
 BELT_TICK         = 0
@@ -230,7 +231,7 @@ function Belt:draw_hover_widget()
   local x, y = clamp(sx + offset.x, 0, 240 - w - offset.x), clamp(sy + offset.y, 0, 136 - h - offset.y)
   ui.draw_panel(x, y, w, h, UI_BG, UI_FG, 'Transport Belt', 0)
   local b = {x = x + w/2 - 20, y = y + 13}
-  sspr(self.id, b.x, b.y, 0, 5, self.flip, self.sprite_rot)
+  sspr(self.id + BELT_TICK, b.x, b.y, 1, 5, self.flip, self.sprite_rot)
   local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
   local offsets = {
     [0] = {x = 0, y = 5},
@@ -547,7 +548,7 @@ function Belt.draw(self)
     if self.id == BELT_ID_CURVED then rot = self.sprite_rot flip = self.flip end
     local sx, sy = world_to_screen(self.pos.x, self.pos.y)
     self.screen_pos = {x = sx, y = sy}
-    spr(self.id + BELT_TICK, sx, sy, 0, 1, flip, rot, 1, 1)
+    spr(self.id + BELT_TICK, sx, sy, 1, 1, flip, rot, 1, 1)
   end
 end
 

@@ -61,7 +61,8 @@ function inventory:draw()
       end
     end
     if slot then
-      sspr(CURSOR_HIGHLIGHT, slot.x - 1, slot.y - 1, 0, 1, 0, 0, 2, 2)
+      ui.highlight(slot.x - 2, slot.y - 1, 8, 8, false, 3, 4)
+      --sspr(CURSOR_HIGHLIGHT, slot.x - 1, slot.y - 1, 0, 1, 0, 0, 2, 2)
     end
     pal({5,4,6,3})
     local offset = floor(player.anim_frame/4)
@@ -100,7 +101,7 @@ function inventory:draw()
         --   sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, hy + 3 - offset, {0,1,2}, 1, 3, 0)
         --   sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, hy + 3 - offset, {0,1,2}, 1, 2, 0)
         -- pal()
-        ui.highlight(x, hy, 8, 8, true)
+        ui.highlight(x, hy, 8, 8, true, 3, 4)
       end
     end
     local xx = (INVENTORY_SLOT_SIZE * INVENTORY_COLS) + INVENTORY_SLOT_SIZE - 2

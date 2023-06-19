@@ -81,25 +81,6 @@ function pal(c0, c1)
   end
 end
 
-function rotatePoint(cx, cy, angle, px, py)
-  local s = math.sin(angle)
-  local c = math.cos(angle)
-
-  -- translate point back to origin:
-  px = px - cx
-  py = py - cy
-
-  -- rotate point
-  local xnew = px * c - py * s
-  local ynew = px * s + py * c
-
-  -- translate point back
-  px = xnew + cx
-  py = ynew + cy
-
-  return px, py
-end
-
 function TIC()
   if key(23) then spider.y = spider.y - 1 end
   if key(1)  then spider.x = spider.x - 1 end

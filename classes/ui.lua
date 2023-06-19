@@ -10,8 +10,9 @@ UI_TEXT_BG = 0
 UI_TEXT_FG = 4
 UI_SHADOW = 0
 UI_ARROW = 353
+UI_BUTTON = 356
 UI_PAUSE = 354
-UI_STOP = 371
+UI_STOP = 355
 --TODO: move all main ui windows here
 ui = {windows = {}, active_window = false}
 
@@ -275,7 +276,7 @@ function CraftPanel:draw()
     sspr(316, x + self.tab[2].x + 14, y + self.tab[2].y + 2, 0)-- TAB 2
     sspr(456, x + self.tab[2].x + 3, y + self.tab[2].y + 2, 0)-- TAB 2
     sspr(460, x + self.tab[3].x + 3, y + self.tab[3].y + 12, 0)-- TAb 3
-    sspr(482, x + self.tab[3].x + 3, y + self.tab[3].y + 2, 0)-- TAb 3
+    sspr(482, x + self.tab[3].x + 3, y + self.tab[3].y + 2, 1)-- TAb 3
     sspr(283, x + self.tab[3].x + 14, y + self.tab[3].y + 13, 4)-- TAb 3
     sspr(164, x + self.tab[3].x + 14, y + self.tab[3].y + 2, 4)-- TAb 3
     ui.draw_grid(x + self.grid_x, y + self.grid_y, CRAFT_ROWS, CRAFT_COLS, self.grid_bg, self.grid_fg, 9)
@@ -316,7 +317,8 @@ function CraftPanel:draw()
       if result then
         local row = math.ceil(slot_index / 10)
         local col = ((slot_index - 1) % 10) + 1
-        spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
+        ui.highlight(sl_x - 2, sl_y - 1, 8, 8, false, 3, 4)
+        --spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
         local id = recipes[self.active_tab][row][col]
         --if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] and ITEMS[].craftable and  then
         if UNLOCKED_ITEMS[id] then
@@ -515,22 +517,24 @@ end
 
 function draw_tech_widget(x, y, id)
   local t = TECH[id]
+  trace("tech widget id: " .. tostring(id))
   local w, h = print(t.name, 0, -6, 0, false, 1, true) + 8, 55
-  local min_width = (#t.requirements * 9) + 8
-  local strw = print(t.completed and 'Finished' or 'Progress: ' .. t.progress .. '%', 0, -10, 0, false, 1, true)
-  if w < strw then w = strw + 8 end
-  if w < min_width then w = min_width end
+  local min_width = (#t.science_packs * 9) + 8
+  if w < min_width + 8 then w = min_width + 8 end
+  local progress = (t.completed and 'Finished') or ('Progress: ' .. floor(100* t.progress/t.science_packs[1].count) .. '%')
+  local prog = print(progress, 0, -10, 0, false, 1, true)
+  if w < prog + 8 then w = prog + 8 end
   local sx, sy = clamp(x, 1, 240 - w - 2), clamp(y, 1, 136 - h - 2)
   ui.draw_panel(sx, sy, w, h, UI_BG, UI_FG, t.name, 0)
-  prints('Cost: ' .. t.requirements[1].count .. 'x', sx + 4, sy + 10)
-  for k, v in ipairs(t.requirements) do
-    sspr(ITEMS[v.id].sprite_id, sx + 4 + ((k-1)*9), sy + 17, ITEMS[v.id].color_key)
+  prints('Cost: ' .. t.science_packs[1].count .. 'x', sx + 4, sy + 10)
+  for k, v in ipairs(t.science_packs) do
+    sspr(ITEMS[v.id].sprite_id, sx + 4 + ((k-1)*9), sy + 17, ITEMS[v.id].ck)
   end
   prints('Unlocks:', sx + 4, sy + 27)
-  for k, v in ipairs(t.unlocks) do
-    sspr(ITEMS[v].sprite_id, sx + 4 + ((k-1)*9), sy + 34, ITEMS[v].color_key)
+  for k, v in ipairs(t.item_unlocks) do
+    sspr(ITEMS[v].sprite_id, sx + 4 + ((k-1)*9), sy + 34, ITEMS[v].ck)
   end
-  prints((t.completed and 'Finished') or ('Progress: ' .. floor(100* t.progress/t.requirements[1].count) .. '%'), sx + 4, sy + 44)
+  prints(progress, sx + 4, sy + 44)
 end
 
 function ui.check_input(c)
@@ -541,6 +545,25 @@ function ui.check_input(c)
     end
   end
   return false
+end
+
+function rotatePoint(cx, cy, angle, px, py)
+  local s = math.sin(angle)
+  local c = math.cos(angle)
+
+  -- translate point back to origin:
+  px = px - cx
+  py = py - cy
+
+  -- rotate point
+  local xnew = px * c - py * s
+  local ynew = px * s + py * c
+
+  -- translate point back
+  px = xnew + cx
+  py = ynew + cy
+
+  return px, py
 end
 
 function rectr(x,y,w,h,bg,fg,b)
@@ -594,6 +617,107 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
   )
 end
 
+-- function rspr(id, x, y, rot, tw, th, w, h, ck, page)
+--   -- Convert rotation angle from degrees to radians
+--   local rotationRadians = math.rad(rot)
+
+--   -- Calculate the half width and height
+--   local half_width = w / 2
+--   local half_height = h / 2
+
+--   -- Define the four corner points of the sprite rectangle
+--   local points = {
+--     {x - half_width, y - half_height},  -- Top-left
+--     {x + half_width, y - half_height},  -- Top-right
+--     {x + half_width, y + half_height},  -- Bottom-right
+--     {x - half_width, y + half_height}   -- Bottom-left
+--   }
+
+--   -- Rotate each point around the given position
+--   for _, point in ipairs(points) do
+--       point[1], point[2] = rotatePoint(x, y, rotationRadians, point[1], point[2])
+--   end
+
+--   -- Calculate the sprite's UV coordinates
+--   local spriteX = (id % 16) * (tw * 8)
+--   local spriteY = math.floor(id / 16) * (th * 8)
+--   local spw = tw * 8
+--   local sph = th * 8
+
+--   -- Draw the sprite using two textured triangles
+--   ttri(
+--       points[1][1], points[1][2],
+--       points[2][1], points[2][2],
+--       points[4][1], points[4][2],
+--       spriteX, spriteY,
+--       spriteX + spw, spriteY,
+--       spriteX, spriteY + sph,
+--       ck
+--   )
+
+--   ttri(
+--       points[3][1], points[3][2],
+--       points[4][1], points[4][2],
+--       points[2][1], points[2][2],
+--       spriteX + spw, spriteY + sph,
+--       spriteX, spriteY + sph,
+--       spriteX + spw, spriteY,
+--       ck
+--   )
+-- end
+
+function rspr(id, x, y, rot, tw, th, w, h, ck, page)
+  -- Convert rotation angle from degrees to radians
+  local rotationRadians = -math.rad(rot) -- negating the angle to make the rotation clockwise
+
+  -- Center of the sprite
+  local cx, cy = x + w / 2, y + h / 2
+
+  -- Size of the sprite in the sprite data
+  local sw, sh = tw * 8, th * 8
+
+  -- Iterate through the screen positions where we want to draw the sprite
+  for sy = y, y + h - 1 do
+      for sx = x, x + w - 1 do
+          -- Translate screen coordinates to origin
+          local ox, oy = sx - cx, sy - cy
+
+          -- Rotate the screen coordinate
+          local rx = ox * math.cos(rotationRadians) - oy * math.sin(rotationRadians)
+          local ry = ox * math.sin(rotationRadians) + oy * math.cos(rotationRadians)
+
+          -- Translate back
+          local finalX, finalY = rx + cx, ry + cy
+
+          -- Map to sprite UV
+          local su = math.floor((finalX - x) / w * sw)
+          local sv = math.floor((finalY - y) / h * sh)
+
+          -- Check if the UV is within sprite range
+          if su >= 0 and su < sw and sv >= 0 and sv < sh then
+              -- Get the pixel from the sprite data
+              local pixelIndex = sv * sw + su + 1
+              local pixel = sprites[page][id][pixelIndex]
+
+              -- Skip if it's a color key
+              if pixel and (type(ck) == "table" and not ck[pixel] or pixel ~= ck) then
+                  -- Calculate VRAM address
+                  local addr = 0x0000 + math.floor(sy * 240 + sx) // 2
+
+                  -- Write pixel to VRAM
+                  local cur = peek(addr) or 0
+                  if sx % 2 == 0 then
+                      cur = (cur & 0x0F) | (pixel << 4)
+                  else
+                      cur = (cur & 0xF0) | pixel
+                  end
+                  poke(addr, cur)
+              end
+          end
+      end
+  end
+end
+
 function get_hovered_slot(x, y, grid_x, grid_y, grid_size, rows, cols)
   local start_x = grid_x
   local start_y = grid_y  
@@ -611,28 +735,244 @@ function get_hovered_slot(x, y, grid_x, grid_y, grid_size, rows, cols)
   end
 end
 
-function ui.highlight(x, y, w, h, animate)
-  pal({5,4,6,3})
+function ui.highlight(x, y, w, h, animate, color1, color2)
+  pal({1,color1,2,color2})
   local offset = (animate and floor(player.anim_frame/4)) or 0
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y - 1 + offset, {0,1,2})
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y - 1 + offset, {0,1,2}, 1, 1, 0)
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y + (h - 5) - offset, {0,1,2}, 1, 3, 0)
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y + (h - 5) - offset, {0,1,2}, 1, 2, 0)
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y - 1 + offset, 0)
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y - 1 + offset, 0, 1, 1, 0)
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y + (h - 5) - offset, 0, 1, 3, 0)
+    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y + (h - 5) - offset, 0, 1, 2, 0)
   pal()
 end
 
-function ui.draw_button(x, y, flip, id)
-  local _mouse, _box, ck, p = {x = cursor.x, y = cursor.y}, {x = x, y = y, w = 8, h = 8}, 1, {4, 12, 2, 0}
+function ui.draw_button(x, y, flip, id, color, shadow_color, hover_color)
+  color, shadow_color, hover_color = color or 12, shadow_color or 0, hover_color or 11
+  local _mouse, _box, ck, p = {x = cursor.x, y = cursor.y}, {x = x, y = y, w = 8, h = 8}, 1, {4, color, 2, shadow_color, 12, color}
   local hov = hovered(_mouse, _box)
   if hov and not cursor.l then
-    p = {2, 0, 12, 11, 4, 11}
+    p = {2, shadow_color, 12, hover_color, 4, hover_color}
   elseif hov and cursor.l then
-    p = {2, 11, 12, 11, 4, 11}
+    p = {2, hover_color, 12, hover_color, 4, hover_color}
     ck = {1, 4}
   end
   pal(p)
   spr(id, x, y, ck, 1, flip)
   pal()
   if hov and cursor.l and not cursor.ll then return true end
+  return false
+end
+
+function draw_research_screen()
+  cls(UI_FG)
+  local av_tech = AVAILABLE_TECH
+  local f_tech = {}
+  for k, v in ipairs(FINISHED_TECH) do
+    if v then table.insert(f_tech, v) end
+  end
+  -- for k, v in ipairs(TECH) do
+  --   if AVAILABLE_TECH[k] then table.insert(av_tech, v) end
+  -- end
+  local sw = print('Technology Tree',0,-10,0,false,1,true)
+  local name = (current_tab and TECH[av_tech[selected_research]] and TECH[av_tech[selected_research]].name) or (not current_tab and TECH[f_tech[selected_research]] and TECH[f_tech[selected_research]].name or 'Select-a-Tech')
+  local rw = print(name,0,-10,0,false,1,true)
+  local rsw = print('Research', 0, -10, 0, false, 1, false)/2
+  local lpw = 101
+  local lph = 57
+  -----------MAIN PANEL-------------------
+  ui.draw_panel(0, 0, 240, 136, UI_FG, UI_FG)
+
+  -------SELECTED TECH HEADER-------------------
+  prints(name, 4 + lpw/2 - rw/2, 1)
+  rectr(2, 8, lpw - 3, lph - 14, UI_BG, UI_FG, false)
+  if ui.draw_button(2, lph - 6, 0, UI_BUTTON, 2, 0, 3) then
+    current_tab = not current_tab
+  end
+  if current_tab then
+    prints('Available Tech', 12, lph - 4)
+  else
+    prints('Known Tech', 12, lph - 4)
+  end
+
+  ----------CURRENT PAGE--------------------------------------------
+  if ui.draw_button((lpw/2) - (rsw/2) + 29, lph - 5, 1, UI_ARROW, 11, 0, 12) then
+    current_page = clamp(current_page - 1, 1, math.ceil(current_tab and #av_tech/12 or #FINISHED_TECH/12))
+  end
+  if ui.draw_button((lpw/2) - (rsw/2) + 56, lph - 5, 0, UI_ARROW, 11, 0, 12) then
+    current_page = clamp(current_page + 1, 1, math.ceil(current_tab and #av_tech/12 or #FINISHED_TECH/12))
+  end
+  prints(current_page .. '/' .. math.ceil(#TECH/12), (lpw/2) - (rsw/2) + 41, lph - 4, 0)
+  
+  ----------RESEARCH QUEUE------------------------------
+  prints('Research Queue', (240 - lpw)/2 + lpw - sw/2, 1)
+  --research queue grid
+  ui.draw_grid(lpw + 6, 8, 1, 7, UI_BG, UI_FG, 17, false)
+  --queue item icons
+  -- for i = 1, 7 do
+  --   tspr(392, 3, 3, lpw + 7 + ((i-1)*17), 8, 0, 16, 16)
+  -- end
+
+  --------------TECH TREE------------------------------
+  rectr(lpw + 2, 36, 135, 98, UI_BG, UI_FG, false)
+  prints('Technology Tree', (240 - lpw)/2 + lpw - sw/2, 29)
+
+  ----------------SELECTED TECH PANEL--------------------------
+  if current_tab and selected_research then
+
+    --research progress bar
+    if not TECH[av_tech[selected_research]].completed then
+      local progress = TECH[av_tech[selected_research]].progress --TECH[av_tech[selected_research]].science_packs[1].count
+      --ui.progress_bar(progress, x, y, w, h, bg, fg, fill, option)
+      ui.progress_bar(progress, 29, 10, 69, 5, 0, UI_FG, 6, 2)
+    else
+      prints('Finished', 29, 10)
+    end
+    
+    --start/pause research button
+    if current_research == selected_research then
+      if ui.draw_button(lpw - 11, lph - 15, 0, UI_PAUSE) then
+        current_research = false
+      end
+    elseif current_research ~= selected_research then
+      if ui.draw_button(lpw - 11, lph - 15, 0, UI_ARROW) then
+        current_research = selected_research
+      end
+    end
+
+    -- if not TECH[selected_research].completed then
+    --   local progress = TECH[selected_research].progress / TECH[selected_research].science_packs[1].count
+    --   ui.progress_bar(progress, 29, 10, 69, 5, 0, UI_FG, 6, 2)
+    --   if not current_research == selected_research and ui.draw_button(lpw - 11, lph - 15, 0, UI_ARROW) then
+    --     current_research = selected_research
+    --   elseif current_research == selected_research and ui.draw_button(lpw - 11, lph - 15, 0, UI_PAUSE) then
+    --     current_research = false
+    --   end
+    -- end
+
+    -- if TECH[selected_research].progress > 0 or (selected_research == current_research and not TECH[current_research].completed) then
+    -- end
+
+    local cost_w = print(TECH[av_tech[selected_research]].science_packs[1].count .. 'x - ', 0, -10, 1, false, 1, true)
+    prints(TECH[av_tech[selected_research]].science_packs[1].count .. 'x -', 30, 19)
+    --available research icons
+    --timer sprite & text
+    sspr(CRAFTER_TIME_ID, 30 + cost_w, 18, 1)
+    prints(TECH[av_tech[selected_research]].time .. 's', 30 + cost_w + 8, 19, 0, 6)
+    --item unlocks
+    prints('Unlocks:', 4, 42)
+    for k, v in ipairs(TECH[av_tech[selected_research]].item_unlocks) do
+      sspr(ITEMS[v].sprite_id, 35 + ((k-1)*9), 40, ITEMS[v].ck)
+    end
+
+    --current research icon
+    for k, v in ipairs(TECH[av_tech[selected_research]].sprite) do
+      local offset = v.offset or {x=0,y=0}
+      local sprite = v
+      --rspr(v.id,3+offset.x,12+offset.y,v.rot,v.tw,v.th,v.w,v.h,v.ck,v.page)
+      pokey(v.page,v.id,v.tw,v.th,3 + offset.x,8 + offset.y,v.ck)
+    end
+    --current research recipe icons
+    for k, v in ipairs(TECH[av_tech[selected_research]].science_packs) do
+      sspr(ITEMS[v.id].sprite_id, 30 + (k-1)*8, 28, ITEMS[v.id].ck)
+      --draw_item_stack(48 + (k-1)*8, 19, {id = v.id, count = 1})
+    end
+  end
+  
+  --------------AVAILABLE or FINISHED TECH GRID PANEL----------------------
+  ui.draw_grid(1, lph + 2, 3, 4, UI_BG, UI_FG, 25, false)
+  local i = 1
+  for y = 0, 2 do
+    for x = 0, 3 do
+      --rect(2 + x*25, lph + 3 + y*25, 24, 24, 2)
+      if (current_tab and av_tech[i]) or (not current_tab and f_tech[i]) then
+        -- local s = TECH[i].sprite
+        -- local offset = s.offset or {x=0,y=0}
+        for k, v in ipairs(current_tab and TECH[av_tech[i]].sprite or not current_tab and TECH[f_tech[i]].sprite) do
+          local offset = v.offset or {x=0,y=0}
+          local sprite = v
+          --rspr(v.id,offset.x+2+x*25,offset.y+lph+3+y*25,v.rot,v.tw,v.th,v.w,v.h,v.ck,v.page)
+          --bnk, sid, tw, th, x, y, rot, ck
+          pokey(v.page,v.id,v.tw,v.th,offset.x + 2 + x*25, offset.y + lph + 3 + y*25,v.ck)
+        end
+        -- if s.page > 0 then
+        --   pokey(s.page, s.id, s.w, s.h, offset.x + 2 + x*25, offset.y + lph + 3 + y*25, s.ck)
+        -- else
+        --   sspr(s.id, offset.x + 2 + x*25, offset.y + lph + 3 + y*25, s.ck, s.scale, 0, 0, s.w, s.h)
+        -- end
+        if (current_tab and av_tech[i] and i == current_research) or (not current_tab and FINISHED_TECH[i]) then
+          ui.highlight(x*25, lph + y*25 + 2, 24, 24, true, 3, 4)
+        end
+      end
+      i = i + 1
+    end
+  end
+  --check available research hover
+  local slot = get_hovered_slot(cursor.x, cursor.y, 1, 59, 25, 3, 4)
+  if slot then
+    --rectb(slot.x, slot.y, 26, 26, 4)
+    ui.highlight(slot.x - 1, slot.y, 24, 24, false, 3, 4)
+    if current_tab and not av_tech[slot.index] or not current_tab and not f_tech[slot.index] then return end
+    if (current_tab and av_tech[slot.index]) or (not current_tab and f_tech[slot.index]) then
+      --trace('drawing tech widget @ 915')
+      draw_tech_widget(cursor.x + 5, cursor.y + 5, (current_tab and av_tech[slot.index]) or (not current_tab and f_tech[slot.index]))
+    end
+    if current_tab and cursor.l and not cursor.ll then
+      --trace('slot # ' .. slot.index)
+      if current_tab and av_tech[slot.index] or not current_tab and f_tech[slot.index] then
+        selected_research = slot.index
+      else
+        selected_research = false
+      end
+      if not current_research then
+
+      elseif current_research ~= slot.index then
+        --todo: add to queue
+      end
+    end
+    --todo: draw hover widget
+  end
+
+  --------MOUSE HOVER/CLICK EVENTS---------------------------
+  slot = get_hovered_slot(cursor.x, cursor.y, 107, 8, 17, 1, 7)
+  if slot then
+    ui.highlight(slot.x-1, slot.y, 16, 16, false, 3, 4)
+    --rectb(slot.x, slot.y, 18, 18, 4)
+  end
+  if selected_research then
+    slot = get_hovered_slot(cursor.x, cursor.y, 34, 39, 9, 1, #TECH[av_tech[selected_research]].item_unlocks)
+    if slot then
+      ui.highlight(slot.x-1, slot.y, 8, 8, false, 3, 4)
+      --rectb(slot.x, slot.y, 10, 10, 4)
+      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[av_tech[selected_research]].item_unlocks[slot.index])
+    end
+    --draw_item_stack(48 + (k-1)*8, 19, {id = v.id, count = 1})
+    slot = get_hovered_slot(cursor.x, cursor.y, 29, 28, 8, 1, #TECH[av_tech[selected_research]].science_packs)
+    if slot then
+      --rectb(slot.x, slot.y-1, 10, 10, 4)
+      ui.highlight(slot.x-1, slot.y-1, 8, 8, false, 3, 4)
+      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[av_tech[selected_research]].science_packs[slot.index].id)
+    end
+  end
+end
+
+function update_research_progress()
+  if not current_research then return false end
+  local tech = TECH[AVAILABLE_TECH[current_research]]
+  local frac = 1 / tech.science_packs[1].count
+  if tech.progress < 1.0 then
+    tech.progress = tech.progress + frac
+    if tech.progress >= 1.0 then
+      tech.completed = true
+      for k, v in ipairs(tech.item_unlocks) do
+        UNLOCKED_ITEMS[v] = true
+      end
+      for k, v in ipairs(tech.tech_unlocks) do
+        table.insert(AVAILABLE_TECH, v)
+      end
+      FINISHED_TECH[AVAILABLE_TECH[current_research]] = table.remove(AVAILABLE_TECH, current_research)
+      current_research = false
+      selected_research = false
+    end
+    return true
+  end
   return false
 end
