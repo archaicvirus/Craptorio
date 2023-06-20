@@ -39,6 +39,7 @@ TileMan = TileManager:new()
 floor = math.floor
 sspr = spr
 biome = 1
+db_time = 0.0
 --image = require('\\assets\\fullscreen_images')
 --------------------COUNTERS--------------------------
 TICK = 0
@@ -164,9 +165,9 @@ sprites = {}
 loaded = false
 function BOOT()
   spawn_player()
-  local tile, _, _ = get_world_cell(player.x, player.y)
-  biome = tile.biome
-  poke(0x03FF8, biomes[tile.biome].map_col)
+  -- local tile, _, _ = get_world_cell(player.x, player.y)
+  -- biome = tile.biome
+   poke(0x03FF8, 9)
 end
 
 function hovered(_mouse, _box)
@@ -344,11 +345,15 @@ end
 
 function get_ent(x, y)
   local k = get_key(x, y)
-  if not ENTS[k] then return false end
+  if not ENTS[k] then
+    return false
+  end
+
   if ENTS[k].type == 'splitter' then return k end
   if ENTS[k].type == 'underground_belt_exit' then return ENTS[k].other_key, true end
   if ENTS[k].type == 'underground_belt' then return k end
   if ENTS[k].other_key then return ENTS[k].other_key else return k end
+  return false
 end
 
 function get_key(x, y)
@@ -481,298 +486,6 @@ function is_facing(self, other, side)
   }
   if rotations[self.rot][side] == other.rot then return true else return false end
 end
---------ADD-+-REMOVE-ENTS-------------------------------------------------
-function remove_research_lab(x, y)
-  local tile, wx, wy = get_world_cell(x, y)
-  local k = wx .. '-' .. wy
-  if not ENTS[k] then return end
-  if ENTS[k].type == 'dummy_lab' then
-    trace('removing dummy lab')
-    k = ENTS[k].other_key
-  end
-
-  if ui.active_window and ui.active_window.ent_key == k then ui.active_window = nil end
-  local keys = ENTS[k].dummy_keys
-  for dk, v in ipairs(keys) do
-    trace('removing DUMMY KEYS')
-    ENTS[v] = nil
-  end
-end
-
-function add_assembly_machine(x, y)
-  local tile, wx, wy = get_world_cell(x, y)
-  local k = wx .. '-' .. wy
-  if not ENTS[k] then
-    --check 3x3 area for ents
-    for i = 0, 2 do
-      for j = 0, 2 do
-        if ENTS[wx + j .. '-' .. i + wy] then 
-          sound('deny')
-          return
-        end
-      end
-    end
-    --else place dummy ents to reserve 3x3 tile area, and create the crafter
-    for i = 0, 2 do
-      for j = 0, 2 do
-        ENTS[wx + j .. '-' .. i + wy] = {type = 'dummy_assembler', other_key = k}
-      end
-    end
-    sound('place_belt')
-    ENTS[k] = new_assembly_machine(wx, wy)
-  else
-    sound('deny')
-  end
-end
-
-function remove_assembly_machine(x, y)
-  local tile, wx, wy = get_world_cell(x, y)
-  local k = wx .. '-' .. wy
-  if ENTS[k].other_key then
-    k = ENTS[k].other_key
-    wx, wy = ENTS[k].x, ENTS[k].y
-  end
-  if ENTS[k] and ENTS[k].type == 'assembly_machine' then
-    for i = 0, 2 do
-      for j = 0, 2 do
-        ENTS[wx + j .. '-' .. i + wy] = nil
-      end
-    end
-    ENTS[k] = nil
-  -- elseif ENTS[k] and ENTS[k].type == 'dummy_assembler' then
-  --   k = ENTS[k].other_key
-  --   wx, wy = ENTS[k].x, ENTS[k].y
-  --   for i = 0, 2 do
-  --     for j = 0, 2 do
-  --       ENTS[wx + j .. '-' .. i + wy] = nil
-  --     end
-  --   end
-  --   ENTS[k] = nil
-  end
-end
-
-function add_underground_belt(x, y)
-  local tile, wx, wy = get_world_cell(x, y)
-  local k = wx .. '-' .. wy
-  if not ENTS[k] then
-    local result, other_key, cells = get_ubelt_connection(x, y, cursor.rot)
-    --found suitable connection
-    --don't create a new ENT, use the found ubelt as the 'host', and update it with US as it's output
-    if result then
-      ENTS[k] = {type = 'underground_belt_exit', flip = UBELT_ROT_MAP[cursor.rot].out_flip, rot = cursor.rot, x = wx, y = wy, other_key = other_key}
-      ENTS[other_key]:connect(wx, wy, #cells - 1)
-      sound('place_belt')
-    else
-      ENTS[k] = new_underground_belt(wx, wy, cursor.rot)
-    end
-    sound('place_belt')
-  else
-    sound('deny')
-  end
-end
-
-function remove_underground_belt(x, y)
-  local k = get_key(x, y)
-  if ENTS[k] then
-    --return underground items if any
-    --remove hidden belts, since we removed the head
-    ENTS[ENTS[k].other_key] = nil
-    ENTS[k] = nil
-    sound('delete')
-  end
-end
-
-function remove_belt(x, y)
-  local k = get_key(x, y)
-  local tile, cell_x, cell_y = get_world_cell(x, y)
-  if not ENTS[k] then return end
-  if ENTS[k] and ENTS[k].type == 'transport_belt' then
-    sound('delete')
-    ENTS[k] = nil
-  end
-  local tiles = {
-    [1] = {x = cell_x, y = cell_y - 1},
-    [2] = {x = cell_x + 1, y = cell_y},
-    [3] = {x = cell_x, y = cell_y + 1},
-    [4] = {x = cell_x - 1, y = cell_y}}
-  for i = 1, 4 do
-    local k = tiles[i].x .. '-' .. tiles[i].y
-    if ENTS[k] and ENTS[k].type == 'transport_belt' then
-      ENTS[k]:set_curved()
-    end
-  end
-end
-
-function add_splitter(x, y)
-  local child = SPLITTER_ROTATION_MAP[cursor.rot]
-  local tile, wx, wy = get_world_cell(x, y)
-  wx, wy = wx + child.x, wy + child.y
-  local tile2, cell_x, cell_y = get_world_cell(x, y)
-  local key1 = get_key(x, y)
-  local key2 = wx .. '-' .. wy
-  if not ENTS[key1] and not ENTS[key2] then
-    local splitr = new_splitter(cell_x, cell_y, cursor.rot)
-    splitr.other_key = key2
-    ENTS[key1] = splitr
-    ENTS[key2] = {type = 'dummy_splitter', other_key = key1, rot = cursor.rot}
-    ENTS[key1]:set_output()
-    sound('place_belt')
-  else
-    sound('deny')
-  end
-end
-
-function remove_splitter(x, y)
-  local k = get_key(x, y)
-  if not ENTS[k] then return end
-  if ENTS[k].type == 'dummy_splitter' then k = ENTS[k].other_key end
-  if ENTS[k] and ENTS[k].type == 'splitter' then    
-    local key_l, key_r = ENTS[k].output_key_l, ENTS[k].output_key_r
-    local key2 = ENTS[k].other_key
-    ENTS[k] = nil
-    ENTS[key2] = nil
-    if ENTS[key_l] and ENTS[key_l].type == 'transport_belt' then ENTS[key_l]:update_neighbors(k) end
-    if ENTS[key_r] and ENTS[key_r].type == 'transport_belt' then ENTS[key_r]:update_neighbors(k) end
-    sound('delete')
-  end
-end
-
-function add_inserter(x, y, rotation)
-  local k = get_key(x, y)
-  local tile, cell_x, cell_y = get_world_cell(x, y)
-  if ENTS[k] and ENTS[k].type == 'inserter' then
-    if ENTS[k].rot ~= rotation then
-      ENTS[k]:rotate(rotation)
-      sound('rotate')
-    end
-  elseif not ENTS[k] then
-    ENTS[k] = new_inserter({x = cell_x, y = cell_y}, rotation)
-    sound('place_belt')
-  else
-    sound('deny')
-  end
-end
-
-function remove_inserter(x, y)
-  local k = get_key(x, y)
-  if not ENTS[k] then return end
-  if ENTS[k] and ENTS[k].type == 'inserter' then
-    ENTS[k] = nil
-    sound('delete')
-  end
-end
-
-function add_pole(x, y)
-  local k = get_key(x,y)
-  local tile, cell_x, cell_y = get_world_cell(x, y)
-  if not ENTS[k] then
-    ENTS[k] = new_pole({x = cell_x, y = cell_y})
-  end
-end
-
-function remove_pole(x, y)
-  local k = get_key(x, y)
-  if not ENTS[k] then return end
-  if ENTS[k] and ENTS[k].type == 'power_pole' then
-    ENTS[k] = nil
-  end
-end
-
-function add_drill(x, y)
-  local k = get_key(x, y)
-  local found_ores = {}
-  local field_keys = {}
-  --local sx, sy = get_screen_cell(x, y)
-  for i = 1, 4 do
-    local pos = DRILL_AREA_MAP_BURNER[i]
-    local sx, sy = cursor.tx + (pos.x * 8), cursor.ty + (pos.y * 8)
-    local tile, wx, wy = get_world_cell(sx, sy)
-    local k = get_key(sx, sy)
-    field_keys[i] = k
-    if tile.ore then
-      table.insert(found_ores, i)
-
-      if not ORES[k] then
-        local ore = {
-          type = ores[tile.ore].name,
-          tile_id = ores[tile.ore].tile_id,
-          sprite_id = ores[tile.ore].sprite_id,
-          id = ores[tile.ore].id,
-          ore_remaining = 100,
-          wx = wx,
-          wy = wy,
-        }
-        ORES[k] = ore
-      end
-    end
-    if ENTS[k] or (i == 4 and #found_ores == 0) then
-      sound('deny')
-      return
-    end
-  end
-
-  if not ENTS[k] then
-    local tile, wx, wy = get_world_cell(x, y)
-    sound('place_belt')
-    --trace('creating drill @ ' .. key)
-    ENTS[k] = new_drill({x = wx, y = wy}, cursor.rot, field_keys)
-    ENTS[wx + 1 .. '-' .. wy] = {type = 'dummy_drill', other_key = k}
-    ENTS[wx + 1 .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = k}
-    ENTS[wx .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = k}
-  elseif ENTS[k] and ENTS[k].type == 'mining_drill' then
-    sound('place_belt')
-    sound('rotate')
-    --ENTS[k].rot = cursor.rot
-  end
-end
-
-function remove_drill(x, y)
-  local k = get_key(x, y)
-  local _, wx, wy = get_world_cell(x, y)
-  local _, wx, wy = get_world_cell(x, y)
-  if ENTS[k].type == 'dummy_drill' then
-    k = ENTS[k].other_key
-  end
-  if ENTS[k] then
-    local wx, wy = ENTS[k].pos.x, ENTS[k].pos.y
-    ENTS[k] = nil
-    ENTS[wx + 1 .. '-' .. wy] = nil
-    ENTS[wx + 1 .. '-' .. wy + 1] = nil
-    ENTS[wx .. '-' .. wy + 1] = nil
-    sound('delete')
-  end
-end
-
-function add_furnace(x, y)
-  local key1 = get_key(x, y)
-  local key2 = get_key(x + 8, y)
-  local key3 = get_key(x + 8, y + 8)
-  local key4 = get_key(x, y + 8)
-  if not ENTS[key1] and not ENTS[key2] and not ENTS[key3] and not ENTS[key4] then
-    local wx, wy = screen_to_world(x, y)
-    ENTS[key1] = new_furnace(wx, wy, {key2, key3, key4})
-    ENTS[key2] = {type = 'dummy_furnace', other_key = key1}
-    ENTS[key3] = {type = 'dummy_furnace', other_key = key1}
-    ENTS[key4] = {type = 'dummy_furnace', other_key = key1}
-    sound('place_belt')
-  end
-end
-
-function remove_furnace(x, y)
-  local k = get_key(x, y)
-  if ENTS[k] then
-    if ENTS[k].type == 'dummy_furnace' then
-      k = ENTS[k].other_key
-    end
-    for k, v in ipairs(ENTS[k].dummy_keys) do
-      ENTS[v] = nil
-    end
-    ENTS[k] = nil
-    sound('delete')
-  end
-end
-
-----END-OF----ADD-+-REMOVE-ENTS------------------------------------------------
 
 function move_player(x, y)
   local tile, wx, wy = get_world_cell(116 + x, 76 + y)
@@ -839,10 +552,10 @@ end
 function draw_player()
   local sx, sy = world_to_screen(player.x//8 + 1, player.y//8 + 3)
   local tile, wx, wy = get_world_cell(sx, sy)
-  if biome ~= tile.biome and not show_tech then
-    biome = tile.biome
-    poke(0x03FF8, biomes[tile.biome].map_col)
-  end
+  -- if biome ~= tile.biome and not show_tech then
+  --   biome = tile.biome
+  --   poke(0x03FF8, biomes[tile.biome].map_col)
+  -- end
   ui.highlight(sx, sy, 8, 8, false, 5, 6)
   local sprite = player.directions[player.last_dir] or player.directions['0,0']
   sspr(player.shadow - player.anim_frame, 240/2 - 4, 136/2 + 8, 0)
@@ -1098,27 +811,8 @@ function remove_tile(x, y)
   local tile, wx, wy = get_world_cell(x, y)
   local ent = ENTS[wx .. '-'.. wy]
   if ent then
-    if ent.type == 'transport_belt' then
-      remove_belt(x, y)
-    elseif ent.type == 'inserter' then
-      remove_inserter(x, y)
-    elseif ent.type == 'power_pole' then
-      remove_pole(x, y)
-    elseif ent.type == 'splitter' or ent.type == 'dummy_splitter' then
-      remove_splitter(x, y)
-    elseif ent.type == 'mining_drill' or ent.type == 'dummy_drill' then
-      remove_drill(x, y)
-    elseif ent.type == 'stone_furnace' or ent.type == 'dummy_furnace' then
-      remove_furnace(x, y)
-    elseif ent.type == 'stone_furnace' or ent.type == 'dummy_furnace' then
-      remove_furnace(x, y)
-    elseif ent.type == 'underground_belt' or ent.type == 'underground_belt_exit' then
-      remove_underground_belt(x, y)
-    elseif ent.type == 'assembly_machine' or ent.type == 'dummy_assembler' then
-      remove_assembly_machine(x, y)
-    elseif ent.type == 'research_lab' or ent.type == 'dummy_lab' then
-      remove_research_lab(x, y)
-    end
+    local k = get_ent(x, y)
+    if k then remove_item[ENTS[k].type](x, y) end
   elseif not tile.ore then
     TileMan:set_tile(wx, wy)
   end
@@ -1167,8 +861,6 @@ function update_cursor_state()
   if not l then cursor.held_l = false end
   if not r then cursor.held_r = false end
 
-
-  --cursor.cl, cursor.cr = l and not cursor.l, r and not cursor.r
   cursor.wx, cursor.wy, cursor.tx, cursor.ty, cursor.sx, cursor.sy = wx, wy, tx, ty, sx, sy
   cursor.lx, cursor.ly, cursor.ll, cursor.lm, cursor.lr, cursor.lsx, cursor.lsy = cursor.x, cursor.y, cursor.l, cursor.m, cursor.r, cursor.sx, cursor.sy
   cursor.x, cursor.y, cursor.l, cursor.m, cursor.r, cursor.sx, cursor.sy = x, y, l, m, r, sx, sy
@@ -1192,7 +884,7 @@ function dispatch_keypress()
   --Q
   if keyp(17) then pipette() end
   --I or TAB
-  if keyp(9) or keyp(49) then toggle_inventory() cursor.type = 'pointer' end
+  if keyp(9) or keyp(49) then inv.vis = not inv.vis end
   --H
   if keyp(8) then toggle_hotbar() end
   --C
@@ -1226,7 +918,6 @@ function dispatch_input()
 
     return
   end
-
 
   local k = get_ent(cursor.x, cursor.y)
   if cursor.sy ~= 0 then cycle_hotbar(cursor.sy*-1) end
@@ -1292,14 +983,13 @@ function dispatch_input()
         return
       end
     else
-
     --if item is placeable, run callback for item type
       if cursor.l and cursor.item_stack.id == 9 then
         --trace('placing belt')
-        callbacks[cursor.item](cursor.x, cursor.y)
+        place_item[cursor.item](cursor.x, cursor.y)
         return
       elseif cursor.l and not cursor.ll then
-        callbacks[cursor.item](cursor.x, cursor.y)
+        place_item[cursor.item](cursor.x, cursor.y)
         return
       elseif cursor.r then
         remove_tile(cursor.x, cursor.y)
@@ -1334,13 +1024,6 @@ function dispatch_input()
     return
     --consumed = true
   end
-
-  -- cursor.last_tile_x, cursor.last_tile_y = cursor.tx, cursor.ty
-  -- cursor.tx, cursor.ty = screen_tile_x, screen_tile_y
-  -- cursor.last_rotation = cursor.rot
-  -- cursor.left, cursor.middle, cursor.right = left, middle, right
-  -- cursor.last_x, cursor.last_y, cursor.last_left, cursor.last_mid, cursor.last_right = cursor.x, cursor.y, cursor.left, cursor.middle, cursor.right
-  -- cursor.x, cursor.y = x, y
 end
 
 function toggle_hotbar()
@@ -1352,41 +1035,8 @@ function toggle_hotbar()
   end
 end
 
-function toggle_inventory()
-  if not inv.vis then
-    inv.vis = true
-  else
-    inv.hovered_slot = -1
-    inv.vis = false
-  end
-end
-
 function toggle_crafting(force)
   if force then craft_menu.vis = true else craft_menu.vis = not craft_menu.vis end
-end
-
-local img_count = 1
-function draw_image()
-  if TICK % 4 == 0 then
-    img_count = img_count + 1
-    if img_count > #image then img_count = 1 end
-  end
-  for i = 1, 240 do
-    for j = 1, 136 do
-      local index = (j - 1) * 240 + i
-      pix(i-1, j-1, image[img_count][index])
-    end
-  end
-
-  local pos = {x = 2, y = 75}
-  -- for i = 1, 235 do
-  --   for j = 1, 31 do
-  --     local index = (j - 1) * 235 + i
-  --     if image.logo[index] ~= 12 then
-  --       pix(i + pos.x, j + pos.y, image.logo[index])
-  --     end
-  --   end
-  -- end
 end
 
 function update_ents()
@@ -1403,24 +1053,21 @@ function draw_ents()
   for i, k in pairs(vis_ents['transport_belt']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
+  local start = time()
   for i, k in pairs(vis_ents['transport_belt']) do
-    --trace('drawing belt items')
     if ENTS[k] then ENTS[k]:draw_items() end
   end
+  db_time = floor((time() - start) * 1000)
   for i, k in pairs(vis_ents['stone_furnace']) do
-    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['underground_belt']) do
-    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
     if ENTS[k] then ENTS[k]:draw() ENTS[k]:draw_items() end
   end
   for i, k in pairs(vis_ents['splitter']) do
-    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['mining_drill']) do
-    --trace('DRAWING ENT - k: ' .. tostring(k) .. ', VALUE: ' .. tostring(ent.type))
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['assembly_machine']) do
@@ -1434,14 +1081,6 @@ function draw_ents()
   end
   for i, k in pairs(vis_ents['power_pole']) do
     if ENTS[k] then ENTS[k]:draw() end
-  end
-end
-
-function draw_belt_items()
-  for k, ent in pairs(vis_ents) do
-    if ent.type == 'transport_belt' and not ent.drawn then
-      ent:draw_items()
-    end
   end
 end
 
@@ -1483,12 +1122,10 @@ function TIC()
   cls(0)
 
   local gv_time = lapse(get_visible_ents)
-  --local m_time = lapse(draw_terrain)
   local m_time = lapse(draw_terrain)
   --update_player()
   local up_time = lapse(update_player)
   --handle_input()
-  --local hi_time = lapse(handle_input)
   local hi_time = lapse(dispatch_input)
 
   if TICK % BELT_TICKRATE == 0 then
@@ -1522,14 +1159,6 @@ function TIC()
   local ue_time = lapse(update_ents)
   --draw_ents()
   local de_time = lapse(draw_ents)
-
-  -- for k, v in pairs(ENTS) do
-  --   v.updated = false
-  --   v.drawn = false
-  --   v.is_hovered = false
-  --   if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
-  -- end
-  --TileMan:draw_clutter(player, 31, 18)
   local dcl_time = 0
   if not show_mini_map then
     local st_time = time()
@@ -1576,8 +1205,8 @@ function TIC()
     [5] = 'draw_ents: ' .. de_time,
     [6] = 'update_ents:' .. ue_time,
     [7] = 'draw_cursor: ' .. dc_time,    
-    --[8] = 'draw_belt_items: ' .. db_time,
-    [8] = 'get_vis_ents: ' .. gv_time,
+    [8] = 'draw_belt_items: ' .. db_time,
+    [9] = 'get_vis_ents: ' .. gv_time,
   }
   --draw_debug_window(info)
   local ents = 0
@@ -1593,8 +1222,6 @@ function TIC()
     TileMan:draw_worldmap(player, 70, 18, 75, 75, true)
     pix(121, 69, 2)
     info[9] = 'draw_worldmap: ' .. floor(time() - st_time) .. 'ms'
-    --info[10] = 'map_rects: ' .. TileMan:optimize_minimap(player, 0, 0, 238, 134)
-    --info[10] = 'map_rects: ' .. TileMan:draw_worldmap(player, 240, 136)
   end
 
   local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
@@ -1602,12 +1229,8 @@ function TIC()
   local k = get_key(cursor.x, cursor.y)
   info[10] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
   info[11] = 'Seed: ' .. seed
-  --function ui.draw_text_window(data, x, y, label, fg, bg, text_fg, text_bg)
   local k, u = get_ent(cursor.x, cursor.y)
   if k and alt_mode and ENTS[k] then
-    -- if ENTS[k].other_key then
-    --   k = ENTS[k].other_key
-    -- end
     if u then
       ENTS[k]:draw_hover_widget(ENTS[k].other_key)
     else
@@ -1622,9 +1245,6 @@ function TIC()
   end
   if show_tech then draw_research_screen() end
   if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
-  --ui.draw_panel(70, 18, 50, 75, 8, 9, 'Crafting')
-  --ui.draw_grid(10, 10, 5, 5, 8, 9, 9)
-  --draw_item_stack(0, 0, {id = 4, count = TICK%45})
 end
 
 -- <TILES>
@@ -2092,4 +1712,3 @@ end
 -- <PALETTE7>
 -- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
 -- </PALETTE7>
-

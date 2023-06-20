@@ -18,7 +18,7 @@ local underground_belt = {
   is_hovered = false,
   drawn = false,
   updated = false,
-  other_key = false,
+  exit_key = false,
   output_key = false,
   exit_output = false,
 }
@@ -37,8 +37,8 @@ function underground_belt:draw()
   if self.is_exit then
     sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
   else
-    if self.other_key and ENTS[self.other_key] then
-      local ent = ENTS[self.other_key]
+    if self.exit_key and ENTS[self.exit_key] then
+      local ent = ENTS[self.exit_key]
       local sx, sy = world_to_screen(ent.x, ent.y)
       if sx >= -7 and sx <= 247 and sy >= -7 and sy <= 143 then
         sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, ent.flip, ent.rot)
@@ -81,7 +81,7 @@ function underground_belt:draw_items()
   --output head
   if self.exit_lanes then
     --trace('try draw exit items')
-    local sx, sy = world_to_screen(ENTS[self.other_key].x, ENTS[self.other_key].y)
+    local sx, sy = world_to_screen(ENTS[self.exit_key].x, ENTS[self.exit_key].y)
     for i = 1, 2 do
       for j = 1, 2 do
         if self.exit_lanes[i][j] ~= 0 then
@@ -102,7 +102,7 @@ function underground_belt:update()
       for i = 1, 2 do
         for j = 1, 8 do
           if j == 1 and self.output_key and ENTS[self.output_key] then
-            -- local exit = ENTS[self.other_key]
+            -- local exit = ENTS[self.exit_key]
             -- local sx, sy = world_to_screen(exit.x, exit.y)
             -- local wx, wy = screen_to_world(exit.x - 8, exit.y)
             -- local key = wx .. '-' .. wy
@@ -155,8 +155,8 @@ function underground_belt:update()
               elseif ENTS[k].type == 'splitter' or ENTS[k].type == 'dummy_splitter' then
                 --if key is a dummy splitter, then get the parent splitter's key
                 if ENTS[k].type == 'dummy_splitter' then
-                  self.output_key = ENTS[k].other_key
-                  k = ENTS[k].other_key
+                  self.output_key = ENTS[k].exit_key
+                  k = ENTS[k].exit_key
                 end
                 --if not ENTS[k].updated then ENTS[key]:update() end
                 if ENTS[k]:input(self.exit_lanes[i][1], i) then
@@ -225,7 +225,7 @@ function underground_belt:connect(world_x, world_y, distance)
       self.u_lanes[i][j] = 0
     end
   end
-  self.other_key = world_x .. '-' .. world_y
+  self.exit_key = world_x .. '-' .. world_y
   local exit = BELT_ROTATION_MAP[self.rot]
   local key = world_x + exit.x .. '-' .. world_y + exit.y
   self.output_key = key
@@ -233,9 +233,9 @@ function underground_belt:connect(world_x, world_y, distance)
 end
 
 function underground_belt:set_output()
-  if not ENTS[self.other_key] then return end
+  if not ENTS[self.exit_key] then return end
   local exit = BELT_ROTATION_MAP[self.rot]
-  local k = ENTS[self.other_key].x + exit.x .. '-' .. ENTS[self.other_key].y + exit.y
+  local k = ENTS[self.exit_key].x + exit.x .. '-' .. ENTS[self.exit_key].y + exit.y
   self.output_key = k
 
   local ent = ENTS[k]
