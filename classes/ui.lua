@@ -483,41 +483,49 @@ end
 function draw_recipe_widget(x, y, id)
   local item = ITEMS[id]
   local w, h = 10, 12
-  local craft_time = (item.recipe.crafting_time or item.smelting_time)/60 .. 's'
+  local craft_time = (item.recipe and (item.recipe.crafting_time or item.smelting_time)/60 .. 's') or 'Uncraftable'
   local cw = print(craft_time, 0, -10, 0, false, 1, true)
-  if item.recipe.ingredients then
-    for k, v in ipairs(item.recipe.ingredients) do
-      local str_w = print(ITEMS[v.id].name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
-      if str_w > w then w = str_w + 5 end
-      h = h + 9
+  if item.recipe then
+    if item.recipe.ingredients then
+      for k, v in ipairs(item.recipe.ingredients) do
+        local str_w = print(ITEMS[v.id].name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
+        if str_w > w then w = str_w + 5 end
+        h = h + 9
+      end
     end
-  end
-  h = h + 8
-  local str_w2 = print(item.name, 0, -6, 0, false, 1, true)
-  if str_w2 > w then w = str_w2 + 8 end
-  if cw > w then w = cw + 8 end
-  --local sx, sy = x - w/2, y + 8
-  local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
-  ui.draw_panel(sx, sy, w, h + 1, 8, 9, item.fancy_name, 0)
-  --box(sx, sy, w, h, 8, 9)
-  --rect(sx + 1, sy + 1, w - 2, 8, 9)
-  --prints(item.fancy_name, sx + 3, sy + 2, 0, 4)
-  --line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
-  local i = 0
-  if item.recipe.ingredients then
-    for k, v in ipairs(item.recipe.ingredients) do
-      prints(ITEMS[v.id].fancy_name, sx + 3, sy + 10 + (i * 11), 0, 11)
-      draw_item_stack(sx + w-13, sy + 10 + ((k-1) * 11), v)
-      i = i + 1
+    h = h + 8
+    local str_w2 = print(item.name, 0, -6, 0, false, 1, true)
+    if str_w2 > w then w = str_w2 + 8 end
+    if cw > w then w = cw + 8 end
+    --local sx, sy = x - w/2, y + 8
+    local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
+    ui.draw_panel(sx, sy, w, h + 1, 8, 9, item.fancy_name, 0)
+    --box(sx, sy, w, h, 8, 9)
+    --rect(sx + 1, sy + 1, w - 2, 8, 9)
+    --prints(item.fancy_name, sx + 3, sy + 2, 0, 4)
+    --line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
+    local i = 0
+    if item.recipe.ingredients then
+      for k, v in ipairs(item.recipe.ingredients) do
+        prints(ITEMS[v.id].fancy_name, sx + 3, sy + 10 + (i * 11), 0, 11)
+        draw_item_stack(sx + w-13, sy + 10 + ((k-1) * 11), v)
+        i = i + 1
+      end
+      sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
+      prints(craft_time, sx + 12, sy + h - 8, 0, 5)
     end
-    sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
-    prints(craft_time, sx + 12, sy + h - 8, 0, 5)
+  else
+    w = print(item.fancy_name, 0, -10, 1, false, 1, true) + 6
+    local w2 = print('Uncraftable', 0, -10, 1, false, 1, true)
+    if w2 + 6 > w then w = w2 + 6 end
+    local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
+    ui.draw_panel(sx, sy, w, 23, 8, 9, item.fancy_name, 0)
+    prints('Uncraftable', sx + 4, sy + 12, 0, 2)
   end
 end
 
 function draw_tech_widget(x, y, id)
   local t = TECH[id]
-  trace("tech widget id: " .. tostring(id))
   local w, h = print(t.name, 0, -6, 0, false, 1, true) + 8, 55
   local min_width = (#t.science_packs * 9) + 8
   if w < min_width + 8 then w = min_width + 8 end
@@ -532,7 +540,7 @@ function draw_tech_widget(x, y, id)
   end
   prints('Unlocks:', sx + 4, sy + 27)
   for k, v in ipairs(t.item_unlocks) do
-    sspr(ITEMS[v].sprite_id, sx + 4 + ((k-1)*9), sy + 34, ITEMS[v].ck)
+    sspr(ITEMS[v].sprite_id, sx + 4 + ((k-1)*9), sy + 34, ITEMS[v].color_key)
   end
   prints(progress, sx + 4, sy + 44)
 end
@@ -837,20 +845,6 @@ function draw_research_screen()
         current_research = selected_research
       end
     end
-
-    -- if not TECH[selected_research].completed then
-    --   local progress = TECH[selected_research].progress / TECH[selected_research].science_packs[1].count
-    --   ui.progress_bar(progress, 29, 10, 69, 5, 0, UI_FG, 6, 2)
-    --   if not current_research == selected_research and ui.draw_button(lpw - 11, lph - 15, 0, UI_ARROW) then
-    --     current_research = selected_research
-    --   elseif current_research == selected_research and ui.draw_button(lpw - 11, lph - 15, 0, UI_PAUSE) then
-    --     current_research = false
-    --   end
-    -- end
-
-    -- if TECH[selected_research].progress > 0 or (selected_research == current_research and not TECH[current_research].completed) then
-    -- end
-
     local cost_w = print(TECH[av_tech[selected_research]].science_packs[1].count .. 'x - ', 0, -10, 1, false, 1, true)
     prints(TECH[av_tech[selected_research]].science_packs[1].count .. 'x -', 30, 19)
     --available research icons
@@ -860,7 +854,7 @@ function draw_research_screen()
     --item unlocks
     prints('Unlocks:', 4, 42)
     for k, v in ipairs(TECH[av_tech[selected_research]].item_unlocks) do
-      sspr(ITEMS[v].sprite_id, 35 + ((k-1)*9), 40, ITEMS[v].ck)
+      sspr(ITEMS[v].sprite_id, 35 + ((k-1)*9), 40, ITEMS[v].color_key)
     end
 
     --current research icon
@@ -868,7 +862,7 @@ function draw_research_screen()
       local offset = v.offset or {x=0,y=0}
       local sprite = v
       --rspr(v.id,3+offset.x,12+offset.y,v.rot,v.tw,v.th,v.w,v.h,v.ck,v.page)
-      pokey(v.page,v.id,v.tw,v.th,3 + offset.x,8 + offset.y,v.ck)
+      pokey(v.page,v.id,v.tw,v.th,3 + offset.x,8 + offset.y,v.ck,v.rot)
     end
     --current research recipe icons
     for k, v in ipairs(TECH[av_tech[selected_research]].science_packs) do
@@ -891,7 +885,7 @@ function draw_research_screen()
           local sprite = v
           --rspr(v.id,offset.x+2+x*25,offset.y+lph+3+y*25,v.rot,v.tw,v.th,v.w,v.h,v.ck,v.page)
           --bnk, sid, tw, th, x, y, rot, ck
-          pokey(v.page,v.id,v.tw,v.th,offset.x + 2 + x*25, offset.y + lph + 3 + y*25,v.ck)
+          pokey(v.page,v.id,v.tw,v.th,offset.x + 2 + x*25, offset.y + lph + 3 + y*25,v.ck,v.rot)
         end
         -- if s.page > 0 then
         --   pokey(s.page, s.id, s.w, s.h, offset.x + 2 + x*25, offset.y + lph + 3 + y*25, s.ck)
@@ -912,11 +906,9 @@ function draw_research_screen()
     ui.highlight(slot.x - 1, slot.y, 24, 24, false, 3, 4)
     if current_tab and not av_tech[slot.index] or not current_tab and not f_tech[slot.index] then return end
     if (current_tab and av_tech[slot.index]) or (not current_tab and f_tech[slot.index]) then
-      --trace('drawing tech widget @ 915')
       draw_tech_widget(cursor.x + 5, cursor.y + 5, (current_tab and av_tech[slot.index]) or (not current_tab and f_tech[slot.index]))
     end
     if current_tab and cursor.l and not cursor.ll then
-      --trace('slot # ' .. slot.index)
       if current_tab and av_tech[slot.index] or not current_tab and f_tech[slot.index] then
         selected_research = slot.index
       else

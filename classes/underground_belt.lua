@@ -1,5 +1,5 @@
-UBELT_IN           = 373
-UBELT_OUT          = 438
+UBELT_IN           = 372
+UBELT_OUT          = 371
 UBELT_TICKRATE     = 5
 UBELT_MAXTICK      = 3
 UBELT_TICK         = 0
@@ -30,22 +30,52 @@ UBELT_ROT_MAP = {
   [3] = {in_flip = 0, out_flip = 0, search_dir = {x =  0, y = -1}},
 }
 
+UBELT_CLIP_IN = {
+  [0] = {x = 6, y = 0, w = 2, h = 8},
+  [1] = {x = 0, y = 6, w = 8, h = 2},
+  [2] = {x = 0, y = 0, w = 2, h = 8},
+  [3] = {x = 0, y = 0, w = 8, h = 2},
+}
+
+UBELT_CLIP_OUT = {
+  [0] = {x = 0, y = 0, w = 2, h = 8},
+  [1] = {x = 0, y = 0, w = 8, h = 2},
+  [2] = {x = 6, y = 0, w = 2, h = 8},
+  [3] = {x = 0, y = 6, w = 8, h = 2},
+}
+
 function underground_belt:draw()
   self.drawn = true
   local sx, sy = world_to_screen(self.x, self.y)
   self.screen_pos = {x = sx, y = sy}
   if self.is_exit then
-    sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
+    local c = UBELT_CLIP_OUT[self.rot]
+    --rect(sx+c.x,sy+c.y,c.w,c.h,2)
+    clip(sx+c.x,sy+c.y,c.w,c.h)
+    sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, 0, 1, 0, self.rot)
+    clip()
+    --sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
   else
     if self.exit_key and ENTS[self.exit_key] then
       local ent = ENTS[self.exit_key]
       local sx, sy = world_to_screen(ent.x, ent.y)
       if sx >= -7 and sx <= 247 and sy >= -7 and sy <= 143 then
-        sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, ent.flip, ent.rot)
+        local c = UBELT_CLIP_OUT[self.rot]
+        --rect(sx+c.x,sy+c.y,c.w,c.h,2)
+        clip(sx+c.x,sy+c.y,c.w,c.h)
+        sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, 0, 1, 0, self.rot)
+        clip()
+        --sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, ent.flip, ent.rot)
       end
     end
-    sspr(UBELT_IN + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
+    local c = UBELT_CLIP_IN[self.rot]
+    rect(sx+c.x,sy+c.y,c.w,c.h,2)
+    clip(sx+c.x,sy+c.y,c.w,c.h)
+    sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, 0, 1, 0, self.rot)
+    clip()
+    --sspr(UBELT_IN + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
   end
+  clip()
 end
 
 function underground_belt:draw_hover_widget(other)
@@ -72,11 +102,13 @@ function underground_belt:draw_items()
       if self.lanes[i][j] > 0 then
         --local loc_x, loc_y = cam.x - 120 + (self.pos.x*8), cam.y - 64 + (self.pos.y*8)
         local x, y = item_locations[j][i].x + self.screen_pos.x, item_locations[j][i].y + self.screen_pos.y
-        local sprite_id = ITEMS[self.lanes[i][j]].belt_id
-        sspr(sprite_id, x, y, 0)
+        local item = ITEMS[self.lanes[i][j]]
+        sspr(item.belt_id, x, y, item.color_key)
       end
     end
   end
+  local sx, sy = world_to_screen(self.x, self.y)
+  sspr(UBELT_IN, sx, sy, 0, 1, self.flip, self.rot)
 
   --output head
   if self.exit_lanes then
@@ -86,11 +118,12 @@ function underground_belt:draw_items()
       for j = 1, 2 do
         if self.exit_lanes[i][j] ~= 0 then
           local x, y = item_locations[j][i].x + sx, item_locations[j][i].y + sy
-          local sprite_id = ITEMS[self.exit_lanes[i][j]].belt_id
-          sspr(sprite_id, x, y, 0)
+          local item = ITEMS[self.exit_lanes[i][j]]
+          sspr(item.belt_id, x, y, item.color_key)
         end
       end
     end
+    sspr(UBELT_OUT, sx, sy, 0, 1, self.flip, self.rot)
   end
 end
 

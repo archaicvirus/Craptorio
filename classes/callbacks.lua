@@ -77,12 +77,12 @@ place_item = {
     local k = get_key(x, y)
     local tile, cell_x, cell_y = get_world_cell(x, y)
     if ENTS[k] and ENTS[k].type == 'inserter' then
-      if ENTS[k].rot ~= rotation then
+      if ENTS[k].rot ~= cursor.rot then
         ENTS[k]:rotate(rotation)
         sound('rotate')
       end
     elseif not ENTS[k] then
-      ENTS[k] = new_inserter({x = cell_x, y = cell_y}, rotation)
+      ENTS[k] = new_inserter({x = cell_x, y = cell_y}, cursor.rot)
       sound('place_belt')
     else
       sound('deny')
@@ -166,7 +166,7 @@ place_item = {
     end
     --add_furnace(x, y)
   end,
-  
+
   ['underground_belt'] = function(x, y)
     local tile, wx, wy = get_world_cell(x, y)
     local k = wx .. '-' .. wy

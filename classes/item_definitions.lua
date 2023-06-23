@@ -54,7 +54,7 @@ ITEMS = {
     type = 'ore',
     craftable = false,
     stack_size = 100,
-    smelting_time = 5 * 60,
+    smelting_time = 1 * 60,
     mining_time = 4 * 60,
     recipe = false,
   },
@@ -84,8 +84,8 @@ ITEMS = {
     craftable = false,
     stack_size = 100,
     smelted_id = 17,
-    smelting_time = 5 * 60,
-    mining_time = 4 * 60,
+    smelting_time = 2 * 60,
+    mining_time = 2 * 60,
     recipe = false,
   },
   [6] = {
@@ -98,8 +98,8 @@ ITEMS = {
     type = 'fuel',
     craftable = false,
     stack_size = 100,
-    smelting_time = 1 * 5 * 60,
-    mining_time = 4 * 60,
+    fuel_time = 1 * 5 * 60,
+    mining_time = 1 * 60,
     recipe = false,
   },
   [7] = {
@@ -135,7 +135,7 @@ ITEMS = {
     fancy_name = 'Transport Belt',
     sprite_id = 256,
     belt_id = 434,
-    color_key = 1,
+    color_key = 0,
     type = 'placeable',
     craftable = {'player', 'machine'},
     stack_size = 100,
@@ -174,7 +174,7 @@ ITEMS = {
     fancy_name = 'Inserter',
     sprite_id = 267,
     belt_id = 417,
-    color_key = 0,
+    color_key = 15,
     type = 'placeable',
     craftable = {'player', 'machine'},
     stack_size = 100,
@@ -227,17 +227,17 @@ ITEMS = {
     fancy_name = 'Stone Furnace',
     id = 14,
     sprite_id = 503,
-    belt_id = 433,
+    belt_id = 502,
     color_key = 6,
     type = 'placeable',
     craftable = {'player', 'machine'},
     stack_size = 50,
     recipe = {
-      id = 21,
+      id = 14,
       crafting_time = 60*0.5,
-      count = 2,
+      count = 1,
       ingredients = {
-        [1] = {id = 16, count = 1}
+        [1] = {id = 5, count = 5}
       },
     }
   },
@@ -251,8 +251,10 @@ ITEMS = {
     type = 'intermediate',
     craftable = false,
     stack_size = 100,
-    smelting_time = 10,
-    recipe = {[1] = {name = 'iron_ore', item_id = 3, count = 1}},
+    smelted_id = 29,
+    required_tech = 4,
+    smelting_time = 5 * 60,
+    recipe = false,
   },
   [16] = {
     name = 'copper_plate',
@@ -265,7 +267,7 @@ ITEMS = {
     craftable = false,
     stack_size = 100,
     smelting_time = 10,
-    recipe = {[1] = {name = 'copper_ore', item_id = 4, count = 1}},
+    recipe = false,
   },
   [17] = {
     name = 'stone_brick',
@@ -278,7 +280,7 @@ ITEMS = {
     craftable = false,
     stack_size = 100,
     smelting_time = 10,
-    recipe = {nil},
+    recipe = false,
   },
   [18] = {
     name = 'underground_belt',
@@ -435,9 +437,9 @@ ITEMS = {
       crafting_time = 60*10,
       count = 1,
       ingredients = {
-        [1] = {id = 4, count = 2}, --copper
-        [2] = {id = 6, count = 5}, --coal
-        [3] = {id = 8, count = 10} --oil
+        [1] = {id = 4, count = 2},
+        [2] = {id = 6, count = 5},
+        [3] = {id = 8, count = 10}
       },
     }
   },
@@ -456,9 +458,9 @@ ITEMS = {
       crafting_time = 60*20,
       count = 1,
       ingredients = {
-        [1] = {id = 4, count = 2}, --copper
-        [2] = {id = 6, count = 5}, --coal
-        [3] = {id = 8, count = 10} --oil
+        [1] = {id = 4, count = 2},
+        [2] = {id = 6, count = 5},
+        [3] = {id = 8, count = 10}
       },
     }
   },
@@ -477,9 +479,9 @@ ITEMS = {
       crafting_time = 60*25,
       count = 1,
       ingredients = {
-        [1] = {id = 4, count = 2}, --copper
-        [2] = {id = 6, count = 5}, --coal
-        [3] = {id = 8, count = 10} --oil
+        [1] = {id = 4, count = 2},
+        [2] = {id = 6, count = 5},
+        [3] = {id = 8, count = 10}
       },
     }
   },
@@ -498,10 +500,10 @@ ITEMS = {
       crafting_time = 60*30,
       count = 1,
       ingredients = {
-        [1] = {id = 4, count = 2}, --copper
-        [2] = {id = 6, count = 5}, --coal
-        [3] = {id = 8, count = 10}, --oil
-        [4] = {id = 17, count = 50} --oil
+        [1] = {id = 4, count = 2},
+        [2] = {id = 6, count = 5},
+        [3] = {id = 8, count = 10},
+        [4] = {id = 17, count = 50}
       },
     }
   },
@@ -509,13 +511,48 @@ ITEMS = {
     name = 'steel_plate',
     fancy_name = 'Steel Plate',
     id = 29,
-    sprite_id = 387,
-    belt_id = 299,
+    sprite_id = 468,
+    belt_id = 469,
+    color_key = 1,
+    type = 'intermediate',
+    craftable = false,
+    stack_size = 100,
+    smelting_time = 30,
+    recipe = false,
+  },
+  [30] = {
+    name = 'wood',
+    fancy_name = 'Wood Planks',
+    id = 30,
+    sprite_id = 451,
+    belt_id = 467,
     color_key = 0,
     type = 'intermediate',
     craftable = false,
     stack_size = 100,
     smelting_time = 10,
-    recipe = {[1] = {name = 'iron_plate', item_id = 29, count = 2}},
+    recipe = false
+  },
+  [31] = {
+    name = 'solar_panel',
+    fancy_name = 'Solar Panel',
+    id = 31,
+    sprite_id = 509,
+    belt_id = 493,
+    color_key = 1,
+    type = 'intermediate',
+    craftable = false,
+    stack_size = 100,
+    smelting_time = 10,
+    recipe = {
+      id = 28,
+      crafting_time = 60*30,
+      count = 1,
+      ingredients = {
+        [1] = {id = 16, count = 5},
+        [2] = {id = 2, count = 15},
+        [3] = {id = 29, count = 5},
+      },
+    }
   },
 }

@@ -45,7 +45,7 @@ function Furnace:draw_hover_widget()
   rect(x + 1, y + 1, w - 2, 8, 9)
   prints('Stone Furnace', x + 2, y + 2, 0, 4)
   --furnace sprite icon
-  Furnace.draw_sprite(x + w/2 - 8, y + 15, self.is_smelting)
+  self:draw_sprite(x + w/2 - 8, y + 15)
   --item slots
   box(x + 5, y + 18, 10, 10, 0, 9)
   box(x + w - 15, y + 18, 10, 10, 0, 9)
@@ -124,7 +124,7 @@ function Furnace:open()
       -- --fuel progress bar
       box(x + 16, y + 71, 42, 5, 0, fg)
       if ent.fuel_time > 0 then
-        rect(x + 17, y + 72, remap(ent.fuel_time, 0, ITEMS[fuel.id].smelting_time, 0, 40), 3, 2)
+        rect(x + 17, y + 72, remap(ent.fuel_time, 0, ITEMS[fuel.id].fuel_time, 0, 40), 3, 2)
       end
       prints(fuel.count .. '/' .. FURNACE_BUFFER_FUEL, x + 4, y + 80, 0, 4)
       -- --terrain background-------------------------
@@ -147,21 +147,21 @@ function Furnace:open()
       -- --terrain border
       rectb(fx - 25, fy - 8, 66, 33, fg)
       --furnace graphic
-      Furnace.draw_sprite(fx, fy, ent.is_smelting)
+      ent:draw_sprite(fx, fy, ent.is_smelting)
     end
   }
 end
 
-function Furnace.draw_sprite(x, y, smelting)
+function Furnace:draw_sprite(x, y, smelting)
   local color_keys = {2, 3, 4}
   local fire_keys = {7,11,10}
   sspr(FURNACE_ID, x, y, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
-  if smelting then
+  if self.is_smelting or smelting then
     sspr(490, x + 7, y + 12, 0)
   end
 end
 
-function Furnace.update(self)
+function Furnace:update()
   --update fuel ticks
   if self.fuel_time > 0 then
     self.fuel_time = self.fuel_time - FURNACE_TICKRATE
@@ -172,7 +172,7 @@ function Furnace.update(self)
     if self.is_smelting then
       if self.fuel_buffer.count > 0 then
         self.fuel_buffer.count = self.fuel_buffer.count - 1
-        self.fuel_time = ITEMS[self.fuel_buffer.id].smelting_time
+        self.fuel_time = ITEMS[self.fuel_buffer.id].fuel_time
       else
         --otherwise we have ran out of fuel completely, so shut-down
         self.is_smelting = false
@@ -205,24 +205,21 @@ function Furnace.update(self)
     self.is_smelting = true
     self.smelt_timer = FURNACE_SMELT_TIME
   end
-  --trace('#FURNACE INPUT BUFFER: ' .. self.input_buffer.count)
-  --trace('#FURNACE OUTPUT BUFFER: ' .. self.output_buffer.count)
   if self.input_buffer.count == 0 and self.output_buffer.count == 0 then
     self.ore_type = false
   end
 end
 
-function Furnace.draw(self)
+function Furnace:draw()
   local sx, sy = world_to_screen(self.x, self.y)
-  Furnace.draw_sprite(sx, sy, self.is_smelting)
+  self:draw_sprite(sx, sy)
   --if self.is_hovered then self:draw_hover_widget() end
 end
 
-function Furnace.deposit(self, id, keep)
+function Furnace:deposit(id, keep)
   keep = keep or false
   local item = ITEMS[id]
-  if item.type ~= 'ore' and item.type ~= 'fuel' then return false end
-  --trace(item.type)
+  if (item.type ~= 'ore' and item.type ~= 'fuel') and not item.smelted_id then return false end
   if item.type == 'fuel' and (id == self.fuel_buffer.id or self.fuel_buffer.id == 0 or self.fuel_buffer.count == 0) then
     if self.fuel_buffer.count < 5 then
       if not keep then
@@ -232,35 +229,22 @@ function Furnace.deposit(self, id, keep)
       return true
     end
   end
-  --trace('try deposit ore')
-  --trace('FURNACE ORE TYPE: ' .. tostring(self.ore_type))
-  --trace('ITEM ORE TYPE: ' .. item.name)
-  --trace('#FURNACE INPUT BUFFER: ' .. self.input_buffer.count)
-  --trace('#FURNACE OUTPUT BUFFER: ' .. self.output_buffer.count)
-  -- if not self.ore_type then
-  --   if not keep then
-  --     self.ore_type = item.name
-  --     table.insert(self.input_buffer, id)
-  --   end
-  --   return true
-  if item.type ~= 'ore' then return false end
-
+  if item.type ~= 'ore' and not item.smelted_id then return false end
   if self.input_buffer.count < FURNACE_BUFFER_INPUT and (self.ore_type == item.name or not self.ore_type) then
-
-    if not keep then
-      self.ore_type = item.name
-      self.input_buffer.id = id
-      self.input_buffer.count = self.input_buffer.count + 1
+    if (item.required_tech and TECH[item.required_tech].completed) or not item.required_tech then
+      if not keep then
+        self.ore_type = item.name
+        self.input_buffer.id = id
+        self.input_buffer.count = self.input_buffer.count + 1
+      end
+      return true
     end
-    return true
-
   end
-
   return false
 end
 
 function Furnace:request()
-  if self.fuel_buffer.count < 5 then
+  if self.fuel_buffer.count < 5 and self.input_buffer.count > 0 then
     local desired_fuel = 'any'
     if self.fuel_buffer.count > 0 then
       desired_fuel = ITEMS[self.fuel_buffer.id].name
@@ -304,8 +288,8 @@ function new_furnace(x, y, keys)
   fuel_slots = FURNACE_BUFFER_FUEL,
   output_slots = FURNACE_BUFFER_SIZE,
   output_buffer = {id = 0, count = 0},
-  -- input_buffer = {id = 0, count = 0},
-  -- fuel_buffer = {id = 0, count = 0},
+  input_buffer = {id = 0, count = 0},
+  fuel_buffer = {id = 0, count = 0},
   dummy_keys = keys,
   fuel_time = 0,
   smelt_timer = 0,

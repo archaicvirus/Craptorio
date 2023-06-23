@@ -126,7 +126,7 @@ function  TileManager.create_tile(x, y)
     visited = false,
     b_visited = false,
     rot = 0,
-    offset = {x = math.random(-3, 3), y = math.random(-3, 3)},
+    offset = {x = math.random(1, 2), y = math.random(1, 4)},
   }
   for i = 1, #biomes do
     if base_noise > biomes[i].min and base_noise < biomes[i].max then
@@ -168,9 +168,12 @@ function  TileManager.create_tile(x, y)
       tile.is_tree = true
       --tile.flip = flip
     elseif math.random(100) <= (biomes[tile.biome].clutter * 100) then
-      tile.sprite_id = biomes[tile.biome].tile_id_offset + floor(math.random(10))
+      local rand = floor(math.random(10))
+      tile.sprite_id = biomes[tile.biome].tile_id_offset + rand
       --tile.flip = math.random(1) > 0.5 and 1 or 0
-      --tile.rot = 0
+      if rand == 1 then
+        tile.rot = math.random(4) % 4
+      end
     end
   end
 
@@ -218,6 +221,7 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
       elseif not tile.is_border then
         local id, rot, flip = tile.sprite_id, tile.rot, tile.flip
         if not tile.is_land then
+          --for water tiles only
           if worldX % 2 == 1 and worldY % 2 == 1 then
               flip = 3 -- Both horizontal and vertical flip
           elseif worldX % 2 == 1 then
@@ -227,6 +231,7 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
           end
           sspr(224, sx, sy, 0, 1, flip, rot)
         else
+          --else is land
           sspr(id, sx, sy, -1, 1, flip, rot)
         end
       else
@@ -258,19 +263,19 @@ function  TileManager:draw_clutter(player, screenWidth, screenHeight)
   local startX = math.floor(cameraTopLeftX / 8)
   local startY = math.floor(cameraTopLeftY / 8)
   
-  for screenY = 1, screenHeight + 2 do
+  for screenY = 1, screenHeight + 3 do
     for screenX = 1, screenWidth + 2 do
       local worldX = startX + screenX
       local worldY = startY + screenY
       local tile = self.tiles[worldY][worldX]
-      local sx = (screenX - 1) * 8 - subTileX
+      local sx = (screenX - 2) * 8 - subTileX
       local sy = (screenY - 1) * 8 - subTileY
 
       --Here, the 19, 25, and 41 are just randomly chosen biome tiles
       --picked to spawn trees on, but you can use any tiles to limit trees to certain biomes
       if tile.is_tree then
         --trace('drawing tree')
-        sspr(biomes[tile.biome].tree_id, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
+        sspr(biomes[tile.biome].tree_id, sx + tile.offset.x, sy - 27 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
       end
       -- if tile.sprite_id == 19 then
       --   sspr(201, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
