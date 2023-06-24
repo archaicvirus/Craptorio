@@ -10,7 +10,7 @@ ITEMS = {
     type = 'consumable',
     craftable = {'player', 'machine'},
     sub_type = 'icon_only',
-    stack_size = 200,
+    stack_size = 100,
     recipe = {
       id = 1,
       crafting_time = 60*6,
@@ -75,7 +75,7 @@ ITEMS = {
   },
   [5] = {
     name = 'stone',
-    fancy_name = 'Stone',
+    fancy_name = 'Stone Ore',
     id = 5,
     sprite_id = 160,
     belt_id = 176,
@@ -144,8 +144,8 @@ ITEMS = {
       crafting_time = 60*0.5,
       count = 2,
       ingredients = {
-        [1] = {id = 20, count = 1}, --gear
-        [2] = {id = 15, count = 1}, --plate
+        [1] = {id = 20, count = 1},
+        [2] = {id = 15, count = 1},
       }
     },
   },
@@ -163,9 +163,9 @@ ITEMS = {
       crafting_time = 60*1,
       count = 2,
       ingredients = {
-        [1] = {id = 2, count = 5}, --green_circuit
-        [2] = {id = 15, count = 5}, --plate
-        [3] = {id = 9, count = 5}, -- transport_belt
+        [1] = {id = 2, count = 5},
+        [2] = {id = 15, count = 5},
+        [3] = {id = 9, count = 5},
       }
     },
   },
@@ -183,9 +183,9 @@ ITEMS = {
       crafting_time = 60*0.5,
       count = 1,
       ingredients = {
-        [1] = {id = 2, count = 1}, --circuit
-        [2] = {id = 20, count = 1}, --gear
-        [3] = {id = 15, count = 1}, --plate
+        [1] = {id = 2, count = 1},
+        [2] = {id = 20, count = 1},
+        [3] = {id = 15, count = 1},
       }
     },
   },
@@ -285,8 +285,8 @@ ITEMS = {
   [18] = {
     name = 'underground_belt',
     fancy_name = 'Underground Belt',
-    sprite_id = 374,
-    belt_id = 418,
+    sprite_id = 301,
+    belt_id = 279,
     color_key = 0,
     type = 'placeable',
     craftable = {'player', 'machine'},
@@ -537,16 +537,15 @@ ITEMS = {
     name = 'solar_panel',
     fancy_name = 'Solar Panel',
     id = 31,
-    sprite_id = 509,
+    sprite_id = 510,
     belt_id = 493,
     color_key = 1,
-    type = 'intermediate',
-    craftable = false,
-    stack_size = 100,
-    smelting_time = 10,
+    type = 'placeable',
+    craftable = true,
+    stack_size = 50,
     recipe = {
-      id = 28,
-      crafting_time = 60*30,
+      id = 31,
+      crafting_time = 4.5 * 60,
       count = 1,
       ingredients = {
         [1] = {id = 16, count = 5},
@@ -554,5 +553,65 @@ ITEMS = {
         [3] = {id = 29, count = 5},
       },
     }
+  },
+  [32] = {
+    name = 'bio_refinery',
+    fancy_name = 'Bio-Refinery',
+    id = 32,
+    sprite_id = 374,
+    belt_id = 390,
+    color_key = 1,
+    type = 'placeable',
+    craftable = true,
+    stack_size = 10,
+    recipe = {
+      id = 32,
+      crafting_time = 10 * 60,
+      count = 1,
+      ingredients = {
+        [1] = {id = 16, count = 5},
+        [2] = {id = 2, count = 15},
+        [3] = {id = 29, count = 5},
+      },
+    }
+  },
+  [33] = {
+    name = 'engine_unit',
+    fancy_name = 'Biofuel Engine',
+    id = 33,
+    sprite_id = 483,
+    belt_id = 484,
+    color_key = 1,
+    type = 'intermediate',
+    craftable = false,
+    stack_size = 5,
+    recipe = {
+      id = 33,
+      crafting_time = 10 * 60,
+      count = 1,
+      ingredients = {
+        [1] = {id = 20, count = 3},
+        [2] = {id = 29, count = 2},
+      },
+    }
+  },
+  [34] = {
+    name = 'fiber',
+    fancy_name = 'Organic Fibers',
+    id = 34,
+    sprite_id = 268,
+    belt_id = 269,
+    color_key = 0,
+    type = 'intermediate',
+    craftable = true,
+    stack_size = 200,
+    recipe = {
+      id = 34,
+      crafting_time = 60 * 3,
+      count = 50,
+      ingredients = {
+        [1] = {id = 30, count = 10},
+      },
+    },
   },
 }

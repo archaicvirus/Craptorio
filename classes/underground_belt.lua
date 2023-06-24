@@ -1,5 +1,6 @@
-UBELT_IN           = 372
-UBELT_OUT          = 371
+UBELT_IN           = 278
+UBELT_OUT          = 277
+UBELT_COLORKEY     = 0
 UBELT_TICKRATE     = 5
 UBELT_MAXTICK      = 3
 UBELT_TICK         = 0
@@ -45,7 +46,7 @@ UBELT_CLIP_OUT = {
 }
 
 function underground_belt:draw()
-  self.drawn = true
+  if self.drawn then return end
   local sx, sy = world_to_screen(self.x, self.y)
   self.screen_pos = {x = sx, y = sy}
   if self.is_exit then
@@ -79,23 +80,36 @@ function underground_belt:draw()
 end
 
 function underground_belt:draw_hover_widget(other)
-  local txt = 'Underground Belt'
+  local txt = other and 'Underg. Belt Exit' or 'Underground Belt'
   local x, y = cursor.x + 3, cursor.y + 3
   local width = print(txt, 0, -10, 0, false, 1, true)
   local w, h = width + 4, 50
-  ui.draw_panel(x, y, w, h, UI_BG, UI_FG, other and 'Underground Belt Exit' or 'Underground Belt')
+  ui.draw_panel(x, y, w, h, UI_BG, UI_FG, txt)
   --box(x, y, w, h, 8, 9)
   --rect(x + 1, y + 1, w - 2, 9, 9)
   --prints(txt, x + w/2 - width/2, y + 2, 0, 4)
+  local c
   if other then
-    sspr(UBELT_OUT + UBELT_TICK, x + w/2 - 12, y + 15, ITEMS[self.item_id].color_key, 3, ENTS[other].flip, ENTS[other].rot)
+    c = UBELT_CLIP_OUT[self.rot]
   else
-    sspr(UBELT_IN + UBELT_TICK, x + w/2 - 12, y + 15, ITEMS[self.item_id].color_key, 3, self.flip, self.rot)
+    c = UBELT_CLIP_IN[self.rot]
+  end
+  --rect(sx+c.x,sy+c.y,c.w,c.h,2)
+  clip(x + (c.x*3) + w/2 - 12, y + 15+(c.y*3),c.w*3,c.h*3)
+  --rect(x + (c.x*3) + w/2 - 12, y + 15+(c.y*3),c.w*3,c.h*3, 2)
+  sspr(BELT_ID_STRAIGHT + BELT_TICK, x + w/2 - 12, y + 15, 0, 3, 0, other and ENTS[other].rot or self.rot)
+  clip()
+  if other then
+    sspr(UBELT_OUT, x + w/2 - 12, y + 15, UBELT_COLORKEY, 3, ENTS[other].flip, ENTS[other].rot)
+  else
+    sspr(UBELT_IN, x + w/2 - 12, y + 15, UBELT_COLORKEY, 3, self.flip, self.rot)
   end  
 end
 
 function underground_belt:draw_items()
   --main head unit
+  if self.drawn then return end
+  self.drawn = true
   local item_locations = BELT_CURVED_ITEM_MAP[self.rot .. self.rot]
   for i = 1, 2 do
     for j = 5, 8 do
@@ -107,8 +121,10 @@ function underground_belt:draw_items()
       end
     end
   end
-  local sx, sy = world_to_screen(self.x, self.y)
-  sspr(UBELT_IN, sx, sy, 0, 1, self.flip, self.rot)
+  if not self.is_exit then
+    local sx, sy = world_to_screen(self.x, self.y)
+    sspr(UBELT_IN, sx, sy, 0, 1, self.flip, self.rot)
+  end
 
   --output head
   if self.exit_lanes then

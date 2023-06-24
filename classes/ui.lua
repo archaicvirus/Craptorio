@@ -488,7 +488,7 @@ function draw_recipe_widget(x, y, id)
   if item.recipe then
     if item.recipe.ingredients then
       for k, v in ipairs(item.recipe.ingredients) do
-        local str_w = print(ITEMS[v.id].name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
+        local str_w = print(ITEMS[v.id].fancy_name .. ' - ' .. v.count, 0, -6, 0, false, 1, true)
         if str_w > w then w = str_w + 5 end
         h = h + 9
       end
@@ -770,25 +770,37 @@ function ui.draw_button(x, y, flip, id, color, shadow_color, hover_color)
   return false
 end
 
+function draw_research_icon(id, x, y)
+  for k, v in ipairs(TECH[id].sprite) do
+    local offset = v.offset or {x=0,y=0}
+    local sprite = v
+    --rspr(v.id,3+offset.x,12+offset.y,v.rot,v.tw,v.th,v.w,v.h,v.ck,v.page)
+    pokey(v.page, v.id, v.tw, v.th, x + offset.x, y + offset.y, v.ck, v.rot)
+  end
+  if TECH[id].tier then
+    rect(x + 19, y + 17, 5, 7, 9)
+    prints(TECH[id].tier, x + 20, y + 18, 15, 4, {x = 1, y = 0})
+  end
+end
+
 function draw_research_screen()
   cls(UI_FG)
-  local av_tech = AVAILABLE_TECH
-  local f_tech = {}
+  local AVAILABLE_TECH = AVAILABLE_TECH
+  local F_TECH = {}
   for k, v in ipairs(FINISHED_TECH) do
-    if v then table.insert(f_tech, v) end
+    if v then table.insert(F_TECH, k) end
   end
   -- for k, v in ipairs(TECH) do
-  --   if AVAILABLE_TECH[k] then table.insert(av_tech, v) end
+  --   if AVAILABLE_TECH[k] then table.insert(AVAILABLE_TECH, v) end
   -- end
   local sw = print('Technology Tree',0,-10,0,false,1,true)
-  local name = (current_tab and TECH[av_tech[selected_research]] and TECH[av_tech[selected_research]].name) or (not current_tab and TECH[f_tech[selected_research]] and TECH[f_tech[selected_research]].name or 'Select-a-Tech')
+  local name = (current_tab and TECH[AVAILABLE_TECH[selected_research]] and TECH[AVAILABLE_TECH[selected_research]].name) or (not current_tab and TECH[F_TECH[selected_research]] and TECH[F_TECH[selected_research]].name or 'Select-a-Tech')
   local rw = print(name,0,-10,0,false,1,true)
   local rsw = print('Research', 0, -10, 0, false, 1, false)/2
   local lpw = 101
   local lph = 57
   -----------MAIN PANEL-------------------
   ui.draw_panel(0, 0, 240, 136, UI_FG, UI_FG)
-
   -------SELECTED TECH HEADER-------------------
   prints(name, 4 + lpw/2 - rw/2, 1)
   rectr(2, 8, lpw - 3, lph - 14, UI_BG, UI_FG, false)
@@ -800,16 +812,14 @@ function draw_research_screen()
   else
     prints('Known Tech', 12, lph - 4)
   end
-
   ----------CURRENT PAGE--------------------------------------------
   if ui.draw_button((lpw/2) - (rsw/2) + 29, lph - 5, 1, UI_ARROW, 11, 0, 12) then
-    current_page = clamp(current_page - 1, 1, math.ceil(current_tab and #av_tech/12 or #FINISHED_TECH/12))
+    current_page = clamp(current_page - 1, 1, math.ceil(current_tab and #AVAILABLE_TECH/12 or #F_TECH/12))
   end
   if ui.draw_button((lpw/2) - (rsw/2) + 56, lph - 5, 0, UI_ARROW, 11, 0, 12) then
-    current_page = clamp(current_page + 1, 1, math.ceil(current_tab and #av_tech/12 or #FINISHED_TECH/12))
+    current_page = clamp(current_page + 1, 1, math.ceil(current_tab and #AVAILABLE_TECH/12 or #F_TECH/12))
   end
-  prints(current_page .. '/' .. math.ceil(#TECH/12), (lpw/2) - (rsw/2) + 41, lph - 4, 0)
-  
+  prints(current_page .. '/' .. math.ceil(#TECH/12), (lpw/2) - (rsw/2) + 41, lph - 4, 0)  
   ----------RESEARCH QUEUE------------------------------
   prints('Research Queue', (240 - lpw)/2 + lpw - sw/2, 1)
   --research queue grid
@@ -822,14 +832,11 @@ function draw_research_screen()
   --------------TECH TREE------------------------------
   rectr(lpw + 2, 36, 135, 98, UI_BG, UI_FG, false)
   prints('Technology Tree', (240 - lpw)/2 + lpw - sw/2, 29)
-
   ----------------SELECTED TECH PANEL--------------------------
   if current_tab and selected_research then
-
     --research progress bar
-    if not TECH[av_tech[selected_research]].completed then
-      local progress = TECH[av_tech[selected_research]].progress --TECH[av_tech[selected_research]].science_packs[1].count
-      --ui.progress_bar(progress, x, y, w, h, bg, fg, fill, option)
+    if not TECH[AVAILABLE_TECH[selected_research]].completed then
+      local progress = TECH[AVAILABLE_TECH[selected_research]].progress --TECH[AVAILABLE_TECH[selected_research]].science_packs[1].count
       ui.progress_bar(progress, 29, 10, 69, 5, 0, UI_FG, 6, 2)
     else
       prints('Finished', 29, 10)
@@ -845,29 +852,21 @@ function draw_research_screen()
         current_research = selected_research
       end
     end
-    local cost_w = print(TECH[av_tech[selected_research]].science_packs[1].count .. 'x - ', 0, -10, 1, false, 1, true)
-    prints(TECH[av_tech[selected_research]].science_packs[1].count .. 'x -', 30, 19)
+    local cost_w = print(TECH[AVAILABLE_TECH[selected_research]].science_packs[1].count .. 'x - ', 0, -10, 1, false, 1, true)
+    prints(TECH[AVAILABLE_TECH[selected_research]].science_packs[1].count .. 'x -', 30, 19)
     --available research icons
     --timer sprite & text
     sspr(CRAFTER_TIME_ID, 30 + cost_w, 18, 1)
-    prints(TECH[av_tech[selected_research]].time .. 's', 30 + cost_w + 8, 19, 0, 6)
+    prints(TECH[AVAILABLE_TECH[selected_research]].time .. 's', 30 + cost_w + 8, 19, 0, 6)
     --item unlocks
     prints('Unlocks:', 4, 42)
-    for k, v in ipairs(TECH[av_tech[selected_research]].item_unlocks) do
+    for k, v in ipairs(TECH[AVAILABLE_TECH[selected_research]].item_unlocks) do
       sspr(ITEMS[v].sprite_id, 35 + ((k-1)*9), 40, ITEMS[v].color_key)
     end
-
     --current research icon
-    for k, v in ipairs(TECH[av_tech[selected_research]].sprite) do
-      local offset = v.offset or {x=0,y=0}
-      local sprite = v
-      --rspr(v.id,3+offset.x,12+offset.y,v.rot,v.tw,v.th,v.w,v.h,v.ck,v.page)
-      pokey(v.page,v.id,v.tw,v.th,3 + offset.x,8 + offset.y,v.ck,v.rot)
-    end
-    --current research recipe icons
-    for k, v in ipairs(TECH[av_tech[selected_research]].science_packs) do
+    draw_research_icon(AVAILABLE_TECH[selected_research], 3, 8)
+    for k, v in ipairs(TECH[AVAILABLE_TECH[selected_research]].science_packs) do
       sspr(ITEMS[v.id].sprite_id, 30 + (k-1)*8, 28, ITEMS[v.id].ck)
-      --draw_item_stack(48 + (k-1)*8, 19, {id = v.id, count = 1})
     end
   end
   
@@ -877,22 +876,13 @@ function draw_research_screen()
   for y = 0, 2 do
     for x = 0, 3 do
       --rect(2 + x*25, lph + 3 + y*25, 24, 24, 2)
-      if (current_tab and av_tech[i]) or (not current_tab and f_tech[i]) then
-        -- local s = TECH[i].sprite
-        -- local offset = s.offset or {x=0,y=0}
-        for k, v in ipairs(current_tab and TECH[av_tech[i]].sprite or not current_tab and TECH[f_tech[i]].sprite) do
-          local offset = v.offset or {x=0,y=0}
-          local sprite = v
-          --rspr(v.id,offset.x+2+x*25,offset.y+lph+3+y*25,v.rot,v.tw,v.th,v.w,v.h,v.ck,v.page)
-          --bnk, sid, tw, th, x, y, rot, ck
-          pokey(v.page,v.id,v.tw,v.th,offset.x + 2 + x*25, offset.y + lph + 3 + y*25,v.ck,v.rot)
-        end
-        -- if s.page > 0 then
-        --   pokey(s.page, s.id, s.w, s.h, offset.x + 2 + x*25, offset.y + lph + 3 + y*25, s.ck)
-        -- else
-        --   sspr(s.id, offset.x + 2 + x*25, offset.y + lph + 3 + y*25, s.ck, s.scale, 0, 0, s.w, s.h)
-        -- end
-        if (current_tab and av_tech[i] and i == current_research) or (not current_tab and FINISHED_TECH[i]) then
+      local index = current_tab and AVAILABLE_TECH[i] or not current_tab and F_TECH[i]
+      -- if F_TECH[i] then
+      --   trace('found FINISHED_TECH - ' .. tostring(F_TECH[i]))
+      -- end
+      if index then
+        draw_research_icon(index, 2+x*25, lph+3+y*25)
+        if current_tab and AVAILABLE_TECH[i] and i == current_research then
           ui.highlight(x*25, lph + y*25 + 2, 24, 24, true, 3, 4)
         end
       end
@@ -902,14 +892,12 @@ function draw_research_screen()
   --check available research hover
   local slot = get_hovered_slot(cursor.x, cursor.y, 1, 59, 25, 3, 4)
   if slot then
-    --rectb(slot.x, slot.y, 26, 26, 4)
+    local index = current_tab and AVAILABLE_TECH[slot.index] or F_TECH[slot.index]
     ui.highlight(slot.x - 1, slot.y, 24, 24, false, 3, 4)
-    if current_tab and not av_tech[slot.index] or not current_tab and not f_tech[slot.index] then return end
-    if (current_tab and av_tech[slot.index]) or (not current_tab and f_tech[slot.index]) then
-      draw_tech_widget(cursor.x + 5, cursor.y + 5, (current_tab and av_tech[slot.index]) or (not current_tab and f_tech[slot.index]))
-    end
+    if not index then return end
+    draw_tech_widget(cursor.x + 5, cursor.y + 5, index)
     if current_tab and cursor.l and not cursor.ll then
-      if current_tab and av_tech[slot.index] or not current_tab and f_tech[slot.index] then
+      if index then
         selected_research = slot.index
       else
         selected_research = false
@@ -927,21 +915,17 @@ function draw_research_screen()
   slot = get_hovered_slot(cursor.x, cursor.y, 107, 8, 17, 1, 7)
   if slot then
     ui.highlight(slot.x-1, slot.y, 16, 16, false, 3, 4)
-    --rectb(slot.x, slot.y, 18, 18, 4)
   end
   if selected_research then
-    slot = get_hovered_slot(cursor.x, cursor.y, 34, 39, 9, 1, #TECH[av_tech[selected_research]].item_unlocks)
+    slot = get_hovered_slot(cursor.x, cursor.y, 34, 39, 9, 1, #TECH[AVAILABLE_TECH[selected_research]].item_unlocks)
     if slot then
       ui.highlight(slot.x-1, slot.y, 8, 8, false, 3, 4)
-      --rectb(slot.x, slot.y, 10, 10, 4)
-      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[av_tech[selected_research]].item_unlocks[slot.index])
+      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[AVAILABLE_TECH[selected_research]].item_unlocks[slot.index])
     end
-    --draw_item_stack(48 + (k-1)*8, 19, {id = v.id, count = 1})
-    slot = get_hovered_slot(cursor.x, cursor.y, 29, 28, 8, 1, #TECH[av_tech[selected_research]].science_packs)
+    slot = get_hovered_slot(cursor.x, cursor.y, 29, 28, 8, 1, #TECH[AVAILABLE_TECH[selected_research]].science_packs)
     if slot then
-      --rectb(slot.x, slot.y-1, 10, 10, 4)
       ui.highlight(slot.x-1, slot.y-1, 8, 8, false, 3, 4)
-      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[av_tech[selected_research]].science_packs[slot.index].id)
+      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[AVAILABLE_TECH[selected_research]].science_packs[slot.index].id)
     end
   end
 end
@@ -960,7 +944,27 @@ function update_research_progress()
       for k, v in ipairs(tech.tech_unlocks) do
         table.insert(AVAILABLE_TECH, v)
       end
-      FINISHED_TECH[AVAILABLE_TECH[current_research]] = table.remove(AVAILABLE_TECH, current_research)
+      local tid = AVAILABLE_TECH[current_research]
+      FINISHED_TECH[AVAILABLE_TECH[current_research]] = true
+      table.remove(AVAILABLE_TECH, current_research)
+      trace('tid: ' .. tid)
+      for k, v in ipairs(TECH) do
+        for j, u in ipairs(v.required_tech) do
+          if tid == u then
+            local n = 0
+            for i, m in ipairs(v.required_tech) do
+              if FINISHED_TECH[m] then
+                n = n + 1
+              end
+            end
+            if n == #v.required_tech then
+              trace('tech requirements met! adding : ' .. TECH[k].name)
+              table.insert(AVAILABLE_TECH, k)
+              break
+            end
+          end
+        end
+      end
       current_research = false
       selected_research = false
     end

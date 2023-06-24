@@ -47,6 +47,7 @@ place_item = {
         sound('place_belt')
       elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= rot then
         ENTS[k]:rotate(rot)
+        ENTS[k]:update_neighbors()
         sound('rotate')
       end
     end
@@ -331,9 +332,14 @@ remove_item = {
     if ENTS[k] then
       --return underground items if any
       --remove hidden belts, since we removed the head
-      if ENTS[ENTS[k].other_key] then ENTS[ENTS[k].other_key] = nil end
-      if ENTS[k].type == 'underground_belt_exit' then ENTS[ENTS[k].exit_key] = nil end
-      ENTS[k] = nil
+      --if ENTS[ENTS[k].other_key] then ENTS[ENTS[k].other_key] = nil end
+      if ENTS[k].type == 'underground_belt_exit' then
+        ENTS[ENTS[k].other_key] = nil
+        ENTS[k] = nil
+      else
+        ENTS[ENTS[k].exit_key] = nil
+        ENTS[k] = nil
+      end
       sound('delete')
     end
   end,

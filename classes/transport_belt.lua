@@ -535,7 +535,7 @@ function Belt.draw(self)
   --trace('Drawing belt: ' .. self.pos.x .. '-' .. self.pos.y)
   --trace('BELT DRAWN: ' .. tostring(self.belt_drawn))
   --trace('ITEMS DRAWN: ' .. tostring(self.drawn))
-  if self.belt_drawn == false then
+  if not self.belt_drawn then
     self.belt_drawn = true
     if ENTS[self.output_key] then
       local key = self.output_key
@@ -554,8 +554,12 @@ end
 
 function Belt.draw_items(self)
   --if self.drawn == true then return end
-  if self.drawn == false then
+  if not self.drawn then
     self.drawn = true
+    if ENTS[self.output_key] and ENTS[self.output_key].type == 'underground_belt' then
+      ENTS[self.output_key]:draw()
+      ENTS[self.output_key]:draw_items()
+    end
     if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and ENTS[self.output_key].drawn == false then ENTS[self.output_key]:draw_items() end
     if ENTS[self.output_key] and 
     (ENTS[self.output_key].type == 'splitter' or 

@@ -184,13 +184,13 @@ function  TileManager:set_tile(x, y, tile_id)
   local tile = self.tiles[y][x]
   tile_id = tile_id or biomes[tile.biome].tile_id_offset
   if tile.is_land and not tile.ore and not tile.is_border then
-    tile.sprite_id = tile_id
-    tile.is_tree = false
+    self.tiles[y][x].sprite_id = tile_id
+    self.tiles[y][x].is_tree = false
   end
   if tile.ore then
-    tile.ore = false
-    tile.is_tree = false
-    tile.sprite_id = biomes[tile.biome].tile_id_offset
+    self.tiles[y][x].ore = false
+    self.tiles[y][x].is_tree = false
+    self.tiles[y][x].sprite_id = biomes[tile.biome].tile_id_offset
   end
 end
 

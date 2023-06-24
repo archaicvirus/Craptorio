@@ -48,30 +48,38 @@ function inventory:draw()
       for j = 1, INVENTORY_COLS do
         local index = ((i-1)*INVENTORY_COLS) + j
         local x, y = self.x + self.grid_x + ((j - 1) * (INVENTORY_SLOT_SIZE + 1)), self.y + self.grid_y + ((i-1) * (INVENTORY_SLOT_SIZE + 1))
-        --pix(x,y,2)
         if self.slots[index] and self.slots[index].item_id ~= 0 then
-          --trace('drawing item ')
-          draw_item_stack(x, y, {id = self.slots[index].item_id, count = self.slots[index].count})
+          local item = ITEMS[self.slots[index].item_id]
+          sspr(item.sprite_id, x, y, item.color_key)
+          --draw_item_stack(x, y, {id = self.slots[index].item_id, count = self.slots[index].count})
         end
-          -- local x, y = (self.x + 2) + ((i - 1) * (INVENTORY_SLOT_SIZE + 1)), 136 - 2 - (INVENTORY_SLOT_SIZE + 6)
-        -- if self.slots[i + INV_HOTBAR_OFFSET].item_id ~= 0 then
-        --   sspr(ITEMS[self.slots[i + INV_HOTBAR_OFFSET].item_id].sprite_id, x, y + 2, ITEMS[self.slots[i + INV_HOTBAR_OFFSET].item_id].color_key)
-        --   --draw_item_stack(x, y, {id = self.slots[i + INV_HOTBAR_OFFSET].item_id, count = self.slots[i + INV_HOTBAR_OFFSET].count})
-        -- end
+      end
+    end
+    for i = 1, INVENTORY_ROWS do
+      for j = 1, INVENTORY_COLS do
+        local index = ((i-1)*INVENTORY_COLS) + j
+        local x, y = self.x + self.grid_x + ((j - 1) * (INVENTORY_SLOT_SIZE + 1)), self.y + self.grid_y + ((i-1) * (INVENTORY_SLOT_SIZE + 1))
+        if self.slots[index] and self.slots[index].item_id ~= 0 then
+          local item = ITEMS[self.slots[index].item_id]
+          local count = self.slots[index].count < 100 and self.slots[index].count or floor(self.slots[index].count/100) .. 'H'
+          --sspr(item.sprite_id, x, y, item.color_key)
+          prints(count, x + 2, y + 4, 0, 4, {x = 1, y = 1})
+          --draw_item_stack(x, y, {id = self.slots[index].item_id, count = self.slots[index].count})
+        end
       end
     end
     if slot then
       ui.highlight(slot.x - 2, slot.y - 1, 8, 8, false, 3, 4)
-      --sspr(CURSOR_HIGHLIGHT, slot.x - 1, slot.y - 1, 0, 1, 0, 0, 2, 2)
     end
-    pal({5,4,6,3})
-    local offset = floor(player.anim_frame/4)
-    local x, y = hx + ((self.active_slot - 1) * (INVENTORY_SLOT_SIZE+1)), hy + offset - 1
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, y, {0,1,2})
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, y, {0,1,2}, 1, 1, 0)
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, hy + 3 - offset, {0,1,2}, 1, 3, 0)
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, hy + 3 - offset, {0,1,2}, 1, 2, 0)
-    pal()
+    -- pal({5,4,6,3})
+    -- local offset = floor(player.anim_frame/4)
+     local x, y = hx + ((self.active_slot - 1) * (INVENTORY_SLOT_SIZE+1)), hy + offset - 1
+     ui.highlight(x, y, 8, 8, true, 3, 4)
+    -- sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, y, {0,1,2})
+    -- sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, y, {0,1,2}, 1, 1, 0)
+    -- sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 4 - offset, hy + 3 - offset, {0,1,2}, 1, 3, 0)
+    -- sspr(CURSOR_HIGHLIGHT_CORNER_S, x + 0 + offset, hy + 3 - offset, {0,1,2}, 1, 2, 0)
+    -- pal()
     if cursor.type == 'item' and cursor.item_stack and cursor.item_stack.id ~= 0 and self:is_hovered(cursor.x, cursor.y) then
       draw_item_stack(cursor.x + 3, cursor.y + 3, cursor.item_stack)
     end
@@ -132,36 +140,69 @@ function inventory:update()
 
 end
 
-function inventory:add_item(item)
-
+function inventory:add_item(stack)
+  --1st pass, check for same-item
+  for k, v in ipairs(self.slots) do
+    local item = ITEMS[v.item_id]
+    if stack.count > 0 and v.item_id == stack.id then
+      if v.count + stack.count <= item.stack_size then
+        --deposit stack to existing stack
+        v.count = v.count + stack.count
+        return true
+      elseif v.count < item.stack_size then
+        --deposit partial stack
+        local diff = item.stack_size - v.count
+        local remaining_count = stack.count - diff
+        v.count =  v.count + diff
+        stack.count = remaining_count
+      end
+    end
+  end
+  --2nd pass, look for empty slot to deposit remaining (or possibly full) stack
+  for k, v in ipairs(self.slots) do
+    local item = ITEMS[v.item_id]
+    if stack.count > 0 and v.item_id == 0 then
+      v.item_id = stack.id
+      v.count = stack.count
+      return true
+    end
+  end
+  if stack.count > 0 then
+    return false, stack
+  end
+  return false
 end
 
 function inventory:remove_item(slot)
-
+  local stack = {id = self.slots[slot].item_id, count = self.slots[slot].count}
+  self.slots[slot].item_id = 0
+  self.slots[slot].count = 0
+  return stack
 end
 
-function inventory:slot_clicked(index)
-  if cursor.type == 'item' and not cursor.ll then
+function inventory:slot_clicked(index, button)
+  button = button or cursor.ll
+  if cursor.type == 'item' and not button then
     if self.slots[index].item_id == 0 then
       trace('depositing to slot: ' .. index)
       --deposit
       self.slots[index].item_id = cursor.item_stack.id
       self.slots[index].count = cursor.item_stack.count
-      cursor.item_stack = {id = 0, count = 0}
+      cursor.item_stack = {id = 0, count = 0, slot = 0}
       cursor.type = 'pointer'
     else
       --swap stacks
       local inv_item = {id = self.slots[index].item_id, count = self.slots[index].count}
       self.slots[index].item_id = cursor.item_stack.id
       self.slots[index].count = cursor.item_stack.count
-      cursor.item_stack = {id = inv_item.id, count = inv_item.count}
+      cursor.item_stack = {id = inv_item.id, count = inv_item.count, slot = index}
       cursor.type = 'item'
       cursor.item = ITEMS[inv_item.id].name
     end
-  elseif cursor.type == 'pointer' and not cursor.ll then
+  elseif cursor.type == 'pointer' and not button then
     local id, count = self.slots[index].item_id, self.slots[index].count
     if id ~= 0 then
-      cursor.item_stack = {id = id, count = count}
+      cursor.item_stack = {id = id, count = count, slot = index}
       cursor.type = 'item'
       cursor.item = ITEMS[id].name
       self.slots[index].item_id = 0

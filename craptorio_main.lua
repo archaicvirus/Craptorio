@@ -140,7 +140,7 @@ show_mini_map = false
 show_tile_widget = false
 debug = false
 alt_mode = false
-show_tech = false
+show_tech = true
 --water effect defs
 local num_colors = 3
 local start_color = 8
@@ -438,10 +438,11 @@ function clamp(val, min, max)
   return math.max(min, math.min(val, max))
 end
 
-function prints(text, x, y, bg, fg)
+function prints(text, x, y, bg, fg, shadow_offset)
+  shadow_offset = shadow_offset or {x = 1, y = 0}
   bg, fg = bg or 0, fg or 4
-  print(text, x - 1, y, bg, false, 1, true)
-  print(text, x    , y, fg, false, 1, true)
+  print(text, x + shadow_offset.x, y + shadow_offset.y, bg, false, 1, true)
+  print(text, x, y, fg, false, 1, true)
 end
 
 function lerp(a,b,mu)
@@ -578,7 +579,7 @@ function set_active_slot(slot)
   if id ~= 0 then
     --trace('setting item to: ' .. ITEMS[id].name)
     cursor.item = ITEMS[id].name
-    cursor.item_stack = {id = id, count = inv.slots[slot + INV_HOTBAR_OFFSET].count}
+    cursor.item_stack = {id = id, count = inv.slots[slot + INV_HOTBAR_OFFSET].count, slot = slot + INV_HOTBAR_OFFSET}
     cursor.type = 'item'
   else
     cursor.item = false
@@ -728,14 +729,14 @@ function draw_cursor()
       if result then
         local sx, sy = world_to_screen(ENTS[other_key].x, ENTS[other_key].y)
         ui.highlight(sx - 2, sy - 1, 7, 7, false, 3, 4)
-        sspr(UBELT_OUT + UBELT_TICK, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, UBELT_ROT_MAP[cursor.rot].out_flip, cursor.rot)
+        sspr(UBELT_OUT, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, UBELT_ROT_MAP[cursor.rot].out_flip, cursor.rot)
         --sspr(CURSOR_HIGHLIGHT, sx - 1, sy - 1, 0, 1, 0, 0, 2, 2)
         for i, cell in ipairs(cells) do
           ui.highlight(cell.x - 2, cell.y - 1, 7, 7, false, 3, 4)
           --sspr(CURSOR_HIGHLIGHT, cell.x - 1, cell.y - 1, 0, 1, 0, 0, 2, 2)
         end
       else
-        sspr(UBELT_IN + UBELT_TICK, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, flip, cursor.rot)
+        sspr(UBELT_IN, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, flip, cursor.rot)
       end
       ui.highlight(cursor.tx - 2, cursor.ty - 1, 7, 7, false, 3, 4)
       --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
@@ -811,14 +812,34 @@ function rotate_cursor(dir)
 end
 
 function remove_tile(x, y)
+  local rocks = {
+    ['2'] = {5,20},
+    ['7'] = {5,10},
+    ['8'] = {1,3},
+    ['24'] = {1,3},
+    ['26'] = {4,15},
+    ['40'] = {4,15},
+    ['42'] = {10,30},
+  }
   local tile, wx, wy = get_world_cell(x, y)
   local k = get_ent(x, y)
   if k and cursor.tx == cursor.ltx and cursor.ty == cursor.lty then
     remove_item[ENTS[k].type](x, y)
     return
   end
-  if tile.is_tree and cursor.held_right and cursor.tx == cursor.ltx and cursor.ty == cursor.lty then
-    TileMan:set_tile(wx, wy)
+  if cursor.held_right and cursor.tx == cursor.ltx and cursor.ty == cursor.lty then
+    if tile.is_tree then
+      local result, stack = inv:add_item({id = 30, count = floor(math.random(3, 10))})
+      TileMan:set_tile(wx, wy)
+    end
+    local result = rocks[tostring(tile.sprite_id)]
+    if result then
+      local _, stack = inv:add_item({id = 5, count = floor(math.random(result[1], result[2]))})
+      TileMan:set_tile(wx, wy)
+    end
+    if stack then
+      --TODO: deposit remaing stack to ground
+    end
     sound('delete')
   end
 end
@@ -911,6 +932,8 @@ function dispatch_keypress()
   if key(64) and not keyp(18) and alt_mode then show_tile_widget = true else show_tile_widget = false end
   --ALT
   if keyp(65) then alt_mode = not alt_mode end
+  --E
+  if keyp(5) then inv:add_item({id = 1, count = 10}) end
   --T
   if keyp(20) then
     show_tech = not show_tech
@@ -1021,8 +1044,21 @@ function dispatch_input()
     ui.highlight(sx - 9 + tile.offset.x, sy - 27 + tile.offset.y, 24, 32, false, c1, c2)
     ui.highlight(cursor.tx - 2 + tile.offset.x, cursor.ty - 1 + tile.offset.y, 8, 8, false, 2, 2)
   end
+  local rocks = {
+    ['2'] = {5,20},
+    ['7'] = {5,10},
+    ['8'] = {1,3},
+    ['24'] = {1,3},
+    ['26'] = {4,15},
+    ['40'] = {4,15},
+    ['42'] = {10,30},
+  }
+  local rock = rocks[tostring(tile.sprite_id)]
+  if rock then
+    ui.highlight(cursor.tx - 2, cursor.ty - 1, 8, 8, false, 2, 2)
+  end
   local k = get_ent(cursor.x, cursor.y)
-  if (ENTS[k] or tile.is_tree) and cursor.held_right then
+  if (ENTS[k] or tile.is_tree or rock) and cursor.held_right then
     local prog = clamp((cursor.hold_time/60) * 15, 0, 9)
     line(cursor.x - 4, cursor.y + 7, cursor.x + 5, cursor.y + 7, 0)
     line(cursor.x - 4, cursor.y + 7, cursor.x - 4 + prog, cursor.y + 7, 2)
@@ -1093,7 +1129,10 @@ function draw_ents()
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['underground_belt']) do
-    if ENTS[k] then ENTS[k]:draw() ENTS[k]:draw_items() end
+    if ENTS[k] then ENTS[k]:draw() end
+  end
+  for i, k in pairs(vis_ents['underground_belt']) do
+    if ENTS[k] then ENTS[k]:draw_items() end
   end
   for i, k in pairs(vis_ents['splitter']) do
     if ENTS[k] then ENTS[k]:draw() end
@@ -1264,15 +1303,17 @@ function TIC()
 
   local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
   local sx, sy = get_screen_cell(cursor.x, cursor.y)
-  local k = get_key(cursor.x, cursor.y)
+  local k
   info[10] = 'Frame Time: ' .. floor(time() - start) .. 'ms'
   info[11] = 'Seed: ' .. seed
   info[12] = 'hold time: ' .. cursor.hold_time
-  local k, u = get_ent(cursor.x, cursor.y)
-  if k and alt_mode and ENTS[k] then
-    if u then
-      ENTS[k]:draw_hover_widget(ENTS[k].other_key)
+  local _, wx, wy  = get_world_cell(cursor.x, cursor.y)
+  local k = wx .. '-' .. wy
+  if ENTS[k] and alt_mode then
+    if ENTS[k].type == 'underground_belt_exit' then
+      ENTS[ENTS[k].other_key]:draw_hover_widget(k)
     else
+      k = get_ent(cursor.x, cursor.y)
       ENTS[k]:draw_hover_widget()
     end
   end
@@ -1398,6 +1439,9 @@ end
 -- <TILES1>
 -- 000:0000000000000000000000000000000c00000ccb000cc89b0cc8989bc898989b
 -- 001:00000cc0000cc89c0cc8989cc898989b9898989b9898989b9898989b9898989b
+-- 003:edde1111d00d1111edde11111ee111111dd111111dd1111b1dd111be1dd111b0
+-- 004:eddedddedddedddedd111111ee111111dd111111bbb1111100eb1111b00bdbbd
+-- 005:dde11111ddd111111dd111111ee111111dd111111dd111111dd111111dd11111
 -- 010:cdeeeeeed000dddde00c32eee00d232de00c323cd00d23eee000eccce000c000
 -- 011:eeeeeedcdddd000deeeee00ecdcdc00edcdcd00eeeeee00dccce000e000c000e
 -- 012:11111111111111111111111111111f441111143f111114f31111114411ff1144
@@ -1405,30 +1449,27 @@ end
 -- 014:111111111111111144f111111111111111111111111111111111111144111111
 -- 016:c898989bc898989bc898989bc898989bc898989cc8989cc0c89cc0000cc00000
 -- 017:9898989b98989bb0989bb0009bb0d000ce00d0000e00d00000e0d000000dd000
+-- 019:1dd111b01dd111be1dd1111b1dd111111dd111ce1dd11cbb1dd1cbbb1dd1cbeb
+-- 020:000bdbbb00eb11bbbbb111bbdd1111bbddeccebbeebbbbeebbbbbbbbdddddddd
+-- 021:1dd111111dd111111ee111111dd11111ebbc1111bbbbc111bbbbbc11ddbebc11
 -- 026:fddddddde0000000ddd00000ff4c0000f4feceecff4c0000ddd00000cdeeeeee
 -- 027:ddddddde0000000e0000000d0000000eceecceed0000000e0000000deeeeeedc
 -- 028:1f44f1441f444f4411f44433111f4f44111f4f44111f44ff1111f44411111f4d
 -- 029:1f44f1dff444fdee444fdeeef4fdffe4f4dffffe4deeffffdeeeefffffe4440f
 -- 030:fdf11111ffdf1111effdf111440fdf11e40ffdf1e40efdf1feeedf11ffedf111
--- 032:11111111111111111111bb11111b9b1111b89b111b9a9b1bb8989bc8baaaabca
--- 033:111111111111111111bb11111b9b111bb89b11b89a9b1b9a989bc898aaabcaaa
--- 034:1111111111111111bb1111bb9b111b9b9b11b89b9b1b9a9b9bc8989babcaaaab
+-- 035:1ee1cbbd1dd1cbbd1ddecbbd1dddcbbd1eddcbeb11111bbb111111bb11111111
+-- 036:d000000000b0000000000000d0000000ddddddddbbbbbbbbbbbbbbbb11111111
+-- 037:0ddbbc1100dbbc1100dbbc110ddbbc11ddbebc11bbbbb111bbbb111111111111
 -- 044:11111f4d11111144111111ff1111111111111111111111111111111111111111
 -- 045:fffee40fdfffe40efdfffeee1fdfffed11fdffdf111fddf11111ff1111111111
 -- 046:ffdf1111fdf11111d1111111f111111111111111111111111111111111111111
--- 048:b8989bc8baaaabcab898bbc8baababcab8b89bc8bbaaabcbb8989bc8baaaabca
--- 049:989bc898aaabcaaa98bbc898ababcaabb89bc8b8aaabcbaa989bc898aaabcaaa
--- 050:9bc8989babcaaaabbbc898bbabcaabab9bc8b89babcbaaab9bc8989babcaaaab
--- 064:b8989bc8baaaabcab8989bc8baaabfbab89b1eb8babfeebabb1111bb11111111
--- 065:989bc898aaabcaaa989bc898aabfbaaa9b1eb89bbfeebabf1111bb1111111111
--- 066:9bc8989babcaaaab9bc8989bbfbaaabf1eb89b1eeebabfee11bb111111111111
 -- 080:00000000000a999900a99fff0a99f9990a9f9fff0a9f9fef0a9f9fff0a9f9999
 -- 081:0000000099999999ffffffff9999999999fff99f99fef99f99fff99f99999999
 -- 082:0000000099999000fff99900999f9990ff99f990ef99f990ff99f9909999f990
 -- 096:0a9f9fff0aafffee0aafafff0aafaaae0aafaaae0aafaaae0aafaaae0aafaaae
 -- 097:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 098:fff9f990eefffa90fffafa90eaaafa90eaaafa90eaaafa90eaaafa90eaaafa90
--- 099:099999909e9e9e9999ffff999feeeef99bffffb99bbeebb99bbeebb909999990
+-- 099:0aaaaaa0ae9e9e9aa9ffff9aafeeeefaaaffffaaaaaeeaaa9aaeeaa909999990
 -- 112:0aafaaae0aafaaae0aafaaae0aaafaae0aaaaffe009aaaaa0009999900000000
 -- 113:ffffffffffffffffffffffffffffffffeeeeeeeeaaaaaaaa9999999900000000
 -- 114:eaaafa90eaaafa90eaaafa90eaafaa90effaaa90aaaaa9009999900000000000
@@ -1438,7 +1479,7 @@ end
 -- 144:034f4fff033fffee033f3fff033f333e033f333e033f333e033f333e033f333e
 -- 145:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 146:fff4f440eefff340fff3f340e333f340e333f340e333f340e333f340e333f340
--- 147:044444404e4e4e4444ffff444feeeef44bffffb44bbeebb44bbeebb404444440
+-- 147:033333303e4e4e4334ffff433feeeef333ffff33333ee333433ee33404444440
 -- 160:033f333e033f333e033f333e0333f33e03333ffe004333330004444400000000
 -- 161:ffffffffffffffffffffffffffffffffeeeeeeee333333334444444400000000
 -- 162:e333f340e333f340e333f340e33f3340eff33340333334004444400000000000
@@ -1448,7 +1489,7 @@ end
 -- 192:0bcfcfff0bbfffee0bbfbfff0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe
 -- 193:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 194:fffcfcc0eefffbc0fffbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0
--- 195:0cccccc0ceceececccffffcccfeeeefccbffffbccbbeebbccbbeebbc0cccccc0
+-- 195:0bbbbbb0becececbbcffffcbbfeeeefbbbffffbbbbbeebbbcbbeebbc0cccccc0
 -- 208:0bbfbbbe0bbfbbbe0bbfbbbe0bbbfbbe0bbbbffe00cbbbbb000ccccc00000000
 -- 209:ffffffffffffffffffffffffffffffffeeeeeeeebbbbbbbbcccccccc00000000
 -- 210:ebbbfbc0ebbbfbc0ebbbfbc0ebbfbbc0effbbbc0bbbbbc00ccccc00000000000
@@ -1471,6 +1512,8 @@ end
 -- 009:ffffffff444fffff0044ffffff044434ff0444340044ffff444fffffffffffff
 -- 010:ff04fffffff04fff0ff04fff40004ffff44444ffffff444ffffff444ffffff44
 -- 011:f40ff04ff40ff04fff4004fffff44fffff1441fff114411f11133111c1f44f1c
+-- 012:000000000600500000506060006b65000b6766b00bc77cb00bccccb000bbbb00
+-- 013:b6b0000067600000b6b000000000000000000000000000000000000000000000
 -- 014:00000000000f000000fc00000fcffff00cccccc000cf0000000c000000000000
 -- 015:00dddd00020000d0d020000dd002000dd000200dd000020d0d00002000dddd00
 -- 016:3000000300000000000000000000000000000000000000000000000030000003
@@ -1478,6 +1521,9 @@ end
 -- 018:ddccddcc0000000c0000000d0000000d000000fcddddddec000000fd0000000d
 -- 019:000f0000000d00000defed0000def000000d0000000000000000000000000000
 -- 020:deecceedeffffffeecccccceeffffffeeffffffeeffffffeefff404edeee040d
+-- 021:00fff00000fdcf0000fe43f000f43ddf00f43ccf00fc43df00efcdcf00fffff0
+-- 022:000fff0000fcdf000fe43f00fd43df00fc43cf00fdc43f00fcdcfe000fffff00
+-- 023:e4f000004df00000d4f000000000000000000000000000000000000000000000
 -- 024:6560000034500000654000000000000000000000000000000000000000000000
 -- 025:0300000034300000030000000000000000000000000000000000000000000000
 -- 026:0cd000000cc000000dc000000000000000000000000000000000000000000000
@@ -1520,7 +1566,7 @@ end
 -- 072:0bcfcfff0bbfff770bbfbfff0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe
 -- 073:ffffffff77777777ffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 074:fffcfcc077fffbc0fffbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0
--- 075:0cccccc0ceceececccffffcccf7777fccbffffbccbbeebbccbbeebbc0cccccc0
+-- 075:0bbbbbb0becececbbcffffcbbfeeeefbbbffffbbbbbeebbbcbbeebbc0cccccc0
 -- 077:1f44f1441f444f4411f44433111f4f44111f4f44111f44ff1111f44411111f4d
 -- 078:1f44f1dff444fdee444fdeeef4fdffe4f4dffffe4deeffffdeeeefffffe4440f
 -- 079:fdf11111ffdf1111effdf111440fdf11e40ffdf1e40efdf1feeedf11ffedf111
@@ -1555,10 +1601,11 @@ end
 -- 112:ccffffffcdf00000ff000000f0000000f0000000f0000000f0000000f0000000
 -- 113:fcccccff00cdc000000e0000000c0000000e0000000c0000000e0000000c0000
 -- 114:ffffffcc00000fdc000000ff0000000f0000000f0000000f0000000f0000000f
--- 117:000fffff00fcdfee0fe43fcdfd43dfd4fc43cfd4fdc43fcdfcdcfeee0fffffff
--- 118:000fffff00fcdfee0fe43fd4fd43df4ffc43cf4ffdc43fd4fcdcfeee0fffffff
--- 119:000fffff00fcdfee0fe43f4ffd43dffcfc43cffcfdc43f4ffcdcfeee0fffffff
--- 120:000fffff00fcdfee0fe43ffcfd43dfcdfc43cfcdfdc43ffcfcdcfeee0fffffff
+-- 115:111111bb11111bbd1111bbbb1fe1bbcb1dddbc0c1fe1bc0c1fe1bbcb1fe1bbbb
+-- 116:bbbbbbb1bdbdbdbbbbbbbbbbbbcbbbcbbc0cbc0cbc0cbc0cbbcbbbcbbbbbbbbb
+-- 117:111111111111bb11b11cccc1b1bbccbbbdbe000bb1c0000cbdb0000bb1bbccbb
+-- 118:111bb11111cccc111dbccbd11be000b11c0000c11b0000b111bccb111dddddd1
+-- 119:111111b1f1111b0bf1bbb1befbc00b1feb000b1eeb000bef11bbb1111deded11
 -- 122:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
 -- 123:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
 -- 124:000000000000000000000000000ff00000ffff0000ffff00000ff00000000000
@@ -1567,6 +1614,10 @@ end
 -- 128:f0000000f0000000f00000d0f0000de0f000defdf0000ff0f00000e0f0000000
 -- 129:000e0000000c0000000e0000000c0000ddcedddd000c0000000e0000000c0000
 -- 130:0000000f0000000fe000000fff00000ffed0000fed00000fd000000f0000000f
+-- 131:1fe11bbd1fe1bb001fe1b00c1fe1b0001dddb0001fe1b0001feebb001fffbbbd
+-- 132:bdbdbdbb0000000b000000000000000000000000000000000000000bbdbdbdbb
+-- 133:111cccc1b111bb11b111ef11b111ef11b1eeef11bdefff11b1ef1111bdef1111
+-- 134:bcb11111c0c11111bcb111111111111111111111111111111111111111111111
 -- 136:000000000000000000000000000cccc000cfefed00cfefbc00eddbff00eeebff
 -- 137:000000000000000000ee00000effe0000feef0000ffff000ceffeeb4ceeeebb3
 -- 138:000000000000000000000000000000000000000000000000dddd0000dddded00
@@ -1577,6 +1628,9 @@ end
 -- 144:f0000000f0000000f0000000f0000000f0000000ff000000cdf00000ccffffff
 -- 145:000e0000000c0000000e000000ccc00000d4d0000dfffd000d4f4d00fdf4fdff
 -- 146:0000000f0000000f0000000f0000000f0000000f000000ff00000fdcffffffcc
+-- 147:11111bbb111111bb111111bd11eccccc1ecccced11eccccc111eeeee11111111
+-- 148:bbbbbbbbbbbbbbb1ddddddb1ccccccccededdeddcccccccceeeeeeee11111111
+-- 149:11ee111111dd11111eeee111ccccce11eecccce1ccccce11eeeee11111111111
 -- 150:0000000000c423320c43cdcc0ccccdcd0dc432330d4221220c31cccc0c21deee
 -- 151:00000d003000d0d03323edf0feedeef02332eff01221eef0eddceffddddceefd
 -- 152:00feeccc00fffcdd00999cac09889aac09cccc9909ddd99909ceeeee08ceeeee
@@ -1587,7 +1641,6 @@ end
 -- 158:888d88df989d8deedd8dceef98dddffe99ddffff9cdeeeffcd8e88ffa89e88ff
 -- 160:cec00000efe00000cec000000000000000000000000000000000000000000000
 -- 161:4310000000400000431000000000000000000000000000000000000000000000
--- 162:e4f000004df00000d4f000000000000000000000000000000000000000000000
 -- 163:000ff00000cffe0000cdde0004deed200433232044222222432ff212432ff212
 -- 164:ccc000dec33233dee2cdccdedefdccbceeffeefddefe34eddefdddd00dd00000
 -- 165:0ccc00000dddedd099bbeb4c99daec3d89a9edde88eecce0c8ec33ce0cefccfe
@@ -1605,10 +1658,6 @@ end
 -- 179:fdffffffdbdfffffbfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
 -- 180:fbffffffbdbfffffdfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
 -- 181:22222fff20202fff22022fff20202fff22222fffffffffffffffffffffffffff
--- 182:fffff000eefdcf004ffe43f0fcf43ddffcf43ccf4ffc43dfeeefcdcffffffff0
--- 183:fffff000eefdcf00fcfe43f0cdf43ddfcdf43ccffcfc43dfeeefcdcffffffff0
--- 184:fffff000eefdcf00cdfe43f0d4f43ddfd4f43ccfcdfc43dfeeefcdcffffffff0
--- 185:fffff000eefdcf00d4fe43f04ff43ddf4ff43ccfd4fc43dfeeefcdcffffffff0
 -- 188:0200000032200000212000000000000000000000000000000000000000000000
 -- 189:0700000057700000767000000000000000000000000000000000000000000000
 -- 190:0f0000004ff00000f6e000000000000000000000000000000000000000000000
@@ -1643,6 +1692,8 @@ end
 -- 224:0b000000cbb00000bdb000000000000000000000000000000000000000000000
 -- 225:0400000054400000464000000000000000000000000000000000000000000000
 -- 226:1110111111000111110f011110e0001110000011100000111100011111111111
+-- 227:11eccd311ccedcc31ecdcc3b22dcc3dbe23c3ddbe2b3ddb1febcdb111fcbb111
+-- 228:cc31111123b11111ebc111111111111111111111111111111111111111111111
 -- 232:66666cff66666cf06666fcf06666fcff666cfcee666cfeee664cffff664ce000
 -- 233:ff0666660ff666660f006666fff06666ee0fe666eee0e666ffffe266000fe266
 -- 235:b8989bc8baaaabcab898bbc8baababcab8b89bc8bbaaabcbb8989bc8baaaabca
@@ -1707,10 +1758,11 @@ end
 -- 007:55556777777776655555666778877776
 -- 008:f00070c00600b00550dd000009a0cc00
 -- 009:44444456789aabb97a654dc831347213
+-- 012:67777777777777778888888888888999
 -- </WAVES>
 
 -- <SFX>
--- 000:02000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020002000200020030b000000000
+-- 000:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030b000000000
 -- 001:8000800080009000a000c000e000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000220000000000
 -- 002:090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900a00000000000
 -- 003:050005100520153025504560659085b095f0a5f0b5f0c5f0d5f0e5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0414000000000
