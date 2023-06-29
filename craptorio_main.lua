@@ -27,6 +27,7 @@ require('classes/TileManager')
 require('classes/crafting_definitions')
 require('classes/research_definitions')
 require('classes/solar_panel')
+require('classes/storage_chest')
 
 --math.randomseed(tstamp() * time())
 --seed = math.random(-1000000000, 1000000000)
@@ -77,6 +78,7 @@ cursor = {
   lm = false,
   r = false,
   lr = false,
+  prog = false,
   rot = 0,
   last_rotation = 0,
   hold_time = 0,
@@ -121,11 +123,12 @@ dummies = {
 opensies = {
   ['stone_furnace'] = true,
   ['assembly_machine'] = true,
-  ['research_lab'] = true
+  ['research_lab'] = true,
+  ['chest'] = true,
 }
 
 inv = make_inventory()
-inv.slots[1].item_id  = 9  inv.slots[1].count = 10
+inv.slots[1].item_id  = 35 inv.slots[1].count = 10
 inv.slots[57].item_id = 9  inv.slots[57].count = 10
 inv.slots[58].item_id = 10 inv.slots[58].count = 10
 inv.slots[59].item_id = 11 inv.slots[59].count = 10
@@ -140,7 +143,8 @@ show_mini_map = false
 show_tile_widget = false
 debug = false
 alt_mode = false
-show_tech = true
+show_tech = false
+show_count = false
 --water effect defs
 local num_colors = 3
 local start_color = 8
@@ -155,8 +159,37 @@ sounds = {
   ['place_belt']  = {id = 4, note = 'B-3', duration = 10, channel = 0, volume = 15, speed = 4},
   ['delete']      = {id = 2, note = 'C-3', duration =  4, channel = 0, volume = 15, speed = 5},
   ['rotate_r']    = {id = 3, note = 'E-5', duration = 10, channel = 0, volume = 15, speed = 3},
-  ['rotate_l']    = {id = 7, note = 'E-5', duration = 5, channel = 0, volume = 15, speed = 4},
+  ['rotate_l']    = {id = 7, note = 'E-5', duration =  5, channel = 0, volume = 15, speed = 4},
   ['move_cursor'] = {id = 0, note = 'C-4', duration =  4, channel = 0, volume = 15, speed = 5},
+  ['axe']         = {id = 9, note = 'F-4', duration = 20, channel = 0, volume = 15, speed = 5},
+}
+
+resources = {
+  ['2']  = {id = 5, min =  5, max = 20}, --rocks
+  ['7']  = {id = 5, min =  5, max = 10},
+  ['8']  = {id = 5, min =  1, max =  3},
+  ['24'] = {id = 5, min =  1, max =  3},
+  ['26'] = {id = 5, min =  4, max = 15},
+  ['40'] = {id = 5, min =  4, max = 15},
+  ['42'] = {id = 5, min =  4, max = 15},
+
+  ['3']  = {id = 34, min = 5, max = 12}, --fiber
+  ['4']  = {id = 34, min = 5, max = 12},
+  ['5']  = {id = 34, min = 5, max = 12},
+  ['6']  = {id = 34, min = 5, max = 12},
+  ['1']  = {id = 34, min = 5, max = 12},
+  ['17'] = {id = 34, min = 5, max = 12},
+  ['18'] = {id = 34, min = 5, max = 12},
+  ['19'] = {id = 34, min = 5, max = 12},
+  ['20'] = {id = 34, min = 5, max = 12},
+  ['22'] = {id = 34, min = 5, max = 12},
+  ['33'] = {id = 34, min = 5, max = 12},
+  ['34'] = {id = 34, min = 5, max = 12},
+  ['35'] = {id = 34, min = 5, max = 12},
+  ['36'] = {id = 34, min = 5, max = 12},
+  ['37'] = {id = 34, min = 5, max = 12},
+  ['39'] = {id = 34, min = 5, max = 12},
+
 }
 
 dust = {}
@@ -327,6 +360,7 @@ function get_visible_ents()
     --['underground_belt_exit'] = {},
     ['assembly_machine'] = {},
     ['research_lab'] = {},
+    ['chest'] = {},
   }
   for x = 1, 31 do
     for y = 1, 18 do
@@ -429,9 +463,13 @@ end
 
 function draw_item_stack(x, y, stack)
   --trace('stack count: ' .. stack.count .. ' Stack ID: ' .. stack.id)
+  x, y = clamp(x, 1, 232), clamp(y, 1, 127)
   sspr(ITEMS[stack.id].sprite_id, x, y, ITEMS[stack.id].color_key)
-  local sx, sy = stack.count < 10 and x + 5 or x + 3, y + 5
-  prints(stack.count, sx, sy)
+  if show_count then
+    local sx, sy = x + 2, y + 4
+    local count = stack.count < 100 and stack.count or floor(stack.count/100) .. 'H'
+    prints(count, sx, sy)
+  end
 end
 
 function clamp(val, min, max)
@@ -645,7 +683,7 @@ function draw_cursor()
   return
   end
 
-  if cursor.type == 'item' then
+  if cursor.type == 'item' and ITEMS[cursor.item_stack.id].type == 'placeable' then
     if cursor.item == 'transport_belt' then
       if cursor.drag then
         local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
@@ -744,7 +782,12 @@ function draw_cursor()
       sspr(CRAFTER_ID, cursor.tx, cursor.ty, ITEMS[19].color_key, 1, 0, 0, 3, 3)
     elseif cursor.item == 'research_lab' then
       sspr(LAB_ID, cursor.tx, cursor.ty, ITEMS[22].color_key, 1, 0, 0, 3, 3)
+    elseif cursor.item == 'chest' then
+      sspr(CHEST_ID, cursor.tx, cursor.ty, -1)
+      ui.highlight(cursor.tx-2, cursor.ty-1, 8, 8, false, 2, 2)
     end
+  elseif cursor.type == 'item' and ITEMS[cursor.item_stack.id].type ~= 'placeable' then
+    draw_item_stack(cursor.x + 5, cursor.y + 5, {id = cursor.item_stack.id, count = cursor.item_stack.count})
   end
   if cursor.type == 'pointer' then
     local k = get_key(cursor.x, cursor.y)
@@ -812,55 +855,87 @@ function rotate_cursor(dir)
 end
 
 function remove_tile(x, y)
-  local rocks = {
-    ['2'] = {5,20},
-    ['7'] = {5,10},
-    ['8'] = {1,3},
-    ['24'] = {1,3},
-    ['26'] = {4,15},
-    ['40'] = {4,15},
-    ['42'] = {10,30},
-  }
   local tile, wx, wy = get_world_cell(x, y)
   local k = get_ent(x, y)
   if k and cursor.tx == cursor.ltx and cursor.ty == cursor.lty then
+    --add item back to inventory
+    local stack = {id = ENTS[k].item_id, count = 1}
     remove_item[ENTS[k].type](x, y)
+    trace('adding item_id: ' .. tostring(stack.id) .. ' to inventory')
+    inv:add_item(stack)
     return
   end
   if cursor.held_right and cursor.tx == cursor.ltx and cursor.ty == cursor.lty then
+    local result = resources[tostring(tile.sprite_id)]
+    if result then
+      local deposit = {id = result.id, count = floor(math.random(result.min, result.max))}
+      inv:add_item(deposit)
+      trace('adding mined resource to inventory')
+      TileMan:set_tile(wx, wy)
+      sound('delete')
+    end
+
+
     if tile.is_tree then
+      --deposit wood to inventory
       local result, stack = inv:add_item({id = 30, count = floor(math.random(3, 10))})
       TileMan:set_tile(wx, wy)
+      sound('delete')
     end
-    local result = rocks[tostring(tile.sprite_id)]
-    if result then
-      local _, stack = inv:add_item({id = 5, count = floor(math.random(result[1], result[2]))})
-      TileMan:set_tile(wx, wy)
-    end
-    if stack then
-      --TODO: deposit remaing stack to ground
-    end
-    sound('delete')
+    -- local result = rocks[tostring(tile.sprite_id)]
+    -- if result then
+    --   --deposit stone ore to inventory
+    --   local _, stack = inv:add_item({id = 5, count = floor(math.random(result[1], result[2]))})
+    --   TileMan:set_tile(wx, wy)
+    -- end
+    -- if stack then
+    --   --TODO: deposit remaing stack to ground
+    -- end
   end
 end
 
 function pipette()
   if cursor.type == 'pointer' then
-    local k = get_key(cursor.x, cursor.y)
+    local k = get_ent(cursor.x, cursor.y)
     local ent = ENTS[k]
     if ent then
       if dummies[ent.type] then
         ent = ENTS[ent.other_key]
       end
-      cursor.type = 'item'
-      cursor.item = ent.type
-      cursor.item_stack = {id = ent.item_id, count = 5}
-      if ent.rot then
-        cursor.rot = ent.rot
+      for i = 57, #inv.slots do
+        if inv.slots[i].item_id == ENTS[k].item_id then
+          cursor.type = 'item'
+          cursor.item = ent.type
+          cursor.item_stack = {id = ent.item_id, count = inv.slots[i].count, slot = i}
+          if ent.rot then
+            cursor.rot = ent.rot
+          end
+          return
+        end
       end
-      return
+      for i = 1, #inv.slots - INVENTORY_COLS do
+        if inv.slots[i].item_id == ENTS[k].item_id then
+          cursor.type = 'item'
+          cursor.item = ent.type
+          cursor.item_stack = {id = ent.item_id, count = inv.slots[i].count, slot = i}
+          if ent.rot then
+            cursor.rot = ent.rot
+          end
+          return
+        end
+      end
+      -- cursor.type = 'item'
+      -- cursor.item = ent.type
+      -- cursor.item_stack = {id = ent.item_id, count = 5}
+      -- if ent.rot then
+      --   cursor.rot = ent.rot
+      -- end
+      -- return
     end
-  else
+  elseif cursor.type == 'item' then
+    if not cursor.item_stack.slot then
+      inv:add_item(cursor.item_stack)
+    end
     cursor.item = false
     cursor.item_stack = {id = 0, count = 0}
     cursor.type = 'pointer'
@@ -932,6 +1007,8 @@ function dispatch_keypress()
   if key(64) and not keyp(18) and alt_mode then show_tile_widget = true else show_tile_widget = false end
   --ALT
   if keyp(65) then alt_mode = not alt_mode end
+  --CTRL
+  if keyp(63) then show_count = not show_count end
   --E
   if keyp(5) then inv:add_item({id = 1, count = 10}) end
   --T
@@ -1000,15 +1077,15 @@ function dispatch_input()
     return
   end
   
-  if inv.vis and inv:is_hovered(cursor.x, cursor.y) then
+  if inv:is_hovered(cursor.x, cursor.y) then
     if cursor.l and not cursor.ll then
       inv:clicked(cursor.x, cursor.y)
     end
     return
   end
 
-    --check other visible widgets
   if cursor.type == 'item' and cursor.item_stack.id ~= 0 then
+    --check other visible widgets
     local item = ITEMS[cursor.item_stack.id]
     local count = cursor.item_stack.count
     --check for ents to deposit item stack
@@ -1023,12 +1100,50 @@ function dispatch_input()
       end
     else
     --if item is placeable, run callback for item type
+    --checking transport_belt's first (for drag-placement), then other items
       if cursor.l and cursor.item_stack.id == 9 then
         --trace('placing belt')
-        place_item[cursor.item](cursor.x, cursor.y)
+        local slot = cursor.item_stack.slot
+        local item_consumed = place_item[cursor.item](cursor.x, cursor.y)
+        if slot and item_consumed then
+          inv.slots[slot].count = inv.slots[slot].count - 1
+          cursor.item_stack = {id = cursor.item_stack.id, count = cursor.item_stack.count - 1, slot = cursor.item_stack.slot}
+        elseif item_consumed then
+          cursor.item_stack.count = cursor.item_stack.count - 1
+          if cursor.item_stack.count <= 0 then
+            cursor.item_stack = {id = 0, count = 0}
+            cursor.item = false
+            cursor.type = 'pointer'
+          end
+        end
+        if slot and inv.slots[slot].count <= 0 then
+          inv.slots[slot].item_id = 0
+          inv.slots[slot].count = 0
+          cursor.item = false
+          cursor.type = 'pointer'
+          cursor.item_stack = {id = 0, count = 0}
+        end
         return
-      elseif cursor.l and not cursor.ll then
-        place_item[cursor.item](cursor.x, cursor.y)
+      elseif cursor.l and not cursor.ll and ITEMS[cursor.item_stack.id].type == 'placeable' then
+        if place_item[cursor.item] and place_item[cursor.item](cursor.x, cursor.y) then
+          if cursor.item_stack.slot then
+            inv.slots[cursor.item_stack.slot].count = inv.slots[cursor.item_stack.slot].count - 1
+            cursor.item_stack.count = cursor.item_stack.count - 1
+            if inv.slots[cursor.item_stack.slot].count <= 0 then
+              inv.slots[cursor.item_stack.slot].item_id = 0
+              inv.slots[cursor.item_stack.slot].count = 0
+              cursor.item_stack = {id = 0, count = 0}
+              cursor.type = 'pointer'
+            else
+            end
+          else
+            cursor.item_stack.count = cursor.item_stack.count - 1
+            if cursor.item_stack.count <= 0 then 
+              cursor.item_stack = {id = 0, count = 0}
+              cursor.type = 'pointer'
+            end
+          end
+        end
         return
       elseif cursor.r then
         --remove_tile(cursor.x, cursor.y)
@@ -1036,35 +1151,40 @@ function dispatch_input()
       end
     end
   end
-  local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
-  if tile.is_tree then
-    local sx, sy = world_to_screen(wx, wy)
-    local c1, c2 = 3, 4
-    if tile.biome < 2 then c1, c2 = 2, 3 end
-    ui.highlight(sx - 9 + tile.offset.x, sy - 27 + tile.offset.y, 24, 32, false, c1, c2)
-    ui.highlight(cursor.tx - 2 + tile.offset.x, cursor.ty - 1 + tile.offset.y, 8, 8, false, 2, 2)
+
+  if cursor.held_right then
+    local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
+    local result = resources[tostring(tile.sprite_id)]
+    local k = get_ent(cursor.x, cursor.y)
+    if not result and not tile.is_tree and not ENTS[k] then cursor.prog = false return end
+    if tile.is_tree then
+      local sx, sy = world_to_screen(wx, wy)
+      local c1, c2 = 3, 4
+      if tile.biome < 2 then c1, c2 = 2, 3 end
+      ui.highlight(sx - 9 + tile.offset.x, sy - 27 + tile.offset.y, 24, 32, false, c1, c2)
+      ui.highlight(cursor.tx - 2 + tile.offset.x, cursor.ty - 1 + tile.offset.y, 8, 8, false, c1, c2)
+    end
+    if result then
+      ui.highlight(cursor.tx - 2, cursor.ty - 1, 8, 8, false, 2, 2)
+    end
+    if (ENTS[k] or tile.is_tree or result) then
+      if TICK % 20 == 0 then
+        sound('axe')
+      end
+      cursor.prog = clamp((cursor.hold_time/120) * 15, 0, 9)
+      -- line(cursor.x - 4, cursor.y + 7, cursor.x + 5, cursor.y + 7, 0)
+      -- line(cursor.x - 4, cursor.y + 7, cursor.x - 4 + prog, cursor.y + 7, 2)
+      --and tile.is_tree or ENTS[k]
+      if cursor.prog >= 9 then
+        remove_tile(cursor.x, cursor.y)
+        cursor.prog = false
+        return
+      end
+    end
   end
-  local rocks = {
-    ['2'] = {5,20},
-    ['7'] = {5,10},
-    ['8'] = {1,3},
-    ['24'] = {1,3},
-    ['26'] = {4,15},
-    ['40'] = {4,15},
-    ['42'] = {10,30},
-  }
-  local rock = rocks[tostring(tile.sprite_id)]
-  if rock then
-    ui.highlight(cursor.tx - 2, cursor.ty - 1, 8, 8, false, 2, 2)
-  end
-  local k = get_ent(cursor.x, cursor.y)
-  if (ENTS[k] or tile.is_tree or rock) and cursor.held_right then
-    local prog = clamp((cursor.hold_time/60) * 15, 0, 9)
-    line(cursor.x - 4, cursor.y + 7, cursor.x + 5, cursor.y + 7, 0)
-    line(cursor.x - 4, cursor.y + 7, cursor.x - 4 + prog, cursor.y + 7, 2)
-    --and tile.is_tree or ENTS[k]
-    if prog >= 9 then remove_tile(cursor.x, cursor.y) return end
-  end
+
+
+
     --check for held item placement/deposit to other ents
   if ENTS[k] then ENTS[k].is_hovered = true end
   if cursor.l and not cursor.ll and not craft_menu:is_hovered(cursor.x, cursor.y) and inv:is_hovered(cursor.x, cursor.y) then
@@ -1091,6 +1211,13 @@ function dispatch_input()
     return
     --consumed = true
   end
+end
+
+function render_cursor_progress()
+  if not cursor.prog then return end
+  cursor.prog = clamp((cursor.hold_time/120) * 15, 0, 9)
+  line(cursor.x - 4, cursor.y + 7, cursor.x + 5, cursor.y + 7, 0)
+  line(cursor.x - 4, cursor.y + 7, cursor.x - 4 + cursor.prog, cursor.y + 7, 2)
 end
 
 function toggle_hotbar()
@@ -1144,6 +1271,9 @@ function draw_ents()
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['research_lab']) do
+    if ENTS[k] then ENTS[k]:draw() end
+  end
+  for i, k in pairs(vis_ents['chest']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['inserter']) do
@@ -1325,6 +1455,7 @@ function TIC()
   end
   if show_tech then draw_research_screen() end
   if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
+  render_cursor_progress()
 end
 
 -- <TILES>
@@ -1376,6 +1507,9 @@ end
 -- 045:6666666666666676666667776666776766677777667677776677777767777777
 -- 046:6666666666666666666666666666666666666666667777666777777677777777
 -- 047:6777767667777776767777666677776766776766677777767677776667777776
+-- 096:0011110001111100111888001188880011888800118888000000000000000000
+-- 097:b0000000bb000000bbc00000bde0000000000000000000000000000000000000
+-- 112:1111111111141111111c4111111cc411111cc211111c21111112111111111111
 -- 135:0077777707556556756666667666666666677777677000007007777700756555
 -- 136:0000000077000000657000076657007576657655776667567076755657576760
 -- 137:0777700075755700555755705666666766777767677000760000000077770000
@@ -1556,8 +1690,8 @@ end
 -- 061:11111111111111111111111111111f441111143f111114f31111114411ff1144
 -- 062:1111111111111111111111f411111f4444443441444434411111114411ff1114
 -- 063:111111111111111144f111111111111111111111111111111111111144111111
--- 064:00c0000000c0000000ccc000c0ccc0000cccc00000dd00000000000000000000
--- 065:000000000cc000000ccc0000cccc0000cccc00000dd000000000000000000000
+-- 064:00b0000000b0000000bbb000b0bbb0000bbbb00000dd00000000000000000000
+-- 065:000000000bb000000bbb0000bbbb0000bbbb00000dd000000000000000000000
 -- 066:000efffe000fccdf00f4dde00f4defd00f4dfed000f4dde0000fccf0000fccff
 -- 067:004ecd0004eeede0004ecde0000dcd00000dcd00004ecde004eeede0004ecd00
 -- 068:0002300000032000000cd000000dc000000ce000000cd0000000000000000000
@@ -1571,7 +1705,7 @@ end
 -- 078:1f44f1dff444fdee444fdeeef4fdffe4f4dffffe4deeffffdeeeefffffe4440f
 -- 079:fdf11111ffdf1111effdf111440fdf11e40ffdf1e40efdf1feeedf11ffedf111
 -- 080:0000000000212000020000000100000002000000000000000000000000000000
--- 081:10aaa1110a969a110a967a110a999a1110aaa111111111111111111111111111
+-- 081:1aaa0111a969a011a967a011a999a0111aaa0111111111111111111111111111
 -- 082:000fccff000fccf000f4dde00f4dfed00f4defd000f4dde0000fccdf000efffe
 -- 083:00100010eeeeeeee43dd43dd3dd43dd43dd43dd443dd43ddeeeeeeee00100010
 -- 084:00010001eeeeeeee3dd43dd4dd43dd43dd43dd433dd43dd4eeeeeeee00010001
@@ -1587,7 +1721,7 @@ end
 -- 096:0011110001111100111888001188880011888800118888000000000000000000
 -- 097:1111111111141111111c4111111cc411111cc211111c21111112111111111111
 -- 098:111111111111111111141411111c1c11111c1c11111c1c111112121111111111
--- 099:11111111111111111144411111ccc11111ccc111112221111111111111111111
+-- 099:44444111c0c0c111cc0cc111c0c0c111ccccc111222221111111111111111111
 -- 100:111111111111111111144111114cc41111cccc11112cc2111112211111111111
 -- 101:1110001010dddddd0ddd43dd0dd43dd41dd43dd40ddd43dd0d3dd3dd0d4334d0
 -- 102:1101000110dddddd0dddddd41d3dd3430d4334430dd44dd40ddddddd1dddddd1
@@ -1678,12 +1812,13 @@ end
 -- 205:000dd000000ee000000cc00000d56d000d5666d00c6656c00d6666d000d77d00
 -- 206:000dd000000ee000000dd00000dffc000cf4ffc00dffffc00dffffe000cddc00
 -- 207:000dd000000ee000000cc00000da9d000d8998d00c9999c00d99a9d000d89d00
--- 208:3334444331222223323333433222334332332223101111211022222111111111
+-- 208:3334444331222223323333433222334332332223131111211322222111111111
 -- 209:cccccccccf88888cc823ccdcc83ccc4cc8ccc34cf0ffff82f08888811fffff11
 -- 210:ccccccccc8f8f8fcfa8a8a8fca8a8a8ccccccccc8f0f0f088f0f0f0888888888
 -- 211:3230000000000000233000000000000000000000000000000000000000000000
 -- 212:1111111111111111bbbbbbbbdcdcdcdccdcdcdcdbbbbbbbb1111111111111111
 -- 213:bbb11111dcd11111bbb111111111111111111111111111111111111111111111
+-- 214:4430000032200000133000000000000000000000000000000000000000000000
 -- 219:11111111111111111111bb11111b9b1111b89b111b9a9b1bb8989bc8baaaabca
 -- 220:111111111111111111bb11111b9b111bb89b11b89a9b1b9a989bc898aaabcaaa
 -- 221:1111111111111111bb1111bb9b111b9b9b11b89b9b1b9a9b9bc8989babcaaaab
@@ -1771,6 +1906,8 @@ end
 -- 006:09000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090030b000000000
 -- 007:05f005b0159025604550653075209510a500b500c500d500e500f500f500f500f500f500f500f500f500f500f500f500f500f500f500f500f500f500404000000000
 -- 008:00e800c970aaf07cf03ef00ff00ff000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000a0b000000000
+-- 009:66e08680a630b610c610d600e600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600300000000000
+-- 010:080008000800080008000800080008000800080008000800080008000800080008000800080008000800080008000800080008000800080008000800304000000000
 -- </SFX>
 
 -- <PATTERNS>

@@ -6,7 +6,7 @@ LAB_ANIM_TICK = 0
 local Lab = {
   x = 0,
   y = 0,
-  id = 22,
+  item_id = 22,
   type = 'research_lab',
   input = {},
   dummy_keys = {},
@@ -73,10 +73,10 @@ function Lab:draw()
     else
       pal(10, 11)
     end
-    sspr(LAB_ID, sx, sy, ITEMS[Lab.id].color_key, 1, 0, 0, 3, 3)
+    sspr(LAB_ID, sx, sy, ITEMS[Lab.item_id].color_key, 1, 0, 0, 3, 3)
     pal()
   else
-    sspr(LAB_ID, sx, sy, ITEMS[Lab.id].color_key, 1, 0, 0, 3, 3)
+    sspr(LAB_ID, sx, sy, ITEMS[Lab.item_id].color_key, 1, 0, 0, 3, 3)
   end
 end
 

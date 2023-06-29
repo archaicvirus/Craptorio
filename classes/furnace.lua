@@ -19,7 +19,7 @@ Furnace = {
   is_hovered = false,
   updated = false,
   drawn = false,
-  id = 14,
+  item_id = 14,
   fuel_slots = FURNACE_BUFFER_FUEL,
   output_slots = FURNACE_BUFFER_SIZE,
   output_buffer = {id = 0, count = 0},
@@ -38,7 +38,7 @@ function Furnace:draw_hover_widget()
   local w, h = print('Stone Furnace', 0, -10, 0, false, 1, true) + 4, 50
   local x, y = clamp(sx + offset.x, 0, 240 - w - offset.x), clamp(sy + offset.y, 0, 136 - h - offset.y)
   --window fill and border
-  ui.draw_panel(x, y, w, h, _, _, 'Stone Furnace', 0)
+  ui.draw_panel(x, y, w, h, _, _, 'Stone Furnace', UI_BG)
   -- rectb(x, y, w, h, 9)
   -- rect(x + 1, y + 1, w - 2, h - 2, 8)
   --top bar for text
@@ -93,7 +93,7 @@ function Furnace:open()
       local x, y, w, h = self.x, self.y, self.width, self.height
       local fx, fy = x + (w / 2) - 8, y + 19 --furnace icon screen pos
       --background window and border
-      ui.draw_panel(x, y, w, h, bg, fg, 'Stone Furnace', 0)
+      ui.draw_panel(x, y, w, h, bg, fg, 'Stone Furnace', UI_BG)
       -- --close button
        sspr(CLOSE_ID, x + w - 9, y + 2, 15)
       --input slot

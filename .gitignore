@@ -11,3 +11,7 @@ screenshots/
 classes/double_buffering.lua
 tic80.exe
 image.lua
+tree_generator.lua
+tree_generator2.lua
+tree_generatorV3.tic
+tree_generatorV3.lua

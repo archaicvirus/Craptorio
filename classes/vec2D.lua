@@ -3,49 +3,49 @@ vec2_mt = {}
 vec2_mt.__index = vec2_mt
 
 function vec2_mt:__add( v )
-	return vec2(self.x + v.x, self.y + v.y)
+  return vec2(self.x + v.x, self.y + v.y)
 end
 
 function vec2_mt:__sub( v )
-	return vec2(self.x - v.x, self.y - v.y)
+  return vec2(self.x - v.x, self.y - v.y)
 end
 
 function vec2_mt:__mul( v )
-	if type(v) == "table"
-	then return vec2(self.x * v.x, self.y * v.y)
-	else return vec2(self.x * v, self.y * v) end
+  if type(v) == "table"
+  then return vec2(self.x * v.x, self.y * v.y)
+  else return vec2(self.x * v, self.y * v) end
 end
 
 function vec2_mt:__div( v )
-	if type(v) == "table"
-	then return vec2(self.x / v.x, self.y / v.y)
-	else return vec2(self.x / v, self.y / v) end
+  if type(v) == "table"
+  then return vec2(self.x / v.x, self.y / v.y)
+  else return vec2(self.x / v, self.y / v) end
 end
 
 function vec2_mt:__unm()
-	return vec2(-self.x, -self.y)
+  return vec2(-self.x, -self.y)
 end
 
 function vec2_mt:dot( v )
-	return self.x * v.x + self.y * v.y
+  return self.x * v.x + self.y * v.y
 end
 
 function vec2_mt:length()
-	return math.sqrt(self.x * self.x + self.y * self.y)
+  return math.sqrt(self.x * self.x + self.y * self.y)
 end
 
 function vec2_mt:normalize()
-	local length = self:length()
-	if length == 0 then
-		return vec2(0, 0)
-	end
-	return vec2(self.x / length, self.y / length)
+  local length = self:length()
+  if length == 0 then
+    return vec2(0, 0)
+  end
+  return vec2(self.x / length, self.y / length)
 end
 
 function vec2_mt:rotate(angle)
-	local cs = math.cos(angle)
-	local sn = math.sin(angle)
-	return vec2(
+  local cs = math.cos(angle)
+  local sn = math.sin(angle)
+  return vec2(
     self.x * cs - self.y * sn,
     self.x * sn + self.y * cs)
   end

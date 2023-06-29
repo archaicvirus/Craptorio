@@ -37,7 +37,7 @@ place_item = {
       local belt = {}
       if ENTS[k] and ENTS[k].type ~= 'transport_belt' then
         sound('deny')
-        return
+        return false
       end
 
       if not ENTS[k] then
@@ -45,13 +45,15 @@ place_item = {
         ENTS[k]:rotate(rot)
         ENTS[k]:update_neighbors()
         sound('place_belt')
+        return true
       elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= rot then
         ENTS[k]:rotate(rot)
         ENTS[k]:update_neighbors()
         sound('rotate')
+        return false
       end
     end
-
+    return false
   end,
 
   ['splitter'] = function(x, y)
@@ -68,9 +70,11 @@ place_item = {
       ENTS[key2] = {type = 'dummy_splitter', other_key = key1, rot = cursor.rot}
       ENTS[key1]:set_output()
       sound('place_belt')
+      return true
     else
       sound('deny')
     end
+    return false
     --add_splitter(x, y)
   end,
 
@@ -85,9 +89,11 @@ place_item = {
     elseif not ENTS[k] then
       ENTS[k] = new_inserter({x = cell_x, y = cell_y}, cursor.rot)
       sound('place_belt')
+      return true
     else
       sound('deny')
     end
+    return false
     --add_inserter(x, y, cursor.rot)
   end,
 
@@ -97,9 +103,11 @@ place_item = {
     if not ENTS[k] then
       ENTS[k] = new_pole({x = cell_x, y = cell_y})
       sound('place_belt')
+      return true
     else
       sound('deny')
     end
+    return false
     --add_pole(x, y)
   end,
 
@@ -132,7 +140,7 @@ place_item = {
       end
       if ENTS[k] or (i == 4 and #found_ores == 0) then
         sound('deny')
-        return
+        return false
       end
     end
   
@@ -144,11 +152,13 @@ place_item = {
       ENTS[wx + 1 .. '-' .. wy] = {type = 'dummy_drill', other_key = k}
       ENTS[wx + 1 .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = k}
       ENTS[wx .. '-' .. wy + 1] = {type = 'dummy_drill', other_key = k}
+      return true
     elseif ENTS[k] and ENTS[k].type == 'mining_drill' then
       sound('place_belt')
       sound('rotate')
       --ENTS[k].rot = cursor.rot
     end
+    return false
     --add_drill(x, y)
   end,
 
@@ -164,7 +174,10 @@ place_item = {
       ENTS[key3] = {type = 'dummy_furnace', other_key = key1}
       ENTS[key4] = {type = 'dummy_furnace', other_key = key1}
       sound('place_belt')
+      return true
     end
+    sound('deny')
+    return false
     --add_furnace(x, y)
   end,
 
@@ -183,9 +196,11 @@ place_item = {
         ENTS[k] = new_underground_belt(wx, wy, cursor.rot)
       end
       sound('place_belt')
+      return true
     else
       sound('deny')
     end
+    return false
   end,
 
   ['assembly_machine'] = function(x, y)
@@ -207,11 +222,13 @@ place_item = {
           ENTS[wx + j .. '-' .. i + wy] = {type = 'dummy_assembler', other_key = k}
         end
       end
-      sound('place_belt')
       ENTS[k] = new_assembly_machine(wx, wy)
+      sound('place_belt')
+      return true
     else
       sound('deny')
     end
+    return false
   end,
 
   ['research_lab'] = function(x, y)
@@ -222,22 +239,35 @@ place_item = {
         for j = 0, 2 do
           if ENTS[wx + j .. '-' .. i + wy] then 
             sound('deny')
-            return
+            return false
           end
-        end      
-    end
-      --else place dummy ents to reserve 3x3 tile area, and create the crafter
-    local dummy_keys = {k}
-    for i = 0, 2 do
-      for j = 0, 2 do
-        local dk = wx + j .. '-' .. i + wy
-        ENTS[dk] = {type = 'dummy_lab', other_key = k}
-        table.insert(dummy_keys, dk)
+        end
       end
+      --else place dummy ents to reserve 3x3 tile area, and create the crafter
+      local dummy_keys = {k}
+      for i = 0, 2 do
+        for j = 0, 2 do
+          local dk = wx + j .. '-' .. i + wy
+          ENTS[dk] = {type = 'dummy_lab', other_key = k}
+          table.insert(dummy_keys, dk)
+        end
+      end
+      sound('place_belt')
+      ENTS[k] = new_lab(wx, wy, dummy_keys)
+      return true
     end
-    sound('place_belt')
-    ENTS[k] = new_lab(wx, wy, dummy_keys)
+    return false
+  end,
+  ['chest'] = function(x, y)
+    local tile, wx, wy = get_world_cell(x, y)
+    local k = wx .. '-' .. wy
+    if not ENTS[k] then
+      ENTS[k] = new_chest(wx, wy, 1)
+      sound('place_belt')
+      return true
     end
+    sound('deny')
+    return false
   end,
 }
 
@@ -376,5 +406,15 @@ remove_item = {
       ENTS[v] = nil
       sound('delete')
     end
+  end,
+  ['chest'] = function(x, y)
+    local tile, wx, wy = get_world_cell(x, y)
+    local k = wx .. '-' .. wy
+    if ENTS[k] then
+      ENTS[k] = nil
+      sound('delete')
+      return true
+    end
+    return false
   end,
 }

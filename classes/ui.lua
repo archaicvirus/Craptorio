@@ -12,7 +12,7 @@ UI_SHADOW = 0
 UI_ARROW = 353
 UI_BUTTON = 356
 UI_PAUSE = 354
-UI_STOP = 355
+UI_CLOSE = 355
 --TODO: move all main ui windows here
 ui = {windows = {}, active_window = false}
 
@@ -256,7 +256,7 @@ end
 
 function CraftPanel:draw()
   if self.vis == true then
-    ui.draw_panel(self.x, self.y, self.w, self.h, 8, 9, 'Crafting', 0)
+    ui.draw_panel(self.x, self.y, self.w, self.h, 8, 9, 'Crafting', UI_BG)
     local mouse_x, mouse_y = mouse()
     local x, y, w, h, bg, fg = self.x, self.y, self.w, self.h, self.bg, self.fg
     local active_tab, ax, ay, aw, ah = self.active_tab, self.tab[self.active_tab].x, self.tab[self.active_tab].y, 24, 24
@@ -332,14 +332,15 @@ function CraftPanel:draw()
 end
 
 function CraftPanel:click(x, y, side)
-  if side == 'left' then
-    local result, _, _, index = self:get_hovered_slot(x, y)
+  if side == 'left' and not cursor.ll then
+    local result, sx, sy, index = self:get_hovered_slot(x, y)
     if result and self.current_output ~= 'player' then
       local row = math.ceil(index / 10)
       local col = ((index - 1) % 10) + 1
       --spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
         if self.current_output ~= 'player' then
+          --assembly machine crafting
           if ENTS[self.current_output] then
             if not ITEMS[recipes[self.active_tab][row][col]].craftable then sound('deny') return end
             ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
@@ -348,9 +349,31 @@ function CraftPanel:click(x, y, side)
             self.current_output = 'player'
             return true
           end
+        else
+
         end
       end
       --print(slot_index, mouse_x + 8, mouse_y - 3, 12, false, 1, true)
+    elseif result and self.current_output == 'player' then
+      local row = math.ceil(index / 10)
+      local col = ((index - 1) % 10) + 1
+      if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
+        --player crafting
+        local item = ITEMS[recipes[self.active_tab][row][col]]
+        trace('found item: ' .. item.fancy_name)
+        if item and item.craftable then
+          local can_craft = true
+          for k, v in ipairs(item.recipe.ingredients) do
+            if not inv:has_stack(v) then can_craft = false end
+          end
+          if can_craft then
+            for k, v in ipairs(item.recipe.ingredients) do
+              inv:remove_stack(v)
+            end
+            inv:add_item({id = item.id, count = item.recipe.count})
+          end
+        end
+      end
     end
     --close button
     local cx, cy, w, h = self.x + self.close_x, self.y + self.close_y, 5, 5
@@ -493,12 +516,12 @@ function draw_recipe_widget(x, y, id)
         h = h + 9
       end
     end
-    h = h + 8
+    h = h + 16
     local str_w2 = print(item.name, 0, -6, 0, false, 1, true)
     if str_w2 > w then w = str_w2 + 8 end
     if cw > w then w = cw + 8 end
     --local sx, sy = x - w/2, y + 8
-    local sx, sy = math.max(1, math.min(x - w/2, 240 - w - 2)), y + 8
+    local sx, sy = clamp(x, 1, 240 - (w + 2)), clamp(y, 1, 136 - (h+2))
     ui.draw_panel(sx, sy, w, h + 1, 8, 9, item.fancy_name, 0)
     --box(sx, sy, w, h, 8, 9)
     --rect(sx + 1, sy + 1, w - 2, 8, 9)
@@ -507,8 +530,8 @@ function draw_recipe_widget(x, y, id)
     local i = 0
     if item.recipe.ingredients then
       for k, v in ipairs(item.recipe.ingredients) do
-        prints(ITEMS[v.id].fancy_name, sx + 3, sy + 10 + (i * 11), 0, 11)
-        draw_item_stack(sx + w-13, sy + 10 + ((k-1) * 11), v)
+        prints(ITEMS[v.id].fancy_name, sx + 3, sy + 10 + (i * 11), 0, 4)
+        draw_item_stack(sx + w-13, sy + 10 + ((k-1) * 11), v, show_cnt)
         i = i + 1
       end
       sspr(CRAFTER_TIME_ID, sx + 2, sy + h - 8, 1)
@@ -813,10 +836,10 @@ function draw_research_screen()
     prints('Known Tech', 12, lph - 4)
   end
   ----------CURRENT PAGE--------------------------------------------
-  if ui.draw_button((lpw/2) - (rsw/2) + 29, lph - 5, 1, UI_ARROW, 11, 0, 12) then
+  if ui.draw_button((lpw/2) - (rsw/2) + 29, lph - 5, 1, UI_ARROW, 12, 0, 4) then
     current_page = clamp(current_page - 1, 1, math.ceil(current_tab and #AVAILABLE_TECH/12 or #F_TECH/12))
   end
-  if ui.draw_button((lpw/2) - (rsw/2) + 56, lph - 5, 0, UI_ARROW, 11, 0, 12) then
+  if ui.draw_button((lpw/2) - (rsw/2) + 56, lph - 5, 0, UI_ARROW, 12, 0, 4) then
     current_page = clamp(current_page + 1, 1, math.ceil(current_tab and #AVAILABLE_TECH/12 or #F_TECH/12))
   end
   prints(current_page .. '/' .. math.ceil(#TECH/12), (lpw/2) - (rsw/2) + 41, lph - 4, 0)  
@@ -844,11 +867,11 @@ function draw_research_screen()
     
     --start/pause research button
     if current_research == selected_research then
-      if ui.draw_button(lpw - 11, lph - 15, 0, UI_PAUSE) then
+      if ui.draw_button(lpw - 11, lph - 15, 0, UI_PAUSE, 12, 0, 4) then
         current_research = false
       end
     elseif current_research ~= selected_research then
-      if ui.draw_button(lpw - 11, lph - 15, 0, UI_ARROW) then
+      if ui.draw_button(lpw - 11, lph - 15, 0, UI_ARROW, 12, 0, 4) then
         current_research = selected_research
       end
     end
@@ -971,4 +994,8 @@ function update_research_progress()
     return true
   end
   return false
+end
+
+function draw_chest_inventory(chest)
+  --ui.drawpanel()
 end

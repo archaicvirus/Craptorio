@@ -531,7 +531,7 @@ function Belt.update(self)
   end
 end
 
-function Belt.draw(self)
+function Belt:draw()
   --trace('Drawing belt: ' .. self.pos.x .. '-' .. self.pos.y)
   --trace('BELT DRAWN: ' .. tostring(self.belt_drawn))
   --trace('ITEMS DRAWN: ' .. tostring(self.drawn))

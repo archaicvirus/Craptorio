@@ -6,7 +6,7 @@ current_research = false
 selected_research = false
 current_page = 1
 current_tab = true --tab to show available or unlocked tech
-local starting_items = {2, 9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 12, 14, 30, 13, 14}
+local starting_items = {2, 9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 12, 14, 30, 13, 14, 35}
 for i = 1, #ITEMS do
   UNLOCKED_ITEMS[i] = false
 end
