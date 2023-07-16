@@ -6,7 +6,7 @@ biomes = {
     max = 30,
     t_min = 20.5,
     t_max = 21.5,
-    tree_id = 204,
+    tree_id = 194,
     tree_density = 0.05,
     color_key = 0,
     map_col = 4,
@@ -19,10 +19,10 @@ biomes = {
     max = 45,
     t_min = 33,
     t_max = 40,
-    tree_id = 198,
+    tree_id = 197,
     tree_density = 0.175,
-    color_key = 4,
-    map_col = 6,
+    color_key = 1,
+    map_col = 13,
     clutter = 0.09
   },
   [3] = {
@@ -32,10 +32,10 @@ biomes = {
     max = 101,
     t_min = 47,
     t_max = 99,
-    tree_id = 201,
+    tree_id = 200,
     tree_density = 0.13,
-    color_key = 4,
-    map_col = 7,
+    color_key = 1,
+    map_col = 14,
     clutter = 0.05
   },
 }

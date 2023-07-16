@@ -5,6 +5,7 @@ CRAFTER_TIME_ID = 337
 local Crafter = {
   x = 0,
   y = 0,
+  id = 19,
   item_id = 19,
   type = 'assembly_machine',
   is_hovered = false,
@@ -151,6 +152,7 @@ function Crafter:open()
           local btn = {x = x + w/2 - width/2 - 2, y = y + 32, w = width + 4, h = 9}
           btn.color = c.x >= btn.x and c.x < btn.x + btn.w and c.y >= btn.y and c.y < btn.y + btn.h and 9 or 8
           --background window and border
+          trace('ent id: ' .. ent.id)
           ui.draw_panel(x, y, w, h, bg, fg, ITEMS[ent.id].fancy_name)
           --box(x, y, w, h, 8, 9)
           --rect(x + 1, y + 1, w - 2, 8, 9)

@@ -126,12 +126,14 @@ place_item = {
         table.insert(found_ores, i)
   
         if not ORES[k] then
+          local max_ore = floor(math.random(250,5000))
           local ore = {
             type = ores[tile.ore].name,
             tile_id = ores[tile.ore].tile_id,
             sprite_id = ores[tile.ore].sprite_id,
             id = ores[tile.ore].id,
-            ore_remaining = 100,
+            total_ore = max_ore,
+            ore_remaining = max_ore,
             wx = wx,
             wy = wy,
           }

@@ -215,8 +215,8 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
       if not tile.visited and tile.is_land then AutoMap(worldX, worldY) end
 
       if tile.ore then
-        sspr(biomes[tile.biome].tile_id_offset, sx, sy)
-        --rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
+        --sspr(biomes[tile.biome].tile_id_offset, sx, sy)
+        rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
         sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, 0, tile.rot)
       elseif not tile.is_border then
         local id, rot, flip = tile.sprite_id, tile.rot, tile.flip
@@ -229,10 +229,14 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
           elseif worldY % 2 == 1 then
               flip = 2 -- Vertical flip
           end
+          --procedural water sprite id = 224
           sspr(224, sx, sy, 0, 1, flip, rot)
         else
           --else is land
-          sspr(id, sx, sy, -1, 1, flip, rot)
+          rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
+          if id ~= biomes[tile.biome].tile_id_offset then
+            sspr(id, sx, sy, biomes[tile.biome].map_col, 1, flip)
+          end
         end
       else
         if tile.biome == 1 then
@@ -275,7 +279,7 @@ function  TileManager:draw_clutter(player, screenWidth, screenHeight)
       --picked to spawn trees on, but you can use any tiles to limit trees to certain biomes
       if tile.is_tree then
         --trace('drawing tree')
-        sspr(biomes[tile.biome].tree_id, sx + tile.offset.x, sy - 27 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)
+        sspr(biomes[tile.biome].tree_id, sx + tile.offset.x, sy - 27 + tile.offset.y, biomes[tile.biome].color_key, 1, tile.flip, 0, 3, 4)
       end
       -- if tile.sprite_id == 19 then
       --   sspr(201, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)

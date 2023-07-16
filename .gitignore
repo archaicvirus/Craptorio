@@ -6,6 +6,7 @@
 LISCENSE
 .local/
 bat_scripts/
+TreeGenerator/
 lore/
 screenshots/
 classes/double_buffering.lua

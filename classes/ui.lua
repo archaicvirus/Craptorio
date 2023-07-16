@@ -13,8 +13,17 @@ UI_ARROW = 353
 UI_BUTTON = 356
 UI_PAUSE = 354
 UI_CLOSE = 355
+UI_BUTTON2 = 113
+BTN_MAIN = 12
+BTN_SHADOW = 2
+BTN_HOVER = 11
+BTN_PRESS = 4
 --TODO: move all main ui windows here
-ui = {windows = {}, active_window = false}
+ui = {
+  windows = {},
+  active_window = false,
+  alerts = {}
+}
 
 local Panel = {
   x = 0,
@@ -458,6 +467,10 @@ function ui:furnace_widget(ent)
   
 end
 
+function text_width(txt)
+  return print(txt, 0, -10, 0, false, 1, true)
+end
+
 function ui.progress_bar(progress, x, y, w, h, bg, fg, fill, option)
   --Options: 
   --0 - rounded/fancy
@@ -648,55 +661,6 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
   )
 end
 
--- function rspr(id, x, y, rot, tw, th, w, h, ck, page)
---   -- Convert rotation angle from degrees to radians
---   local rotationRadians = math.rad(rot)
-
---   -- Calculate the half width and height
---   local half_width = w / 2
---   local half_height = h / 2
-
---   -- Define the four corner points of the sprite rectangle
---   local points = {
---     {x - half_width, y - half_height},  -- Top-left
---     {x + half_width, y - half_height},  -- Top-right
---     {x + half_width, y + half_height},  -- Bottom-right
---     {x - half_width, y + half_height}   -- Bottom-left
---   }
-
---   -- Rotate each point around the given position
---   for _, point in ipairs(points) do
---       point[1], point[2] = rotatePoint(x, y, rotationRadians, point[1], point[2])
---   end
-
---   -- Calculate the sprite's UV coordinates
---   local spriteX = (id % 16) * (tw * 8)
---   local spriteY = math.floor(id / 16) * (th * 8)
---   local spw = tw * 8
---   local sph = th * 8
-
---   -- Draw the sprite using two textured triangles
---   ttri(
---       points[1][1], points[1][2],
---       points[2][1], points[2][2],
---       points[4][1], points[4][2],
---       spriteX, spriteY,
---       spriteX + spw, spriteY,
---       spriteX, spriteY + sph,
---       ck
---   )
-
---   ttri(
---       points[3][1], points[3][2],
---       points[4][1], points[4][2],
---       points[2][1], points[2][2],
---       spriteX + spw, spriteY + sph,
---       spriteX, spriteY + sph,
---       spriteX + spw, spriteY,
---       ck
---   )
--- end
-
 function rspr(id, x, y, rot, tw, th, w, h, ck, page)
   -- Convert rotation angle from degrees to radians
   local rotationRadians = -math.rad(rot) -- negating the angle to make the rotation clockwise
@@ -791,6 +755,100 @@ function ui.draw_button(x, y, flip, id, color, shadow_color, hover_color)
   pal()
   if hov and cursor.l and not cursor.ll then return true end
   return false
+end
+
+function ui.draw_text_button(x, y, id, width, height, main_color, shadow_color, hover_color, label)
+  width, height = width or 8, height or 8
+  main_color, shadow_color, hover_color = main_color or BTN_MAIN, shadow_color or UI_SHADOW, hover_color or BTN_HOVER
+  if label then
+    local w = text_width(label.text)
+    if w  + 2 > width then
+      width = w + 2
+    end
+  end
+  local _mouse, _box, ck, p = {x = cursor.x, y = cursor.y}, {x = x, y = y, w = width, h = height}, 1, {BTN_PRESS, main_color, BTN_SHADOW, shadow_color, BTN_MAIN, main_color}
+  local hov = hovered(_mouse, _box)
+  if hov and not cursor.l then
+    p = {BTN_SHADOW, shadow_color, BTN_MAIN, hover_color, BTN_PRESS, hover_color}
+  elseif hov and cursor.l then
+    p = {BTN_SHADOW, hover_color, BTN_MAIN, hover_color, BTN_PRESS, hover_color}
+    ck = {1, BTN_PRESS}
+  end
+
+  if not main_color == BTN_MAIN and not shadow == BTN_SHADOW and not hover_color == BTN_HOVER then
+  else
+  end
+
+
+  local lines = {
+    [1] = {x1 =  x, y1 = y + height, x2 =  x + width, y2 = y + height},
+    [2] = {x1 =  x, y1 = y, x2 =  x + width, y2 = y}
+  }
+  --trace('filling mesh')
+  --mesh_fill(lines, id, ck)
+  if label and width > 8 then
+    if hov and not cursor.l then
+      rect(x + 4, y, width - 8, height - 1, hover_color)
+      line(x + 4, y + height - 1, x + width - 4, y + height - 1, shadow_color)
+    elseif hov and cursor.l then
+      rect(x + 4, y + 1, width - 8, height - 1, hover_color)
+      label.y = label.y + 1
+    else
+      rect(x + 4, y, width - 8, height - 1, main_color)
+      line(x + 4, y + height - 1, x + width - 4, y + height - 1, shadow_color)
+    end
+  end
+  pal(p)
+  spr(id, x, y, ck, 1, 0)
+  spr(id, x + width - 8, y, ck, 1, 1)
+  pal()
+
+  if label then
+    prints(label.text, x + label.x, y + label.y, label.bg, label.fg, label.shadow)
+  end
+
+  if hov and cursor.l and not cursor.ll then return true end
+  return false
+end
+
+function ui.new_slider(x, y, value, min, max, step, width, height, ditch_color, handle_color, shadow_color)
+  local slider = {
+    x = x,
+    y = y,
+    value = value,
+    min = min,
+    max = max,
+    step = step,
+    width = width,
+    height = height,
+    ditch_color = ditch_color or 13,
+    handle_color = handle_color or 12,
+    shadow_color = shadow_color or 15,
+  }
+  slider.draw = function(self)
+    line(self.x, self.y + 1, self.x + self.width - 1, self.y + 1, self.ditch_color)
+    line(self.x + 1, self.y + 2, self.x + self.width - 1, self.y + 2, self.shadow_color)
+    local x, y = remap(self.value, self.min, self.max, self.x, self.x + self.width - 1), self.y
+    -- line(x, y, x, y + 2, 14)
+    -- line(x + 1, y, x + 1, y + 2, 12)
+    -- line(x + 2, y, x + 2, y + 2, 15)
+    circ(x+1, y+2, 2, self.shadow_color)
+    circ(x, y+1, 2, 12)
+    local text = self.step >= 1 and floor(self.value) or round(self.value, 2)
+    prints(text, self.x + self.width + 15 - (text_width(text)/2), self.y - 1)
+  end
+  setmetatable(slider, {__index = slider})
+  return slider
+end
+
+function ui.draw_toggle(x, y, value, size)
+  local mx, my = cursor.x, cursor.y
+  local hov = hovered({x = mx, y = my}, {x = x, y = y - 1, w = (text_width(value)) + 12, h = 7})
+  if value then
+    circ(x + 4, y + 2, size, 2)
+  end
+  circb(x + 4, y + 2, size, 0)  
+  return value
 end
 
 function draw_research_icon(id, x, y)
@@ -998,4 +1056,70 @@ end
 
 function draw_chest_inventory(chest)
   --ui.drawpanel()
+end
+
+function draw_image(x, y, width, height, pixel_data, color_key)
+  color_key = color_key or -1
+  for i = 0, width - 1 do
+    for j = 0, height - 1 do
+      local index = j * width + i
+      if pixel_data[index] ~= color_key then
+        pix(x + i, y + j, pixel_data[index])
+      end
+    end
+  end
+end
+
+function draw_logo()
+  draw_image(0, 0, 240, 136, cover, 1)
+end
+
+function ui.draw_menu()
+  cls(0)
+  --ui.draw_panel(40, 40, 160, 76, 8, 9)
+  if  STATE == 'start' then
+    draw_logo()
+    if ui.draw_text_button(120 - ((text_width('  Start  ') + 2) /2), 100, UI_BUTTON2, _, 8, 9, 0, 10, {text = '  Start  ', x = 1, y = 1, bg = 0, fg = 4, shadow = {x = 1, y = 0}}) then
+      STATE = 'game'
+    end
+
+    if ui.draw_text_button(120 - ((text_width('  Settings  ') + 2) /2), 110, UI_BUTTON2, _, 8, 9, 0, 10, {text = '  Settings  ', x = 1, y = 1, bg = 0, fg = 4, shadow = {x = 1, y = 0}}) then
+      STATE = 'settings'
+    end
+  elseif STATE == 'settings' then
+    ui.draw_panel(0, 0, 240, 136, 8, 9, 'Settings')
+    if ui.draw_text_button(239 - ((text_width('  Back  ') + 2)), 1, UI_BUTTON2, _, 8, 2, 0, 3, {text = ' Back ', x = 1, y = 1, bg = 0, fg = 4, shadow = {x = 1, y = 0}}) then
+      STATE = 'start'
+    end
+  end
+end
+
+function ui.new_alert(sx, sy, text, duration, bg, fg)
+  local alert = {
+    x = sx,
+    y = sy,
+    text = text,
+    duration = duration or 3000,
+    bg = bg or UI_TEXT_BG,
+    fg = fg or UI_TEXT_FG,
+    start = time()
+  }
+  table.insert(ui.alerts, alert)
+end
+
+function ui.update_alerts()
+  local trash = {}
+  for k, alert in ipairs(ui.alerts) do
+    local t = time()
+    if t < alert.start + alert.duration then
+      local y = alert.y - remap(t, alert.start, alert.start + alert.duration, 0, 20)
+      prints(alert.text, alert.x, y, alert.bg, alert.fg)
+    else
+      table.insert(trash, k)
+      alert = nil
+    end
+  end
+  for i = 1, #trash do
+    table.remove(ui.alerts, trash[i])
+  end
 end
