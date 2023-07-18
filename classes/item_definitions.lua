@@ -46,6 +46,7 @@ ITEMS = {
   [3] = {
     name = 'iron_ore',
     fancy_name = 'Iron Ore',
+    info = 'Collected by laser, or mining drill. Found at iron ore deposits in the wild',
     id = 3,
     sprite_id = 162,
     smelted_id = 15,
@@ -105,7 +106,7 @@ ITEMS = {
   },
   [7] = {
     name = 'uranium',
-    fancy_name = 'Uranium',
+    fancy_name = 'Uranium Ore',
     id = 7,
     sprite_id = 164,
     belt_id = 180,
@@ -611,6 +612,7 @@ ITEMS = {
   [34] = {
     name = 'fiber',
     fancy_name = 'Organic Fibers',
+    info = 'Acquired via laser mining or fiber extraction tech',
     id = 34,
     sprite_id = 268,
     belt_id = 269,
@@ -645,5 +647,17 @@ ITEMS = {
         [1] = {id = 30, count = 10},
       },
     },
+  },
+  [36] = {
+    name = 'laser_mining_speed',
+    fancy_name = 'Laser Mining 1 Upgrade',
+    info = 'Increases mining speed by 150%',
+    id = 36,
+    sprite_id = 358,
+    belt_id = -1,
+    color_key = 1,
+    type = 'intermediate',
+    craftable = false,
+    recipe = false,
   },
 }

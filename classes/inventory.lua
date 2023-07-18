@@ -298,9 +298,9 @@ function inventory:clicked(x, y)
     if ((cursor.l and not cursor.ll) or (cursor.r and not cursor.lr)) and result then
       --if self.slots[result.index].item_id == 0 then
       if key(64) then
-        if result and self.slots[result.index].item_id ~= 0 and ui.active_window and ENTS[ui.active_window.ent_key].type == 'chest' then
-          local ent = ENTS[ui.active_window.ent_key]
-          local deposited, stack = ENTS[ui.active_window.ent_key]:deposit({id = self.slots[result.index].item_id, count = self.slots[result.index].count}, 0)
+        local ent = ui.active_window and ENTS[ui.active_window.ent_key] or false
+        if result and ent and self.slots[result.index].item_id ~= 0 and ui.active_window and ent.deposit_stack then
+          local deposited, stack = ent:deposit_stack({id = self.slots[result.index].item_id, count = self.slots[result.index].count}, false)
           --trace('deposited: ' .. tostring(deposited))
           --trace('stack: ' .. (stack and ' id: ' .. stack.id .. ' count: ' .. stack.count) or '- no remaining items')
           if deposited then
@@ -313,12 +313,12 @@ function inventory:clicked(x, y)
         end
 
         if result.index >= 57 then
-          trace('hotbar slot# ' .. result.index .. ' clicked')
+          --trace('hotbar slot# ' .. result.index .. ' clicked')
           local stack = {id = self.slots[result.index].item_id, count = self.slots[result.index].count}
           self.slots[result.index].item_id = 0
           self.slots[result.index].count = 0
           local res, stack = self:add_item(stack, 0)
-          trace('result: ' .. tostring(res) .. (stack and ' stack id: ' .. stack.id .. ' count: ' .. stack.count or 'no stack returned'))
+          --trace('result: ' .. tostring(res) .. (stack and ' stack id: ' .. stack.id .. ' count: ' .. stack.count or 'no stack returned'))
           if stack then
             self.slots[result.index].item_id = stack.id
             self.slots[result.index].count = stack.count
@@ -399,13 +399,13 @@ function new_slot(index)
   local slot = {
     item_id = 0,
     count = 0,
+    index = index,
     callback = function (self)
-      inv:slot_clicked(index)
+      inv:slot_clicked(self.index)
       -- if self.index > INV_HOTBAR_OFFSET then
       --   set_active_slot(self.index - INV_HOTBAR_OFFSET)
       -- end
     end,
-    index = index,
   }
   return slot
 end
@@ -421,4 +421,15 @@ function make_inventory()
     end
   end
   return inv
+end
+
+function add_stack(from, to)
+  if to.count == 0 then
+    
+  elseif to.id == from.id then
+
+  end
+
+
+  return from, to
 end

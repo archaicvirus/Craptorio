@@ -268,7 +268,7 @@ function  TileManager:draw_clutter(player, screenWidth, screenHeight)
   local startY = math.floor(cameraTopLeftY / 8)
   
   for screenY = 1, screenHeight + 3 do
-    for screenX = 1, screenWidth + 2 do
+    for screenX = 0, screenWidth + 1 do
       local worldX = startX + screenX
       local worldY = startY + screenY
       local tile = self.tiles[worldY][worldX]
@@ -301,19 +301,31 @@ function  TileManager:draw_worldmap(player, x, y, width, height, center)
   end
   local map_x, map_y = x or 120 - (width/2) + 1, y or 68 - (height/2) + 2
   local startX, startY = floor(player.x/8 - (width/2) + 1), floor(player.y/8 - (height/2) + 2)
-  local biome_col = biomes[self.tiles[startY][startY].biome].map_col
-  rectb(map_x - 1, map_y - 1, width + 2, height + 2, 11)
+  local biome_col = biomes[self.tiles[startY][startX].biome].map_col
+  local skipped = 0
+  rect(map_x - 1, map_y - 1, width + 2, height + 2, biome_col)
   --rect(map_x, map_y, width, height, biome_col)
   for y = 0, height - 1 do
+    if y == 0 then
+      local biome = self.tiles[startY + y - 1][startX + x - 1].biome
+      start_col = biomes[biome].map_col
+    end
     for x = 0, width - 1 do
-      --if rawget(self.tiles, startY + y - 1) and rawget(self.tiles[startY + y - 1], startX + x - 1) then
-        --local tile = self.tiles[startY + y - 1][startX + x - 1]
-        --if self.tiles[startY + y - 1][startX + x - 1].ore then
-          pix(x + map_x, y + map_y, self.tiles[startY + y - 1][startX + x - 1].color)
-        --dsend
-      --end
+      local tile = self.tiles[startY + y - 1][startX + x - 1]
+      --trace('biome color = ' .. biomes[tile.biome].map_col)
+      if tile.color ~= start_col or tile.ore or tile.is_tree or not tile.is_land or not tile.biome == biome then
+        --if rawget(self.tiles, startY + y - 1) and rawget(self.tiles[startY + y - 1], startX + x - 1) then
+          --local tile = self.tiles[startY + y - 1][startX + x - 1]
+          --if self.tiles[startY + y - 1][startX + x - 1].ore then
+        pix(x + map_x, y + map_y, tile.is_tree and 6 or tile.color)
+          --end
+      --else
+        --skipped = skipped + 1
+      end
     end
   end
+  --trace('skipped drawing ' .. skipped .. ' pixels')
+  --trace('start color: ' .. biome_col)
 end
 
 -- local biome_count

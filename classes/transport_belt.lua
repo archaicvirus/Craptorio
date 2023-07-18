@@ -395,6 +395,7 @@ function Belt.update_neighbors(self, k)
 end
 
 function Belt.set_curved(self)
+  local ents = {['underground_belt_exit'] = true, ['transport_belt'] = true, ['splitter'] = true, ['dummy_splitter'] = true}
   if not self.curve_checked then
     self.curve_checked = true
     --checks left, right, and rear tiles (relative to ENTS rotation) for other ENTS
@@ -412,16 +413,16 @@ function Belt.set_curved(self)
     --curve left if no belt/splitter to the right facing me AND  >
     --splitter/belt on left facing me
     ------------------------------------------------------------------------------------------
-      if not ENTS[rear] or (ENTS[rear] and ENTS[rear].rot ~= self.rot) then
+      if not ENTS[rear] or (not ents[ENTS[rear].type] or ENTS[rear].rot ~= self.rot) then
         --can curve left or right now, since no REAR connection preventing snapping
         --------------------------------------------------------------------------------------
         if ENTS[left]
         and
-        (ENTS[left].type == 'transport_belt' or ENTS[left].type == 'underground_belt_exit' or ENTS[left].type == 'splitter' or ENTS[left].type == 'dummy_splitter')
+        (ents[ENTS[left].type])
         and
         ENTS[left].rot == loc1.other_rot
         and
-        (not ENTS[right] or (ENTS[right] and ENTS[right].rot ~= loc3.other_rot))
+        (not ENTS[right] or (not ents[ENTS[right].type] or ENTS[right].rot ~= loc3.other_rot))
         --is_facing(self, ENTS[left], 'left') and
         --(not ENTS[right] or (ENTS[right] and not is_facing(self, ENTS[right], 'right')))
         then
@@ -429,11 +430,11 @@ function Belt.set_curved(self)
         --------------------------------------------------------------------------------------
         elseif ENTS[right]
         and
-        (ENTS[right].type == 'transport_belt' or ENTS[right].type == 'underground_belt_exit' or ENTS[right].type == 'splitter' or ENTS[right].type == 'dummy_splitter')
+        (ents[ENTS[right].type])
         and
         ENTS[right].rot == loc3.other_rot
         and
-        (not ENTS[left] or (ENTS[left] and ENTS[left].rot ~= loc1.other_rot))
+        (not ENTS[left] or (not ents[ENTS[left].type] or ENTS[left].rot ~= loc1.other_rot))
       then
           self.id, self.flip, self.sprite_rot, self.output_item_key = BELT_ID_CURVED, loc3.flip, loc3.rot, loc3.key
         --------------------------------------------------------------------------------------

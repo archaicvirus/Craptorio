@@ -87,9 +87,9 @@ function Inserter.can_deposit(self, other, item_id)
     if ENTS[other].type == 'transport_belt' then
       return true
     elseif ENTS[other].type == 'stone_furnace' then
-      if ENTS[other].deposit(item_id, true) then return true end
+      if ENTS[other]:deposit({id = item_id, count = 1}, true) then return true end
     elseif ENTS[other].type == 'splitter' then
-      if ENTS[other].deposit(item_id, true) then return true end
+      if ENTS[other]:deposit({id = item_id, count = 1}, true) then return true end
     end
   end
   return false
@@ -213,9 +213,6 @@ function Inserter.update(self)
           --to prevent inserter stuck holding item
           local desired_type, sub_type = ENTS[to]:request()
           local item_id = ENTS[from]:request_item_furnace(true, desired_type, sub_type)
-
-
-
 
           if item_id and ENTS[to]:deposit(item_id, true) then
             --ENTS[to]:deposit(item_id, false)

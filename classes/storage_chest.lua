@@ -63,7 +63,7 @@ if show_count then
   end
 end
 
-function Chest:deposit(stack)
+function Chest:deposit_stack(stack)
   for k, v in ipairs(self.slots) do
     local item = ITEMS[v.id]
     if item then
