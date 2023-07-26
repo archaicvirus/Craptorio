@@ -10,7 +10,7 @@ UI_TEXT_BG = 0
 UI_TEXT_FG = 4
 UI_SHADOW = 0
 UI_ARROW = 353
-UI_BUTTON = 356
+UI_BUTTON = 438
 UI_PAUSE = 354
 UI_CLOSE = 355
 UI_BUTTON2 = 113
@@ -115,22 +115,48 @@ function ui.NewPanel(x, y, w, h, fg, bg, border, children, on_click)
   return new_panel
 end
 
-function ui.draw_text_window(data, x, y, label, bg, fg, text_bg, text_fg)
+function ui.draw_text_window(data, x, y, label, bg, fg, text_bg, text_fg, wrap)
   x, y, label, fg, bg, text_fg, text_bg = x or 2, y or 2, label or false, fg or UI_FG, bg or UI_BG, text_fg or UI_TEXT_FG, text_bg or UI_TEXT_BG
-  local w = 6
+  local w = wrap or 6
   local h = #data * 7 + 4 + (label and 9 or 0)
+  local final_data = {}
   --if label then h = h + 9 end
   for i = 1, #data do
-    local string_width = print(data[i], 0, -10, 0, false, 1, true)
-    if string_width + 6 > w then w = string_width + 6 end
+    local string = type(data[i]) == 'table' and data[i].text or data[i]
+    local string_width = print(string, 0, -10, 0, false, 1, true)
+    if not wrap and string_width + 6 > w then
+      w = string_width + 6
+      table.insert(final_data, data[i])
+    elseif wrap and string_width + 6 > wrap then
+      local lines = text_wrap(string, wrap - 6)
+      for k, v in ipairs(lines) do
+        if type(data[i]) == 'table' then
+          table.insert(final_data, {text = tostring(v), bg = data[i].bg, fg = data[i].fg})
+        else
+          table.insert(final_data, tostring(v))
+        end
+      end
+      h = h + ((#lines - 1)*7)
+    else
+      if type(data[i]) == 'table' then
+        table.insert(final_data, {text = string, bg = data[i].bg, fg = data[i].fg})
+      else
+        table.insert(final_data, string)
+      end
+    end
   end
   x = clamp(x, 0, 240 - w - 1)
   y = clamp(y, 0, 136 - h - 1)
   ui.draw_panel(x, y, w, h, bg, fg, label, UI_SHADOW)
   -- rectb(x, y, width, height, border)
   -- rect(x + 1, y + 1, width - 2, height - 2, background)
-  for i = 1, #data do
-    prints(data[i], x + 4, y + ((i-1) * 7) + (label and 10 or 3), UI_TEXT_BG, UI_TEXT_FG)
+  for i = 1, #final_data do
+    local bg, fg, text = text_bg, text_fg, final_data[i]
+    if type(text) == 'table' then
+      bg, fg = final_data[i].bg, final_data[i].fg
+      text = final_data[i].text
+    end
+    prints(text, x + 4, y + ((i-1) * 7) + (label and 10 or 3), bg, fg)
   end
 end
 
@@ -890,56 +916,121 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
   )
 end
 
-function rspr(id, x, y, rot, tw, th, w, h, ck, page)
-  -- Convert rotation angle from degrees to radians
-  local rotationRadians = -math.rad(rot) -- negating the angle to make the rotation clockwise
+-- function rspr(id, x, y, rot, tw, th, w, h, ck, page)
+--   -- Convert rotation angle from degrees to radians
+--   local rotationRadians = -math.rad(rot) -- negating the angle to make the rotation clockwise
 
-  -- Center of the sprite
-  local cx, cy = x + w / 2, y + h / 2
+--   -- Center of the sprite
+--   local cx, cy = x + w / 2, y + h / 2
 
-  -- Size of the sprite in the sprite data
-  local sw, sh = tw * 8, th * 8
+--   -- Size of the sprite in the sprite data
+--   local sw, sh = tw * 8, th * 8
 
-  -- Iterate through the screen positions where we want to draw the sprite
-  for sy = y, y + h - 1 do
-      for sx = x, x + w - 1 do
-          -- Translate screen coordinates to origin
-          local ox, oy = sx - cx, sy - cy
+--   -- Iterate through the screen positions where we want to draw the sprite
+--   for sy = y, y + h - 1 do
+--       for sx = x, x + w - 1 do
+--           -- Translate screen coordinates to origin
+--           local ox, oy = sx - cx, sy - cy
 
-          -- Rotate the screen coordinate
-          local rx = ox * math.cos(rotationRadians) - oy * math.sin(rotationRadians)
-          local ry = ox * math.sin(rotationRadians) + oy * math.cos(rotationRadians)
+--           -- Rotate the screen coordinate
+--           local rx = ox * math.cos(rotationRadians) - oy * math.sin(rotationRadians)
+--           local ry = ox * math.sin(rotationRadians) + oy * math.cos(rotationRadians)
 
-          -- Translate back
-          local finalX, finalY = rx + cx, ry + cy
+--           -- Translate back
+--           local finalX, finalY = rx + cx, ry + cy
 
-          -- Map to sprite UV
-          local su = math.floor((finalX - x) / w * sw)
-          local sv = math.floor((finalY - y) / h * sh)
+--           -- Map to sprite UV
+--           local su = math.floor((finalX - x) / w * sw)
+--           local sv = math.floor((finalY - y) / h * sh)
 
-          -- Check if the UV is within sprite range
-          if su >= 0 and su < sw and sv >= 0 and sv < sh then
-              -- Get the pixel from the sprite data
-              local pixelIndex = sv * sw + su + 1
-              local pixel = sprites[page][id][pixelIndex]
+--           -- Check if the UV is within sprite range
+--           if su >= 0 and su < sw and sv >= 0 and sv < sh then
+--               -- Get the pixel from the sprite data
+--               local pixelIndex = sv * sw + su + 1
+--               local pixel = sprites[page][id][pixelIndex]
 
-              -- Skip if it's a color key
-              if pixel and (type(ck) == "table" and not ck[pixel] or pixel ~= ck) then
-                  -- Calculate VRAM address
-                  local addr = 0x0000 + math.floor(sy * 240 + sx) // 2
+--               -- Skip if it's a color key
+--               if pixel and (type(ck) == "table" and not ck[pixel] or pixel ~= ck) then
+--                   -- Calculate VRAM address
+--                   local addr = 0x0000 + math.floor(sy * 240 + sx) // 2
 
-                  -- Write pixel to VRAM
-                  local cur = peek(addr) or 0
-                  if sx % 2 == 0 then
-                      cur = (cur & 0x0F) | (pixel << 4)
-                  else
-                      cur = (cur & 0xF0) | pixel
-                  end
-                  poke(addr, cur)
-              end
-          end
-      end
+--                   -- Write pixel to VRAM
+--                   local cur = peek(addr) or 0
+--                   if sx % 2 == 0 then
+--                       cur = (cur & 0x0F) | (pixel << 4)
+--                   else
+--                       cur = (cur & 0xF0) | pixel
+--                   end
+--                   poke(addr, cur)
+--               end
+--           end
+--       end
+--   end
+-- end
+
+function rspr(id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot)
+  colorkey = colorkey or -1
+  sx = sx or 1
+  sy = sy or 1
+  flip = flip or 0
+  rotate = rotate or 0
+  w = w or 1
+  h = h or 1
+  pivot = pivot or vec2(4, 4)
+
+  -- Draw a sprite using two textured triangles.
+  -- Apply affine transformations: scale, shear, rotate, flip
+
+  -- scale / flip
+  if flip % 2 == 1 then
+    sx = -sx
   end
+  if flip >= 2 then
+    sy = -sy
+  end
+  ox = w * 8 // 2
+  oy = h * 8 // 2
+  ox = ox * -sx
+  oy = oy * -sy
+
+  -- shear / rotate
+  shx1 = 0
+  shy1 = 0
+  shx2 = 0
+  shy2 = 0
+  shx1 = shx1 * -sx
+  shy1 = shy1 * -sy
+  shx2 = shx2 * -sx
+  shy2 = shy2 * -sy
+  rr = math.rad(rotate)
+  sa = math.sin(rr)
+  ca = math.cos(rr)
+
+  function rot(x, y)
+    return x * ca - y * sa, x * sa + y * ca
+  end
+
+  rx1, ry1 = rot(ox + shx1, oy + shy1)
+  rx2, ry2 = rot(((w * 8) * sx) + ox + shx1, oy + shy2)
+  rx3, ry3 = rot(ox + shx2, ((h * 8) * sy) + oy + shy1)
+  rx4, ry4 = rot(((w * 8) * sx) + ox + shx2, ((h * 8) * sy) + oy + shy2)
+  x1 = x + rx1 - pivot.x
+  y1 = y + ry1 - pivot.y
+  x2 = x + rx2 - pivot.x
+  y2 = y + ry2 - pivot.y
+  x3 = x + rx3 - pivot.x
+  y3 = y + ry3 - pivot.y
+  x4 = x + rx4 - pivot.x
+  y4 = y + ry4 - pivot.y
+
+  -- UV coords
+  u1 = (id % 16) * 8
+  v1 = math.floor(id / 16) * 8
+  u2 = u1 + w * 8
+  v2 = v1 + h * 8
+
+  ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v1, u1, v2, 0, colorkey)
+  ttri(x3, y3, x4, y4, x2, y2, u1, v2, u2, v2, u2, v1, 0, colorkey)
 end
 
 function get_hovered_slot(x, y, grid_x, grid_y, grid_size, rows, cols)
@@ -962,10 +1053,10 @@ end
 function ui.highlight(x, y, w, h, animate, color1, color2)
   pal({1,color1,2,color2})
   local offset = (animate and floor(player.anim_frame/4)) or 0
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y - 1 + offset, 0)
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y - 1 + offset, 0, 1, 1, 0)
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 4) - offset, y + (h - 5) - offset, 0, 1, 3, 0)
-    sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset, y + (h - 5) - offset, 0, 1, 2, 0)
+  sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset - 1, y - 1 + offset, 0)
+  sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 5) - offset, y - 1 + offset, 0, 1, 1, 0)
+  sspr(CURSOR_HIGHLIGHT_CORNER_S, x + (w - 5) - offset, y + (h - 5) - offset, 0, 1, 3, 0)
+  sspr(CURSOR_HIGHLIGHT_CORNER_S, x + offset - 1, y + (h - 5) - offset, 0, 1, 2, 0)
   pal()
 end
 
@@ -1082,20 +1173,29 @@ end
 
 function draw_tile_widget()
   local x, y = cursor.x, cursor.y
+  if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) or (ui.active_window and ui.active_window:is_hovered(x,y)) then
+    return
+  end
   local tile, wx, wy = get_world_cell(x, y)
   local k = get_key(x, y)
   local tile_type = tile.ore and ores[tile.ore].name .. ' Ore' or tile.is_land and 'Land' or 'Water'
   local biome = tile.is_land and biomes[tile.biome].name or 'Ocean'
   local info = {
-    [1] = 'Biome: ' .. biome,
-    [2] = 'Type: ' .. tile_type,
-    [3] = 'Coords: ' .. wx .. ',' .. wy,
+    [1] = {text = 'Biome: ' .. biome, bg = 0, fg = biomes[tile.biome].map_col},
+    [2] = {text = 'Type: ' .. tile_type, bg = 0, fg = 3},
+    [3] = {text = 'Coords: ' .. wx .. ',' .. wy, bg = 0, fg = 11},
     -- [4] = 'Noise: '  .. tile.noise,
     -- [5] = 'Border: ' .. tostring(tile.is_border),
   }
+  local resource = resources[tostring(tile.sprite_id)]
+  if resource then
+    --{id = 5, min =  5, max = 20},
+    info[4] = {text = resource.name, bg = 0, fg = 4}
+    info[5] = {text = 'Gives ' .. resource.min ..'-' .. resource.max .. ' ' .. ITEMS[resource.id].fancy_name .. ' when harvested', bg = 0, fg = 5}
+  end
   if tile.is_tree then
-    info[4] = 'Tree'
-    info[5] = 'Gives 5-10 Wood Planks when harvested'
+    info[4] = {text = 'Tree', bg = 0, fg = 2}
+    info[5] = {text = 'Gives 5-10 Wood Planks when harvested', bg = 0, fg = 5}
     local sx, sy = world_to_screen(wx, wy)
     local c1, c2 = 3, 4
     if tile.biome < 2 then c1, c2 = 2, 3 end
@@ -1103,11 +1203,11 @@ function draw_tile_widget()
   end
   if tile.ore then
     if ORES[k] then
-      info[4] = 'Remainig Ore:'
-      info[5] = tostring(ORES[k].ore_remaining) .. '/' .. tostring(ORES[k].total_ore)
+      info[4] = {text = 'Remainig Ore:', bg = 0, fg = 11}
+      info[5] = {text = tostring(ORES[k].ore_remaining) .. '/' .. tostring(ORES[k].total_ore), bg = 0, fg = 2}
     end
   end
-  ui.draw_text_window(info, x + 8, y + 5, 'Scanning...')
+  ui.draw_text_window(info, x + 8, y + 5, 'Scanning...', 8, 9, 0, 4, 75)
 end
 
 function draw_research_icon(id, x, y)
@@ -1144,7 +1244,7 @@ function draw_research_screen()
   -------SELECTED TECH HEADER-------------------
   prints(name, 4 + lpw/2 - rw/2, 1)
   rectr(2, 8, lpw - 3, lph - 14, UI_BG, UI_FG, false)
-  if ui.draw_button(2, lph - 6, 0, UI_BUTTON, 2, 0, 3) then
+  if ui.draw_button(2, lph - 6, current_tab and 0 or 1, UI_BUTTON, 2, 0, 3) then
     current_tab = not current_tab
   end
   if current_tab then
@@ -1153,13 +1253,14 @@ function draw_research_screen()
     prints('Known Tech', 12, lph - 4)
   end
   ----------CURRENT PAGE--------------------------------------------
+  local total_current_pages = clamp(math.ceil((current_tab and #AVAILABLE_TECH/12) or #F_TECH/12), 1, 100)
   if ui.draw_button((lpw/2) - (rsw/2) + 29, lph - 5, 1, UI_ARROW, 12, 0, 4) then
-    current_page = clamp(current_page - 1, 1, math.ceil(current_tab and #AVAILABLE_TECH/12 or #F_TECH/12))
+    current_page = clamp(current_page - 1, 1, total_current_pages)
   end
   if ui.draw_button((lpw/2) - (rsw/2) + 56, lph - 5, 0, UI_ARROW, 12, 0, 4) then
-    current_page = clamp(current_page + 1, 1, math.ceil(current_tab and #AVAILABLE_TECH/12 or #F_TECH/12))
+    current_page = clamp(current_page + 1, 1, total_current_pages)
   end
-  prints(current_page .. '/' .. math.ceil(#TECH/12), (lpw/2) - (rsw/2) + 41, lph - 4, 0)  
+  prints(current_page .. '/' .. total_current_pages, (lpw/2) - (rsw/2) + 41, lph - 4, 0)  
   ----------RESEARCH QUEUE------------------------------
   prints('Research Queue', (240 - lpw)/2 + lpw - sw/2, 1)
   --research queue grid
@@ -1215,14 +1316,15 @@ function draw_research_screen()
   local i = 1
   for y = 0, 2 do
     for x = 0, 3 do
+      local index = i + ((current_page - 1) * 12)
       --rect(2 + x*25, lph + 3 + y*25, 24, 24, 2)
-      local index = current_tab and AVAILABLE_TECH[i] or not current_tab and F_TECH[i]
+      local final_index = current_tab and AVAILABLE_TECH[index] or not current_tab and F_TECH[index]
       -- if F_TECH[i] then
       --   trace('found FINISHED_TECH - ' .. tostring(F_TECH[i]))
       -- end
-      if index then
-        draw_research_icon(index, 2+x*25, lph+3+y*25)
-        if current_tab and AVAILABLE_TECH[i] and i == current_research then
+      if final_index then
+        draw_research_icon(final_index, 2+x*25, lph+3+y*25)
+        if current_tab and AVAILABLE_TECH[final_index] and final_index == current_research then
           ui.highlight(x*25, lph + y*25 + 2, 24, 24, true, 3, 4)
         end
       end
@@ -1232,13 +1334,13 @@ function draw_research_screen()
   --check available research hover
   local slot = get_hovered_slot(cursor.x, cursor.y, 1, 59, 25, 3, 4)
   if slot then
-    local index = current_tab and AVAILABLE_TECH[slot.index] or F_TECH[slot.index]
+    local index = current_tab and AVAILABLE_TECH[slot.index + ((current_page-1)*12)] or F_TECH[slot.index + ((current_page-1)*12)]
     ui.highlight(slot.x - 1, slot.y, 24, 24, false, 3, 4)
     if not index then return end
     draw_tech_widget(cursor.x + 5, cursor.y + 5, index)
     if current_tab and cursor.l and not cursor.ll then
       if index then
-        selected_research = slot.index
+        selected_research = slot.index + ((current_page-1)*12)
       else
         selected_research = false
       end
@@ -1353,6 +1455,7 @@ function ui.draw_menu()
       STATE = 'help'
     end
   elseif STATE == 'settings' then
+    
     ui.draw_panel(0, 0, 240, 136, 8, 9, {text = 'Settings', bg = 15, fg = 4})
     if ui.draw_text_button(239 - ((text_width(' < ') + 4)), 1, UI_BUTTON2, _, 8, 2, 15, 3, {text = ' < ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
       cls()
@@ -1363,12 +1466,12 @@ function ui.draw_menu()
       {'W A S D', 'Move player'},
       {'ESC', 'Exit game'},
       {'CTRL + R', 'Reload game'},
-      {'I', 'Toggle inventory window'},
+      {'I or TAB', 'Toggle inventory window'},
       {'C', 'Toggle crafting window'},
       {'T', 'Toggle research window'},
       {'R', 'Rotate held item or hovered object'},
       {'Q', 'Pipette tool - copy/swap objects'},
-      {'Left-click', 'Place/deposit item'},
+      {'Left-click', 'Place/deposit item/open machine'},
       {'Right-click hold', 'Mine resource or destroy object'},
       {'Scroll +/-', 'Scroll active hotbar slot'},
     }

@@ -6,6 +6,7 @@
 -- version: 0.3
 -- script: lua
 
+require('classes/vec2D')
 require('classes/item_definitions')
 require('classes/images')
 require('classes/ores')
@@ -30,9 +31,9 @@ require('classes/research_definitions')
 require('classes/solar_panel')
 require('classes/storage_chest')
 
---local seed = tstamp() * time()
+local seed = tstamp() * time()
 --seed = math.random(-1000000000, 1000000000)
-local seed = 902404786
+--local seed = 902404786
 --local seed = 747070313
 --math.randomseed(53264)
 math.randomseed(seed)
@@ -96,23 +97,24 @@ cursor = {
   drag_offset = {x = 0, y = 0},
   item_stack = {id = 9, count = 100}
 }
+
 player = {
-  x = 15 * 8, y = 600 * 8,
+  x = 0, y = 0,
   spr = 362,
   lx = 0, ly = 0,
   shadow = 382,
   anim_frame = 0, anim_speed = 8, anim_dir = 0, anim_max = 4,
   last_dir = '0,0', move_speed = 0.15,
   directions = {
-    ['0,0'] = {id = 362, flip = 0, rot = 0},  --straight
-    ['0,-1'] = {id = 365, flip = 0, rot = 0},  --up
-    ['0,1'] = {id = 365, flip = 2, rot = 0},  --down
-    ['-1,0'] = {id = 363, flip = 1, rot = 0},  --left
-    ['1,0'] = {id = 363, flip = 0, rot = 0},  --right
-    ['1,-1'] = {id = 364, flip = 0, rot = 0},  --up-right
-    ['-1,-1'] = {id = 364, flip = 1, rot = 0},  --up-left
-    ['-1,1'] = {id = 364, flip = 3, rot = 0},  --down-left
-    ['1,1'] = {id = 364, flip = 2, rot = 0}   --down-right
+    ['0,0'] =   {id = 362, flip = 0, rot = 0, dust = vec2(4, 11)},  --straight
+    ['0,-1'] =  {id = 365, flip = 0, rot = 0, dust = vec2(4, 11)},  --up
+    ['0,1'] =   {id = 365, flip = 2, rot = 0, dust = vec2(4, -2)},  --down
+    ['-1,0'] =  {id = 363, flip = 1, rot = 0, dust = vec2(11, 5)},  --left
+    ['1,0'] =   {id = 363, flip = 0, rot = 0, dust = vec2(-2, 5)},  --right
+    ['1,-1'] =  {id = 364, flip = 0, rot = 0, dust = vec2(-2, 10)},  --up-right
+    ['-1,-1'] = {id = 364, flip = 1, rot = 0, dust = vec2(10, 10)},  --up-left
+    ['-1,1'] =  {id = 364, flip = 3, rot = 0, dust = vec2(10, -2)},  --down-left
+    ['1,1'] =   {id = 364, flip = 2, rot = 0, dust = vec2(-2, -2)}   --down-right
   },
 }
 
@@ -160,40 +162,43 @@ local speed = 0.0022
 --------------------
 sounds = {
   ['deny']        = {id =  5, note = 'C-3', duration = 22, channel = 0, volume = 15, speed = 0},
-  ['place_belt']  = {id =  4, note = 'B-3', duration = 10, channel = 0, volume = 15, speed = 4},
+  ['place_belt']  = {id =  4, note = 'B-3', duration = 10, channel = 1, volume = 15, speed = 4},
   ['delete']      = {id =  2, note = 'C-3', duration =  4, channel = 1, volume = 15, speed = 5},
-  ['rotate_r']    = {id =  3, note = 'E-5', duration = 10, channel = 2, volume = 15, speed = 3},
+  ['rotate_r']    = {id =  3, note = 'E-5', duration = 10, channel = 1, volume = 15, speed = 3},
   ['rotate_l']    = {id =  7, note = 'E-5', duration =  5, channel = 2, volume = 15, speed = 4},
   ['move_cursor'] = {id =  0, note = 'C-4', duration =  4, channel = 0, volume = 15, speed = 5},
-  ['axe']         = {id =  0, note = 'D-3', duration = 20, channel = 0, volume =  6, speed = 4},
-  ['move']        = {id = 10, note = 'D-3', duration =  3, channel = 3, volume =  6, speed = 2},
+  ['axe']         = {id =  9, note = 'D-3', duration = 20, channel = 0, volume =  6, speed = 4},
+  ['laser']       = {id =  0, note = 'D-3', duration = 20, channel = 0, volume =  6, speed = 4},
+  ['move']        = {id = 10, note = 'D-3', duration =  5, channel = 3, volume =  6, speed = 5},
+  ['deposit']     = {id = 11, note = 'D-6', duration =  3, channel = 1, volume =  6, speed = 7},
 }
 
 resources = {
-  ['2']  = {id = 5, min =  5, max = 20}, --rocks
-  ['7']  = {id = 5, min =  5, max = 10},
-  ['8']  = {id = 5, min =  1, max =  3},
-  ['24'] = {id = 5, min =  1, max =  3},
-  ['26'] = {id = 5, min =  4, max = 15},
-  ['40'] = {id = 5, min =  4, max = 15},
-  ['42'] = {id = 5, min =  4, max = 15},
+  ['2']  = {name = 'Petrified Fossil', id = 5, min =  5, max = 20}, --rocks
+  ['7']  = {name = 'Medium Rock', id = 5, min =  5, max = 10},
+  ['8']  = {name = 'Pebble', id = 5, min =  1, max =  3},
+  ['24'] = {name = 'Small Rock', id = 5, min =  1, max =  3},
+  ['26'] = {name = 'Medium Rock', id = 5, min =  4, max = 15},
+  ['40'] = {name = 'Medium Rock', id = 5, min =  4, max = 15},
+  ['42'] = {name = 'Large Rock', id = 5, min =  4, max = 15},
 
-  ['3']  = {id = 34, min = 5, max = 12}, --fiber
-  ['4']  = {id = 34, min = 5, max = 12},
-  ['5']  = {id = 34, min = 5, max = 12},
-  ['6']  = {id = 34, min = 5, max = 12},
-  ['1']  = {id = 34, min = 5, max = 12},
-  ['17'] = {id = 34, min = 5, max = 12},
-  ['18'] = {id = 34, min = 5, max = 12},
-  ['19'] = {id = 34, min = 5, max = 12},
-  ['20'] = {id = 34, min = 5, max = 12},
-  ['22'] = {id = 34, min = 5, max = 12},
-  ['33'] = {id = 34, min = 5, max = 12},
-  ['34'] = {id = 34, min = 5, max = 12},
-  ['35'] = {id = 34, min = 5, max = 12},
-  ['36'] = {id = 34, min = 5, max = 12},
-  ['37'] = {id = 34, min = 5, max = 12},
-  ['39'] = {id = 34, min = 5, max = 12},
+  ['3']  = {name = 'Cactus Sprouts', id = 34, min = 5, max = 12}, --fiber
+  ['4']  = {name = 'Wildflower Patch', id = 34, min = 10, max = 20},
+  ['5']  = {name = 'Flowering Cactus', id = 34, min = 19, max = 45},
+  ['6']  = {name = 'Large Wildflower', id = 34, min = 5, max = 17},
+  ['1']  = {name = 'Palm Sprout', id = 34, min = 5, max = 12},
+  ['17'] = {name = 'Grass', id = 34, min = 5, max = 12},
+  ['18'] = {name = 'Small Wildflowers', id = 34, min = 5, max = 12},
+  ['19'] = {name = 'Grass', id = 34, min = 5, max = 12},
+  ['20'] = {name = 'Bean Sprouts', id = 34, min = 5, max = 12},
+  ['21'] = {name = 'Wildflower', id = 34, min = 5, max = 12},
+  ['22'] = {name = 'Wildflower', id = 34, min = 5, max = 12},
+  ['33'] = {name = 'Grass', id = 34, min = 5, max = 12},
+  ['34'] = {name = 'Grass', id = 34, min = 5, max = 12},
+  ['35'] = {name = 'Large Grass Patch', id = 34, min = 5, max = 12},
+  ['36'] = {name = 'Wildflower Stem', id = 34, min = 5, max = 12},
+  ['37'] = {name = 'Small Wildflowers', id = 34, min = 5, max = 12},
+  ['39'] = {name = 'Grass', id = 34, min = 5, max = 12},
 
 }
 
@@ -315,6 +320,13 @@ function new_dust(x_, y_, r_, vx_, vy_)
   end
 end
 
+function draw_dust()
+  for i,d in pairs(dust) do
+    if d.ty>=0 then	circ(d.x,d.y,d.r,d.c)
+    else circb(d.x,d.y,d.r,d.c+1) end
+  end
+end
+
 function get_sprite_pixel(sprite_id, x, y)
   -- Arguments: sprite_id (0-511), x (0-7), y (0-7)
   local byte = peek(0x04000 + sprite_id * 32 + y * 4 + math.floor(x / 2))
@@ -416,8 +428,8 @@ function get_world_key(x, y)
 end
 
 function world_to_screen(world_x, world_y)
-  local screen_x = world_x * 8 - (player.x - 116)
-  local screen_y = world_y * 8 - (player.y - 64)
+  local screen_x = (world_x * 8) - (player.x - 116)
+  local screen_y = (world_y * 8) - (player.y - 64)
   return screen_x - 8, screen_y - 8
 end
 
@@ -587,10 +599,12 @@ function update_player()
     x_dir = 1
   end
   if not cursor.prog then
-    if x_dir ~= 0 or y_dir ~= 0 then
-      new_dust(120 + (-x_dir * 4), 76 + player.anim_frame + (-y_dir*4), 2, (math.random(-1, 1)/2) + (1.75 * -x_dir), (math.random(1, 1)/2) + (1.75 * -y_dir))
-    elseif TICK % 24 == 0 then
-      new_dust(120, 76 + player.anim_frame, 2, (math.random(-1, 1)/2) + (0.75 * -x_dir), (math.random(1, 1)/2) + (0.75 * -y_dir))
+    local dust_dir = player.directions[x_dir .. ',' .. y_dir].dust
+    local dx, dy = 240/2 - 4 + dust_dir.x, 136/2 - 4 + player.anim_frame + dust_dir.y
+    if dust_dir and (x_dir ~= 0 or y_dir ~= 0) then
+      new_dust(dx, dy, 2, math.random(-1,1) + (3*-x_dir), math.random() + (3*-y_dir))
+    elseif TICK%24 == 0 then
+      new_dust(dx, dy, 2, math.random(-1,1) + (3*-x_dir), math.random() + (3*-y_dir))
     end
     if x_dir ~= 0 or y_dir ~= 0 then
       sound('move')
@@ -601,15 +615,16 @@ function update_player()
 end
 
 function draw_player()
-  local sx, sy = world_to_screen(player.x//8 + 1, player.y//8 + 3)
+  local sx, sy = get_screen_cell(120, 76)
   local tile, wx, wy = get_world_cell(sx, sy)
   -- if biome ~= tile.biome and not show_tech then
   --   biome = tile.biome
   --   poke(0x03FF8, biomes[tile.biome].map_col)
   -- end
-  ui.highlight(sx, sy, 8, 8, false, 5, 6)
+  if alt_mode then ui.highlight(sx-1, sy-1, 8, 8, false, 5, 6) end
   local sprite = player.directions[player.last_dir] or player.directions['0,0']
   sspr(player.shadow - player.anim_frame, 240/2 - 4, 136/2 + 8, 0)
+  draw_dust()
   sspr(sprite.id, 240/2 - 4, 136/2 - 4 + player.anim_frame, 0, 1, sprite.flip)
 end
 
@@ -682,120 +697,30 @@ end
 function draw_cursor()
   local x, y = cursor.x, cursor.y
   local k = get_key(x, y)
+  local ent = ENTS[k]
+  local tile, wx, wy = get_world_cell(x, y)
 
-  if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) then
+  if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) or (ui.active_window and ui.active_window:is_hovered(cursor.x, cursor.y)) then
     if cursor.panel_drag then
       sspr(CURSOR_GRAB_ID, cursor.x - 1, cursor.y - 1, 0, 1, 0, 0, 1, 1)
     else
       sspr(CURSOR_HAND_ID, cursor.x - 2, cursor.y, 0, 1, 0, 0, 1, 1)
     end
-  return
+    if cursor.type == 'item' and cursor.item then
+      --draw
+    end
+    return
+  end
+  
+  if cursor.type == 'item' and cursor.item then
+    if callbacks[cursor.item] then
+      callbacks[cursor.item].draw_item(x, y)
+    else
+      --draw_item_stack(cursor.x + 3, cursor.y + 3, cursor.item_stack)
+    end
   end
 
-  if cursor.type == 'item' and cursor.item_stack.id ~= 0 and ITEMS[cursor.item_stack.id].type == 'placeable' then
-    if cursor.item == 'transport_belt' then
-      if cursor.drag then
-        local sx, sy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
-        if cursor.drag_dir == 0 or cursor.drag_dir == 2 then
-          ui.highlight(cursor.tx-2, sy-1, 9, 9, false, 3, 4)
-          --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, sy - 1, 0, 1, 0, 0, 2, 2)
-        else
-          ui.highlight(sx - 2, cursor.ty-2, 9, 9, false, 3, 4)
-          --sspr(CURSOR_HIGHLIGHT, sx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
-        end
-        --arrow to indicate drag direction
-        sspr(BELT_ARROW_ID, cursor.tx, cursor.ty, 0, 1, 0, cursor.drag_dir, 1, 1)
-      elseif not ENTS[k] or (ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= cursor.rot) then
-        sspr(BELT_ID_STRAIGHT + BELT_TICK, cursor.tx, cursor.ty, BELT_COLORKEY, 1, 0, cursor.rot, 1, 1)
-        ui.highlight(cursor.tx-2, cursor.ty-1, 8, 8, false, 3, 4)
-        --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
-      else
-        ui.highlight(cursor.tx-2, cursor.ty-1, 8, 8, false, 3, 4)
-        --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
-      end
-    elseif cursor.item == 'inserter' then
-      if not ENTS[k] or (ENTS[k] and ENTS[k].type == 'inserter' and ENTS[k].rot ~= cursor.rot) then
-        local tile, world_x, world_y = get_world_cell(cursor.x, cursor.y)
-        local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rot)
-        temp_inserter:draw()
-        ui.highlight(cursor.tx-2, cursor.ty-2, 8, 8, false, 5, 6)
-        --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
-      end
-      ui.highlight(cursor.tx-2, cursor.ty-2, 8, 8, false, 2, 2)
-      --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
-    elseif cursor.item == 'power_pole' then
-      local tile, world_x, world_y = get_world_cell(cursor.tx, cursor.ty)
-      local temp_pole = new_pole({x = world_x, y = world_y})
-      temp_pole:draw(true)
-      --check around cursor to attach temp cables to other poles
-    elseif cursor.item == 'splitter' then
-      local loc = SPLITTER_ROTATION_MAP[cursor.rot]
-      local tile, wx, wy = get_world_cell(x, y)
-      wx, wy = wx + loc.x, wy + loc.y
-      local tile2, cell_x, cell_y = get_world_cell(x, y)
-      local key1 = get_key(x, y)
-      local key2 = wx .. '-' .. wy
-      local x, y, w, h, col1, col2 = cursor.tx-2, cursor.ty-1, 16, 8, 5, 7
-      if cursor.rot == 0 or cursor.rot == 2 then
-        w, h = h, w
-      end
-      if ENTS[key1] or ENTS[key2] then col1, col2 = 2, 2 end
-      ui.highlight(x, y, w, h, false, col1, col2)
-      sspr(SPLITTER_ID, cursor.tx, cursor.ty, 0, 1, 0, cursor.rot, 1, 2)
-    elseif cursor.item == 'mining_drill' then
-      local found_ores = {}
-      local color_keys = {[1] = {0, 2, 1}, [2] = {0, 2, 1}, [3] = {0, 2, 1}, [4] = {0, 2, 1}}
-      for i = 1, 4 do
-        local pos = DRILL_AREA_MAP_BURNER[i]
-        local sx, sy = x + (pos.x * 8), y + (pos.y * 8)
-        local tile, wx, wy = get_world_cell(sx, sy)
-        local k = get_key(sx, sy)
-        if not tile.ore or ENTS[k] then
-          color_keys[i] = {0, 5, 1}
-        end
-      end
-      
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx - 1, cursor.ty - 1, color_keys[1], 1, 0, 0, 1, 1)
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx + 9, cursor.ty - 1, color_keys[2], 1, 0, 1, 1, 1)
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx + 9, cursor.ty + 9, color_keys[3], 1, 0, 2, 1, 1)
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx - 1, cursor.ty + 9, color_keys[4], 1, 0, 3, 1, 1)
-      local sx, sy = get_screen_cell(x, y)
-      local belt_pos = DRILL_MINI_BELT_MAP[cursor.rot]
-      sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 5, 0, 1, 0, 0, 1, 1)
-      sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
-      sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, cursor.rot, 1, 1)
-    elseif cursor.item == 'stone_furnace' then
-      local sx, sy = get_screen_cell(x, y)
-      sspr(FURNACE_ID, sx, sy, FURNACE_COLORKEY, 1, 0, 0, 2, 2)
-    elseif cursor.item == 'underground_belt' then
-      local flip = UBELT_ROT_MAP[cursor.rot].in_flip
-      local result, other_key, cells = get_ubelt_connection(cursor.x, cursor.y, cursor.rot)
-      -- trace('result: ' .. tostring(result))
-      -- trace('other_key: ' .. tostring(other_key))
-      -- trace('cells: ' .. tostring(cells))
-      if result then
-        local sx, sy = world_to_screen(ENTS[other_key].x, ENTS[other_key].y)
-        ui.highlight(sx - 2, sy - 1, 7, 7, false, 3, 4)
-        sspr(UBELT_OUT, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, UBELT_ROT_MAP[cursor.rot].out_flip, cursor.rot)
-        --sspr(CURSOR_HIGHLIGHT, sx - 1, sy - 1, 0, 1, 0, 0, 2, 2)
-        for i, cell in ipairs(cells) do
-          ui.highlight(cell.x - 2, cell.y - 1, 7, 7, false, 3, 4)
-          --sspr(CURSOR_HIGHLIGHT, cell.x - 1, cell.y - 1, 0, 1, 0, 0, 2, 2)
-        end
-      else
-        sspr(UBELT_IN, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, flip, cursor.rot)
-      end
-      ui.highlight(cursor.tx - 2, cursor.ty - 1, 7, 7, false, 3, 4)
-      --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
-    elseif cursor.item == 'assembly_machine' then
-      sspr(CRAFTER_ID, cursor.tx, cursor.ty, ITEMS[19].color_key, 1, 0, 0, 3, 3)
-    elseif cursor.item == 'research_lab' then
-      sspr(LAB_ID, cursor.tx, cursor.ty, ITEMS[22].color_key, 1, 0, 0, 3, 3)
-    elseif cursor.item == 'chest' then
-      sspr(CHEST_ID, cursor.tx, cursor.ty, -1)
-      ui.highlight(cursor.tx-2, cursor.ty-1, 8, 8, false, 2, 2)
-    end
-  elseif cursor.type == 'item' and ITEMS[cursor.item_stack.id].type ~= 'placeable' then
+  if cursor.type == 'item' and ITEMS[cursor.item_stack.id].type ~= 'placeable' then
     draw_item_stack(cursor.x + 5, cursor.y + 5, {id = cursor.item_stack.id, count = cursor.item_stack.count})
   end
   if cursor.type == 'pointer' then
@@ -804,11 +729,17 @@ function draw_cursor()
       
     end
     sspr(CURSOR_POINTER, cursor.x, cursor.y, 0, 1, 0, 0, 1, 1)
-    if show_tile_widget and not cursor.prog then
-      local y_off = TICK%8
+    --if show_tile_widget and not cursor.prog then
+    if not cursor.prog then
+      --local y_off = TICK%8
       --line(cursor.tx, cursor.ty + y_off, cursor.tx + 8, cursor.ty + y_off, 10 + TICK%5)
-      ui.highlight(cursor.tx-2, cursor.ty-1, 8, 8, false, 2, 2)
-    
+      if tile.is_tree and not ent then
+        local sx, sy = world_to_screen(wx, wy)
+        local c1, c2 = 3, 4
+        if tile.biome < 2 then c1, c2 = 2, 3 end
+        ui.highlight(sx - 9 + tile.offset.x, sy - 27 + tile.offset.y, 24, 32, false, c1, c2)
+      end
+      ui.highlight(cursor.tx - 1, cursor.ty - 1, 8, 8, false, 2, 2)
     end
   end
 end
@@ -841,25 +772,27 @@ function rotate_cursor(dir)
         ENTS[k]:rotate(ENTS[k].rot + 1)
       end
     end
-  elseif cursor.drag and cursor.type == 'item' and cursor.item == 'transport_belt' then
-    --trace('drag-rotating')
-    sound('rotate_' .. dir)
-    cursor.rot = cursor.rot + 1
-    if cursor.rot > 3 then cursor.rot = 0 end
-    cursor.drag_dir = cursor.rot
-    --trace('rotated while dragging')
-    local tile, wx, wy
-    local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
-    if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
-      _, wx, wy = get_world_cell(cursor.x, dy)
-    elseif (cursor.drag_dir == 1 or cursor.drag_dir == 3) then
-      _, wx, wy = get_world_cell(dx, cursor.y)
-    end
-    -- cursor.rot = cursor.rot + 1
-    -- if cursor.rot > 3 then cursor.rot = 0 end
-    --cursor.drag_offset = 
-    cursor.drag_loc = {x = wx, y = wy}
   end
+  -- elseif cursor.drag and cursor.type == 'item' and cursor.item == 'transport_belt' then
+  --   return
+  --   --trace('drag-rotating')
+  --   sound('rotate_' .. dir)
+  --   cursor.rot = cursor.rot + 1
+  --   if cursor.rot > 3 then cursor.rot = 0 end
+  --   --trace('rotated while dragging')
+  --   local tile, wx, wy
+  --   local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
+  --   if (cursor.drag_dir == 0 or cursor.drag_dir == 2) then
+  --     _, wx, wy = get_world_cell(cursor.x, dy)
+  --   elseif (cursor.drag_dir == 1 or cursor.drag_dir == 3) then
+  --     _, wx, wy = get_world_cell(dy, cursor.y)
+  --   end
+  --   cursor.drag_dir = cursor.rot
+  --   -- cursor.rot = cursor.rot + 1
+  --   -- if cursor.rot > 3 then cursor.rot = 0 end
+  --   --cursor.drag_offset = 
+  --   cursor.drag_loc = {x = wx, y = wy}
+  -- end
   if cursor.type == 'item' then sound('rotate_' .. dir) end
 end
 
@@ -872,7 +805,7 @@ function remove_tile(x, y)
     if ENTS[k].type == 'underground_belt' and ENTS[k].exit_key then
       stack.count = 2
     end
-    remove_item[ENTS[k].type](x, y)
+    callbacks[ENTS[k].type].remove_item(x, y)
     --trace('adding item_id: ' .. tostring(stack.id) .. ' to inventory')
     ui.new_alert(cursor.x, cursor.y, '+ ' .. stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1000, 0, 11)
     inv:add_item(stack)
@@ -1143,16 +1076,16 @@ function dispatch_input()
         --remove_tile(cursor.x, cursor.y)
         return
       end
+      --if item is placeable, run callback for item type
+      --checking transport_belt's first (for drag-placement), then other items
     else
-    --if item is placeable, run callback for item type
-    --checking transport_belt's first (for drag-placement), then other items
-      if cursor.l and cursor.item_stack.id == 9 then
-        --trace('placing belt')
+      if cursor.l and cursor.item == 'transport_belt' then
+        trace('placing belt')
         local slot = cursor.item_stack.slot
-        local item_consumed = place_item[cursor.item](cursor.x, cursor.y)
+        local item_consumed = callbacks[cursor.item].place_item(cursor.x, cursor.y)
         if slot and item_consumed then
           inv.slots[slot].count = inv.slots[slot].count - 1
-          cursor.item_stack = {id = cursor.item_stack.id, count = cursor.item_stack.count - 1, slot = cursor.item_stack.slot}
+          cursor.item_stack.count = inv.slots[slot].count
         elseif item_consumed then
           cursor.item_stack.count = cursor.item_stack.count - 1
           if cursor.item_stack.count <= 0 then
@@ -1168,9 +1101,9 @@ function dispatch_input()
           cursor.type = 'pointer'
           cursor.item_stack = {id = 0, count = 0}
         end
-        return
+        --return
       elseif cursor.l and not cursor.ll and ITEMS[cursor.item_stack.id].type == 'placeable' then
-        if place_item[cursor.item] and place_item[cursor.item](cursor.x, cursor.y) then
+        if callbacks[cursor.item] and callbacks[cursor.item].place_item(cursor.x, cursor.y) then
           if cursor.item_stack.slot then
             inv.slots[cursor.item_stack.slot].count = inv.slots[cursor.item_stack.slot].count - 1
             cursor.item_stack.count = cursor.item_stack.count - 1
@@ -1199,7 +1132,7 @@ function dispatch_input()
 
   if cursor.held_right then
     local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
-    local sx, sy = world_to_screen(wx, wy)
+    local sx, sy = get_screen_cell(cursor.x, cursor.y)
     local result = resources[tostring(tile.sprite_id)]
     local k = get_ent(cursor.x, cursor.y)
     if not result and not tile.is_tree and not ENTS[k] and not tile.ore then cursor.prog = false return end
@@ -1218,15 +1151,19 @@ function dispatch_input()
       local sx, sy = world_to_screen(wx, wy)
       local c1, c2 = 3, 4
       if tile.biome < 2 then c1, c2 = 2, 3 end
-      ui.highlight(sx - 9 + tile.offset.x, sy - 27 + tile.offset.y, 24, 32, false, c1, c2)
-      ui.highlight(sx + tile.offset.x - 2, sy - 1 + tile.offset.y, 8, 8, false, c1, c2)
+      ui.highlight(cursor.tx - 9 + tile.offset.x, cursor.ty - 27 + tile.offset.y, 24, 32, false, c1, c2)
+      ui.highlight(cursor.tx + tile.offset.x - 2, cursor.ty - 1 + tile.offset.y, 8, 8, false, c1, c2)
     end
     if result or tile.ore or ENTS[k] then
-      ui.highlight(sx - 2, sy - 1, 8, 8, false, 3, 4)
+      ui.highlight(sx - 1, sy - 1, 8, 8, false, 3, 4)
     end
     if (ENTS[k] or tile.is_tree or tile.ore or result) then
       if TICK % 20 == 0 then
-        sound('axe')
+        if tile.is_tree then
+          sound('axe')
+        else
+          sound('laser')
+        end
       end
       cursor.prog = remap(clamp(cursor.hold_time, 0, CURSOR_MINING_SPEED), 0, CURSOR_MINING_SPEED, 0, 9)
       -- line(cursor.x - 4, cursor.y + 7, cursor.x + 5, cursor.y + 7, 0)
@@ -1264,7 +1201,24 @@ function dispatch_input()
     end
 
     if opensies[ENTS[k].type] then
-      ui.active_window = ENTS[k]:open()
+      if key(64) and cursor.type == 'item' and ENTS[k].deposit_stack then
+        local old_stack = cursor.item_stack
+        local result, stack = ENTS[k]:deposit_stack(cursor.item_stack)
+        if result then
+          if stack then
+            if stack.count > 0 then
+              cursor.item_stack.count = stack.count
+            else
+              cursor.item_stack = {id = 0, count = 0, slot = false}
+              cursor.type = 'pointer'
+            end
+            sound('deposit')
+            ui.new_alert(cursor.x, cursor.y, stack.count - old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
+          end
+        end
+      else
+        ui.active_window = ENTS[k]:open()
+      end
     end
 
     return
@@ -1368,11 +1322,12 @@ function TIC()
   if STATE ~= "game" then
     update_cursor_state()
     ui.draw_menu()
+    TICK = TICK + 1
     return
   end
   
   local start = time()
-    update_water_effect(time())
+  update_water_effect(time())
   cls(0)
 
   local m_time = 0
@@ -1413,24 +1368,29 @@ function TIC()
     end
   end
 
+  if TICK % CRAFTER_ANIM_RATE == 0 then
+    CRAFTER_ANIM_FRAME = CRAFTER_ANIM_FRAME + CRAFTER_ANIM_DIR
+    if CRAFTER_ANIM_FRAME > 5 then
+      CRAFTER_ANIM_DIR = -1
+    elseif CRAFTER_ANIM_FRAME < 1 then
+      CRAFTER_ANIM_DIR = 1
+    end
+  end
+
   local ue_time = lapse(update_ents)
   --draw_ents()
   local de_time = lapse(draw_ents)
   local dcl_time = 0
   if not show_mini_map then
     local st_time = time()
-    TileMan:draw_clutter(player, 31, 18)
+    TileMan:draw_clutter(player, 32, 21)
     dcl_time = floor(time() - st_time)
   end
   --draw dust
   particles()
-  for i,d in pairs(dust) do
-    if d.ty>=0 then	circ(d.x,d.y,d.r,d.c)
-    else circb(d.x,d.y,d.r,d.c+1) end
-  end
+
   draw_player()
 
-  local dc_time = lapse(draw_cursor)
   local x, y, l, m, r = mouse()
   local col = 5
   if r then col = 2 end
@@ -1438,9 +1398,7 @@ function TIC()
   --   sspr(346 + BELT_TICK, x - 4, y - 4, 0, 1)
   --   line(x, y, 119, 66 + player.anim_frame, 4 + BELT_TICK)
   -- end
-
-  if show_tile_widget then draw_tile_widget() end
-
+  
   inv:draw()
   --inv:draw_hotbar()
   craft_menu:draw()
@@ -1451,7 +1409,9 @@ function TIC()
       ui.active_window = nil
     end
   end
-
+  local dc_time = lapse(draw_cursor)
+  
+  
   --draw_cursor()
 
   local info = {
@@ -1505,18 +1465,23 @@ function TIC()
   end
   if show_tech then draw_research_screen() end
   if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
+  if show_tile_widget then draw_tile_widget() end
   render_cursor_progress()
   ui.update_alerts()
   last_frame_time = time()
+
+  -- local tx, ty = get_screen_cell(cursor.x, cursor.y)
+  -- rectb(tx, ty, 8, 8, 9)
+
   TICK = TICK + 1
 end
 
 -- <TILES>
--- 000:4444444444444444444444444444444444444444444444444444444444444444
+-- 000:4444444443444444444444444444444444444434444444444443444444444444
 -- 001:7544447677544765677475774777677444767744444234444443344444423444
 -- 002:4444444444cdcc444dcdcdc4dcdcdcdccddbbdce4cdddde444eeee4444444444
 -- 003:4774444474474444474764744447474744476747446747444447476444474744
--- 004:4b444b44b2c4b3c44b447c4b47447bca44b4babc4b1c4c4744b4474444744444
+-- 004:4b444c44b2c4c3c44b444c4b47444bca44b4babc4b1c4c4744b4474444744444
 -- 005:44476744445626544662326746562657467757774467777f444667f444444444
 -- 006:44b444444b2b4774b252b4474b3b744444747444457447544475474447545744
 -- 007:444444444444444444cbcd444cbcdcd44bcdcdd44cdcdde444eeee4444444444
@@ -1528,7 +1493,7 @@ end
 -- 013:0000000000000044000004440000440400004444004444440404444404444444
 -- 014:0000000000000000000000000000000000000000004444000444444044444444
 -- 015:0404444004444440004444044044440000404400044444400044440404444440
--- 016:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+-- 016:ddddddddddddddcdddcddddddddddddddddddddddddddddddddcdddddddddddd
 -- 017:ddddd5dddddd6ddd5dd57dddd6d67dd7d6d67d7dd6d67d7ddddddddddddddddd
 -- 018:ddddddddddbddddddb2bddcdddbddc2cdd7dddcddd7ddd7ddddddddddddddddd
 -- 019:dddddddddddddddddd5ddddddd67dddddd67dd7ddd67d7ddddddd7dddddddddd
@@ -1544,7 +1509,7 @@ end
 -- 029:44444444444444d444444ddd4444dd4d444ddddd44d4dddd44dddddd4ddddddd
 -- 030:444444444444444444444444444444444444444444dddd444dddddd4dddddddd
 -- 031:4d4dddd44dddddd444dddd4dd4dddd4444d4dd444dddddd444dddd4d4dddddd4
--- 032:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 032:eeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeee8eeeeeeeeeeeeee
 -- 033:eeeeeeeeeeeeeeeee6eeeeeeee6eee6ee66ee66ee66ee66eee6ee6eeeeeeeeee
 -- 034:eeeeeeeeeee6eeeee6ee6eeeee6e6ee6ee6e6e6eee6e6e6eee6e6e6eeeeeeeee
 -- 035:eeeeeeeee6eeeeeeee6eeeeeee56eee66e56ee6ee666e56eee56566eee66566e
@@ -1604,9 +1569,9 @@ end
 -- 194:0077777707556466746646567665656466677777677000007007777700746565
 -- 195:0000000077000000657000076657007476650656776607567076755657576760
 -- 196:0777700074746700565765706566666756777776677000070000000077770000
--- 197:1111111111111115111111551111155611111557111155611157575715577676
--- 198:11157571655656565575757557175656577565b565565bab571767b776761676
--- 199:1111111111111111757111116656111165757111565767116571761176676711
+-- 197:1111111111111117111117551111155611117557111755611157575717567675
+-- 198:77677777655656565575757557175676577567b765565bab571767b776761565
+-- 199:1111111177111111667111115767111176767111676767117676767176176771
 -- 200:1111111111111111111111111157575615656561575751566671676767677676
 -- 201:1111111511111156111115755611676765617771565117776767717116756567
 -- 202:7571111156561111157571116767611177177611775751717565656657575157
@@ -1615,9 +1580,9 @@ end
 -- 210:0756665674665777766777007577700076670000676000000770000000700000
 -- 211:6677777770733766002332700032230000333300000333300003333000023320
 -- 212:6767700076756700776676700777657000077660000077600000067000000760
--- 213:55157775575757517676b677177b3b771177b7571111cc0611111c0511111bc1
--- 214:67676767575775717676767667617b7577776b67565677716165777711117c01
--- 215:6756576175616567565b57577576b67767b77771717777117bc7b111bb1b2b11
+-- 213:55157756575757617676b676177b3b571177b7651111cc0611111c0511111bc1
+-- 214:57576757656575717656567667617b7575776b57565657616165767611116c01
+-- 215:6756576175656567565b57577576b67757b77771617777117bc7b111bb1b2b11
 -- 216:6771717116777777116757571113211111113757117676761567177156567777
 -- 217:7777561673276513113676316532673157365136765375577163656557573757
 -- 218:717676766777b776166beb561777b66176325111573211111566561157577571
@@ -1675,26 +1640,67 @@ end
 -- 080:00000000000a999900a99fff0a99f9990a9f9fff0a9f9fef0a9f9fff0a9f9999
 -- 081:0000000099999999ffffffff9999999999fff99f99fef99f99fff99f99999999
 -- 082:0000000099999000fff99900999f9990ff99f990ef99f990ff99f9909999f990
+-- 084:00000000000bbbbb00beeccc0bceccee0bccce990bcdce9d0bcccede0bcccedf
+-- 085:00000000bbbbbbbbdccdcdcceeeeeeeedddddd99ffffffd9eeeeeeedfffffffd
+-- 086:00000000bbbbb000cdcccb00eeeeccb09bb9ecb09cc9ecb09cc9ecb09dd9edb0
+-- 088:d000000d0700007000700700000cd000000dc0000070070007000070d000000d
+-- 089:0000000000000000000000000040000000b0000000b000000ebe00000fef0000
 -- 096:0a9f9fff0aafffee0aafafff0aafaaae0aafaaae0aafaaae0aafaaae0aafaaae
 -- 097:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 098:fff9f990eefffa90fffafa90eaaafa90eaaafa90eaaafa90eaaafa90eaaafa90
 -- 099:0aaaaaa0ae9e9e9aa9ffff9aafeeeefaaaffffaaaaaeeaaa9aaeeaa909999990
+-- 100:0bccdede0bcdcedf0bcccede0bcdcedf0bccde9d0bcdce990bccde990bcdcebc
+-- 101:eeeeeeedfffffffdeeeeeeedfffffffdeeeeeed9dddddd9999999999dcdccdcd
+-- 102:9cc9ecb09dd9ecb09cc9edb09dd9ecb09cc9edb09dd9ecb09ff9edb0f45fecb0
+-- 103:0aaaaaa0ae9e9e9aa9ffff9aafeeeefaaaffffaaaaaeeaaa9aaeeaa909999990
 -- 112:0aafaaae0aafaaae0aafaaae0aaafaae0aaaaffe009aaaaa0009999900000000
 -- 113:ffffffffffffffffffffffffffffffffeeeeeeeeaaaaaaaa9999999900000000
 -- 114:eaaafa90eaaafa90eaaafa90eaafaa90effaaa90aaaaa9009999900000000000
+-- 116:0bccdebc0bcdce990bcedcee0bceeccd0becccdc00bccccc000bbbbb00000000
+-- 117:dcdccdcd99999999eeeeeeeecdcdcdcddcdcdcdccccdcccdbbbbbbbb00000000
+-- 118:f55fedb09ff9ecb0eeeeceb0cdcdeeb0dcdcdcb0cdcdcb00bbbbb00000000000
 -- 128:000000000003444400344fff0344f444034f4fff034f4fef034f4fff034f4444
 -- 129:0000000044444444ffffffff4444444444fff44f44fef44f44fff44f44444444
 -- 130:0000000044444000fff44400444f4440ff44f440ef44f440ff44f4404444f440
+-- 132:11111111111ff1111ccdfcedc23d4e6cc22d5e7c1ccdfced111ff11111111111
+-- 134:00fddf0d0fc77cfc0c7657c00ce77ec00decced002ceec20200dd00200300300
+-- 135:00fddf000fcee7f00dee76500deee7700cdccec0003ee2d0030d200d00020000
+-- 136:00000000000bbbbb00beeccc0bceccee0bccce990bcdce9d0bcccede0bccced0
+-- 137:00000000bbbbbbbbdccdcdcceeeeeeeedddddd99000000d97eeee7ed0700704b
+-- 138:00000000bbbbb000cdcccb00eeeeccb09bb9ecb09ff9ecb09ef9ecb0bbe9edb0
+-- 139:00000000000bbbbb00beeccc0bceccee0bccce990bcdce9d0bcccedf0bcccedf
+-- 140:00000000bbbbbbbbdccdcdcceeeeeeeedddddd99ffffffd9fffffffdffffff4b
+-- 141:00000000bbbbb000cdcccb00eeeeccb09bb9ecb09ff9ecb09ef9ecb0bbe9edb0
 -- 144:034f4fff033fffee033f3fff033f333e033f333e033f333e033f333e033f333e
 -- 145:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 146:fff4f440eefff340fff3f340e333f340e333f340e333f340e333f340e333f340
 -- 147:033333303e4e4e4334ffff433feeeef333ffff33333ee333433ee33404444440
+-- 150:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
+-- 151:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
+-- 152:0bccdede0bcdced00bcccede0bcdced00bccde9d0bcdce990bccde990bcdcebf
+-- 153:eecdeeed00dc000de7ee7eed7000070de4eeeed9dbdddd999b999999ebefcdcd
+-- 154:9ef9ecb09ff9ecb09cc9edb09dd9ecb09cc9edb09dd9ecb09ff9edb0f45fecb0
+-- 155:0bccdedf0bcdcedf0bcccedf0bcdcedf0bccde9d0bcdce990bccde990bcdcebd
+-- 156:fffffffdfffffffdfffffffdfffffffdf4ffffd9dbdddd999b999999ebedcdcd
+-- 157:9ef9ecb09ff9ecb09cc9edb09dd9ecb09cc9edb09dd9ecb09ff9edb0f45fecb0
 -- 160:033f333e033f333e033f333e0333f33e03333ffe004333330004444400000000
 -- 161:ffffffffffffffffffffffffffffffffeeeeeeee333333334444444400000000
 -- 162:e333f340e333f340e333f340e33f3340eff33340333334004444400000000000
+-- 164:000000000000000000000000000cccc000cfefed00cfefbc00eddbff00eeebff
+-- 165:000000000000000000ee00000effe0000feef0000ffff000ceffeeb4ceeeebb3
+-- 166:000000000000000000000000000000000000000000000000dddd0000dddded00
+-- 168:0bccdebf0bcdce990bcedcee0bceeccd0becccdc00bccccc000bbbbb00000000
+-- 169:feffcdcd99999999eeeeeeeecdcdcdcddcdcdcdccccdcccdbbbbbbbb00000000
+-- 170:f55fedb09ff9ecb0eeeeceb0cdcdeeb0dcdcdcb0cdcdcb00bbbbb00000000000
+-- 171:0bccdebd0bcdce990bcedcee0bceeccd0becccdc00bccccc000bbbbb00000000
+-- 172:fefdcdcd99999999eeeeeeeecdcdcdcddcdcdcdccccdcccdbbbbbbbb00000000
+-- 173:f55fedb09ff9ecb0eeeeceb0cdcdeeb0dcdcdcb0cdcdcb00bbbbb00000000000
 -- 176:00000000000bcccc00bccfff0bccfccc0bcfcfff0bcfcfef0bcfcfff0bcfcccc
 -- 177:00000000ccccccccffffffffccccccccccfffccfccfefccfccfffccfcccccccc
 -- 178:00000000ccccc000fffccc00cccfccc0ffccfcc0efccfcc0ffccfcc0ccccfcc0
+-- 180:00feeccc00fffcdd00999cac09889aac09cccc9909ddd99909ceeeee08ceeeee
+-- 181:eddeebd2edddeee2aeddeeeeaeeeebbc9eeeebcc9fffffffedddddddeddddddd
+-- 182:dedeeed0eeeefee0eeedfee04ddefe003eeeedd0fffdffd0ddddfe00dffdfe00
 -- 192:0bcfcfff0bbfffee0bbfbfff0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe
 -- 193:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 194:fffcfcc0eefffbc0fffbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0
@@ -1735,7 +1741,7 @@ end
 -- 023:e4f000004df00000d4f000000000000000000000000000000000000000000000
 -- 024:6560000034500000654000000000000000000000000000000000000000000000
 -- 025:0300000034300000030000000000000000000000000000000000000000000000
--- 026:1cd111111cc111111dc111111111111111111111111111111111111111111111
+-- 026:cd111111dcd111111dc111111111111111111111111111111111111111111111
 -- 027:44444444444ef04444f000444400f0044f000004400f00f444f00f4444444444
 -- 030:b0000000bb000000bbc00000bde0000000000000000000000000000000000000
 -- 031:0000000000300000034000003433333344444444040000000040000000000000
@@ -1759,9 +1765,9 @@ end
 -- 052:0003200000023000000330000002300000033000000230000002300000033000
 -- 053:111111111111111c1111111011111c0011111000111c000b111000b01c000000
 -- 054:11111111011111110011111100011111b00011110000011100b000110b000c11
--- 056:00000000000bcccc00bccfff0bccfccc0bcfcfff0bcfcfef0bcfcfff0bcfcccc
--- 057:00000000ccccccccffffffffccccccccccfffccfccfefccfccfffccfcccccccc
--- 058:00000000ccccc000fffccc00cccfccc0ffccfcc0efccfcc0ffccfcc0ccccfcc0
+-- 056:00000000000bbbbb00bccccc0bceceee0bece9dd0bdcedff0bccedee0bccedff
+-- 057:00000000bbbbbbbbdccdcdcceeeeeeeedddddd99ffffffd9eeeeeed9ffffffd9
+-- 058:00000000bbbbb000cdcccb00eeececb0bb9eceb0cc9eceb0cc9ecdb0dd9eccb0
 -- 060:00ed0e00edfddfd0efdeedfe0dedfeddddefded0efdeedfe0dfddfde00e0de00
 -- 061:11111111111111111111111111111f441111143f111114f31111114411ff1144
 -- 062:1111111111111111111111f411111f4444443441444434411111114411ff1114
@@ -1773,22 +1779,25 @@ end
 -- 068:0002300000032000000cd000000dc000000ce000000cd0000000000000000000
 -- 069:100000001100000b1110000011110000111110001111110c1111111d11111111
 -- 070:b0001d11000c1111001d11110c1111111d111111111111111111111111111111
--- 072:0bcfcfff0bbfff770bbfbfff0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe
--- 073:ffffffff77777777ffffffffeeeeeeeeffffffffffffffffffffffffffffffff
--- 074:fffcfcc077fffbc0fffbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0
--- 075:0bbbbbb0becececbbcffffcbbf7777fbbbffffbbbbbeebbbcbbeebbc0cccccc0
+-- 072:0bcdedee0bdcedff0bccedee0bdcedff0bcdedee0bdce9dd0bcde9990bdcebcd
+-- 073:eeeeeed9ffffffd9eeeeeed9ffffffd9eeeeeed9dddddd9999999999cdccdcdf
+-- 074:cc9ecdb0dd9eccb0cc9ecdb0dd9eccb0cc9ecdb0dd9eccb0ff9ecdb0bcfeccb0
+-- 075:0bbbbbd0b8dd989bbdffd98dbdeed89bb9dd898db8989f9bb989f5fd0bbbdbd0
 -- 077:1f44f1441f444f4411f44433111f4f44111f4f44111f44ff1111f44411111f4d
 -- 078:1f44f1dff444fdee444fdeeef4fdffe4f4dffffe4deeffffdeeeefffffe4440f
 -- 079:fdf11111ffdf1111effdf111440fdf11e40ffdf1e40efdf1feeedf11ffedf111
 -- 080:0000000000212000020000000100000002000000000000000000000000000000
 -- 081:1aaa0111a969a011a967a011a999a0111aaa0111111111111111111111111111
 -- 082:000fccff000fccf000f4dde00f4dfed00f4defd000f4dde0000fccdf000efffe
+-- 083:4500000056000000000000000000000000000000000000000000000000000000
+-- 084:1ddd7771dddd7777dddd7777dddd7777bbbb9999bbbb9999bbbb99991bbb9991
 -- 085:11111111141f1f11141f1f11141f1f11111111111111111313111132111d1321
 -- 086:111fddf111f2eecf112b2eed1332eeed32dcccdc21fdee31111fdd1311111211
--- 088:0bbfbbbe0bbfbbbe0bbfbbbe0bbbfbbe0bbbbffe00cbbbbb000ccccc00000000
--- 089:ffffffffffffffffffffffffffffffffeeeeeeeebbbbbbbbcccccccc00000000
--- 090:ebbbfbc0ebbbfbc0ebbbfbc0ebbfbbc0effbbbc0bbbbbc00ccccc00000000000
--- 091:ece00000f6f00000cfc000000000000000000000000000000000000000000000
+-- 088:0bcdebcd0bdce9990bceceee0becccdc0beccdcd00bccccc000bbbbb00000000
+-- 089:cdccdcdf99999999eeeeeeeedcdcdcdccdcdcdcdcccdcccdbbbbbcbb00000000
+-- 090:cdfecdb0ff9eccb0eeececb0dcdcceb0cdcdceb0cdcdcb00bcbbb00000000000
+-- 091:000000000d0000c0008009000008900000098000009008000c0000d000000000
+-- 092:040000000b0000000b000000ebe00000fef00000000000000000000000000000
 -- 093:11111f4d11111144111111ff1111111111111111111111111111111111111111
 -- 094:fffee40fdfffe40efdfffeee1fdfffed11fdffdf111fddf11111ff1111111111
 -- 095:ffdf1111fdf11111df111111f111111111111111111111111111111111111111
@@ -1798,7 +1807,9 @@ end
 -- 099:44444111c0c0c111cc0cc111c0c0c111ccccc111222221111111111111111111
 -- 100:111111111111111111144111114cc41111cccc11112cc2111112211111111111
 -- 101:1131e211e11c1e111dcbcd1111dc1211b11d11111111b12111e1111111111111
--- 102:1111111111ff11111bcfbeb1bccce23bdccce22d1ddfded111ff111111111111
+-- 102:11111111111f1f11111efe11b32ccccddccfeddc111f1ef11111fef111111ef1
+-- 103:111f1f111bdefec1b22565dcb32ddddf1bdfecde1d1f1ef11e11fef111111ef1
+-- 104:11111111111ff1111ccdfcedc23d4e6cc22d5e7c1ccdfced111ff11111111111
 -- 106:00fddf0d0fc77cfc0c7657c00ce77ec00decced002ceec20200dd00200300300
 -- 107:00fddf000fcee7f00dee76500deee7700cdccec0003ee2d0030d200d00020000
 -- 108:000fff0002fecef020dc75ef0dccc7cf0dceccefcedccdf00cedd02000c00200
@@ -1864,12 +1875,13 @@ end
 -- 179:fdffffffdbdfffffbfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
 -- 180:fbffffffbdbfffffdfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
 -- 181:22222fff20202fff22022fff20202fff22222fffffffffffffffffffffffffff
+-- 182:1111111111141111111241111444c4111222c211111421111112111111111111
 -- 188:0200000032200000212000000000000000000000000000000000000000000000
 -- 189:0700000057700000767000000000000000000000000000000000000000000000
 -- 190:0f0000004ff00000f6e000000000000000000000000000000000000000000000
 -- 191:09000000a9900000989000000000000000000000000000000000000000000000
--- 192:111b011111bcc0111bccbc01bcccccc01ccccc0111ccc011111c011111111111
--- 193:1114011111433011143333014333333013333301113330111113011111111111
+-- 192:111d011111ccd0111cbccd01ccccccd01ccccc0111ccc011111c011111111111
+-- 193:111301111133301113b333013333333013333301113330111113011111111111
 -- 194:1111111111cc01111ccdc0111cdcdc0111cdcdc0111cdcc01111cc0111111111
 -- 195:0000000003332230032232200000000003332230023223200000000000000000
 -- 196:00ec0e00ecfccfc0efceecfe0cecfeccccefcec0efceecfe0cfccfce00e0ce00
@@ -1969,7 +1981,7 @@ end
 -- </WAVES>
 
 -- <SFX>
--- 000:4071508170728041a040b07ff07ef05e603e603e507f406140635043603170317060707f606f503f4020502160427072707260515030502f604f705f222000060306
+-- 000:4a715a817a728a41aa40ba7ffa7efa5e6a3e6a3e5a7f4a614a635a436a317a317a607a7f6a6f5a3f4a205a216a427a727a726a515a305a2f6a4f7a5f222000060306
 -- 001:8000800080009000a000c000e000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000220000000000
 -- 002:090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900a00000000000
 -- 003:050005100520153025504560659085b095f0a5f0b5f0c5f0d5f0e5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0414000000000
@@ -1979,7 +1991,8 @@ end
 -- 007:05f005b0159025604550653075209510a500b500c500d500e500f500f500f500f500f500f500f500f500f500f500f500f500f500f500f500f500f500404000000000
 -- 008:00e800c970aaf07cf03ef00ff00ff000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000a0b000000000
 -- 009:46e09680f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600202000000000
--- 010:b372c372d377c304f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300f300282000040404
+-- 010:b672c672d677c604f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600282000040404
+-- 011:46e0c630e610f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600f600502000000000
 -- 012:1a001a002a002a002a003a003a004a004a005a005a006a006a007a007a007a008a008a009a00aa00aa00ba00ca00da00da00ea00fa00fa00fa00fa00306000000000
 -- 016:0a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a000a00404000000000
 -- </SFX>
@@ -2136,7 +2149,7 @@ end
 -- </SCREEN>
 
 -- <PALETTE>
--- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6eaeef2b6baba8d8d8d444455282030
 -- </PALETTE>
 
 -- <PALETTE1>

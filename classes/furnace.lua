@@ -231,13 +231,17 @@ function Furnace:update()
     if self.smelt_timer <= 0 then
       --smelting operation completed
       --pop last item from output_buffer to input_buffer
+      local smelted_ore = self.input_buffer.count > 0 and ITEMS[self.input_buffer.id].smelted_id or false
       self.is_smelting = false
-      self.input_buffer.count = self.input_buffer.count - 1
-      local smelted_ore = ITEMS[self.input_buffer.id].smelted_id
+      if not smelted_ore then
+        return
+      end
       if self.output_buffer.count == 0 then
         self.output_buffer.id = smelted_ore
-      end
-      if self.output_buffer.count < ITEMS[self.output_buffer.id].stack_size then
+        self.input_buffer.count = self.input_buffer.count - 1
+        self.output_buffer.count = self.output_buffer.count + 1
+      elseif self.output_buffer.count < ITEMS[self.output_buffer.id].stack_size then
+        self.input_buffer.count = self.input_buffer.count - 1
         self.output_buffer.count = self.output_buffer.count + 1
       end
       return
@@ -313,20 +317,16 @@ function Furnace:deposit_stack(stack)
   return false, stack
 end
 
-function Furnace:deposit(item, keep)
+function Furnace:deposit(id, keep)
   trace('attempting quick-deposit')
-  local stack = item
-  if type(item) ~= 'table' then
-    stack = {id = item, count = 1}
-  end
   keep = keep or false
-  local item = ITEMS[stack.id]
+  local item = ITEMS[id]
   if (item.type ~= 'ore' and item.type ~= 'fuel') and not item.smelted_id then return false end
-  if item.type == 'fuel' and (stack.id == self.fuel_buffer.id or self.fuel_buffer.id == 0 or self.fuel_buffer.count == 0) then
+  if item.type == 'fuel' and (id == self.fuel_buffer.id or self.fuel_buffer.id == 0 or self.fuel_buffer.count == 0) then
     if self.fuel_buffer.count < 5 then
       if not keep then
         self.fuel_buffer.id = id
-        self.fuel_buffer.count = self.fuel_buffer.count + stack.count
+        self.fuel_buffer.count = self.fuel_buffer.count + 1
       end
       return true
     end
@@ -337,7 +337,7 @@ function Furnace:deposit(item, keep)
       if not keep then
         self.ore_type = item.name
         self.input_buffer.id = id
-        self.input_buffer.count = self.input_buffer.count + stack.count
+        self.input_buffer.count = self.input_buffer.count + 1
       end
       return true
     end

@@ -174,6 +174,8 @@ function  TileManager.create_tile(x, y)
       if rand == 1 then
         tile.rot = math.random(4) % 4
       end
+    else
+      tile.rot = math.random(4) % 4
     end
   end
 
@@ -199,13 +201,12 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
   local cameraTopLeftY = player.y - 64
   local subTileX = cameraTopLeftX % 8
   local subTileY = cameraTopLeftY % 8
-  local startX = math.floor(cameraTopLeftX / 8)
-  local startY = math.floor(cameraTopLeftY / 8)
+  local startX = floor(cameraTopLeftX / 8)
+  local startY = floor(cameraTopLeftY / 8)
   for screenY = 1, screenHeight do
     for screenX = 1, screenWidth do
       local worldX = startX + screenX
       local worldY = startY + screenY
-      local tile = self.tiles[worldY][worldX]
       local tile = self.tiles[worldY][worldX]
       local sx = (screenX - 1) * 8 - subTileX
       local sy = (screenY - 1) * 8 - subTileY
@@ -213,9 +214,8 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
       --Here, AutoMap is called once per tile during draw
       --AutoMap is what sets the 'border' or edge tiles
       if not tile.visited and tile.is_land then AutoMap(worldX, worldY) end
-
+      
       if tile.ore then
-        --sspr(biomes[tile.biome].tile_id_offset, sx, sy)
         rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
         sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, 0, tile.rot)
       elseif not tile.is_border then
@@ -223,17 +223,18 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
         if not tile.is_land then
           --for water tiles only
           if worldX % 2 == 1 and worldY % 2 == 1 then
-              flip = 3 -- Both horizontal and vertical flip
+            flip = 3 -- Both horizontal and vertical flip
           elseif worldX % 2 == 1 then
-              flip = 1 -- Horizontal flip
+            flip = 1 -- Horizontal flip
           elseif worldY % 2 == 1 then
-              flip = 2 -- Vertical flip
+            flip = 2 -- Vertical flip
           end
           --procedural water sprite id = 224
           sspr(224, sx, sy, 0, 1, flip, rot)
         else
           --else is land
           rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
+          sspr(biomes[tile.biome].tile_id_offset, sx, sy, biomes[tile.biome].map_col, 1, 0, tile.rot)
           if id ~= biomes[tile.biome].tile_id_offset then
             sspr(id, sx, sy, biomes[tile.biome].map_col, 1, flip)
           end
@@ -255,8 +256,13 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
         end
         --if tile.ore then sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, tile.flip, tile.rot) end
       end
+      --rectb(sx, sy, 8, 8, 4)
+      --sspr(340, sx, sy, -1)
     end
   end
+end
+
+function TileManager:draw_clip(x, y, width, height, draw_ents)
 end
 
 function  TileManager:draw_clutter(player, screenWidth, screenHeight)
@@ -264,22 +270,23 @@ function  TileManager:draw_clutter(player, screenWidth, screenHeight)
   local cameraTopLeftY = player.y - 64
   local subTileX = cameraTopLeftX % 8
   local subTileY = cameraTopLeftY % 8
-  local startX = math.floor(cameraTopLeftX / 8)
-  local startY = math.floor(cameraTopLeftY / 8)
+  local startX = floor(cameraTopLeftX / 8)
+  local startY = floor(cameraTopLeftY / 8)
   
-  for screenY = 1, screenHeight + 3 do
-    for screenX = 0, screenWidth + 1 do
+  for screenY = 1, screenHeight do
+    for screenX = 1, screenWidth do
       local worldX = startX + screenX
       local worldY = startY + screenY
       local tile = self.tiles[worldY][worldX]
-      local sx = (screenX - 2) * 8 - subTileX
+      local sx = (screenX - 1) * 8 - subTileX
       local sy = (screenY - 1) * 8 - subTileY
 
       --Here, the 19, 25, and 41 are just randomly chosen biome tiles
       --picked to spawn trees on, but you can use any tiles to limit trees to certain biomes
       if tile.is_tree then
         --trace('drawing tree')
-        sspr(biomes[tile.biome].tree_id, sx + tile.offset.x, sy - 27 + tile.offset.y, biomes[tile.biome].color_key, 1, tile.flip, 0, 3, 4)
+        sspr(biomes[tile.biome].tree_id, sx - 9 + tile.offset.x, sy - 27 + tile.offset.y, biomes[tile.biome].color_key, 1, tile.flip, 0, 3, 4)
+        --rectb(sx, sy, 8,8,2)
       end
       -- if tile.sprite_id == 19 then
       --   sspr(201, sx - 9 + tile.offset.x, sy - 28 + tile.offset.y, 0, 1, tile.flip, 0, 3, 4)

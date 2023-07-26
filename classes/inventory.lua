@@ -30,9 +30,9 @@ local inventory = {
   hotbar = {},
   hovered_slot = 0,
   active_slot = 1,
-  hotbar_h = 12,
+  hotbar_h = INVENTORY_SLOT_SIZE + 4,
   hotbor_w = 4 + ((INVENTORY_SLOT_SIZE + 1) * INVENTORY_COLS),
-  hotbar_y = 136 - (INVENTORY_SLOT_SIZE + 4) - 2,
+  hotbar_y = 135 - (INVENTORY_SLOT_SIZE + (INVENTORY_SLOT_SIZE/2)) - 2,
   vis = false,
   hotbar_vis = true,
 }
@@ -41,7 +41,8 @@ function inventory:draw()
   local x, y = mouse()
   local slot = self:get_hovered_slot(x, y)
   local rows, cols = self.rows - 1, self.cols
-  local hx, hy = self.x, self.y + (INVENTORY_SLOT_SIZE * INVENTORY_ROWS) + INVENTORY_SLOT_SIZE - 1
+  local hx, hy = self.x, self.hotbar_y
+  --local hx, hy = self.x, self.y + (INVENTORY_SLOT_SIZE * INVENTORY_ROWS) + INVENTORY_SLOT_SIZE - 1
   if self.vis then
     ui.draw_panel(self.x, self.y, self.w, self.h, self.bg, self.fg, 'Inventory', self.bg)
     ui.draw_grid(self.x + self.grid_x - 1, self.y + self.grid_y - 1, self.rows, self.cols, self.grid_bg, self.grid_fg, INVENTORY_SLOT_SIZE + 1, false)
@@ -51,63 +52,64 @@ function inventory:draw()
         local x, y = self.x + self.grid_x + ((j - 1) * (INVENTORY_SLOT_SIZE + 1)), self.y + self.grid_y + ((i-1) * (INVENTORY_SLOT_SIZE + 1))
         if self.slots[index] and self.slots[index].item_id ~= 0 then
           local item = ITEMS[self.slots[index].item_id]
-          sspr(item.sprite_id, x, y, item.color_key)
-          --draw_item_stack(x, y, {id = self.slots[index].item_id, count = self.slots[index].count})
+          --sspr(item.sprite_id, x + 1, y + 1, item.color_key)
+          draw_item_stack(x, y, {id = self.slots[index].item_id, count = self.slots[index].count})
         end
       end
     end
-    if show_count then
-      for i = 1, INVENTORY_ROWS do
-        for j = 1, INVENTORY_COLS do
-          local index = ((i-1)*INVENTORY_COLS) + j
-          local x, y = self.x + self.grid_x + ((j - 1) * (INVENTORY_SLOT_SIZE + 1)), self.y + self.grid_y + ((i-1) * (INVENTORY_SLOT_SIZE + 1))
-          if self.slots[index] and self.slots[index].item_id ~= 0 then
-            local item = ITEMS[self.slots[index].item_id]
-            local count = self.slots[index].count < 100 and self.slots[index].count or floor(self.slots[index].count/100) .. 'H'
-            prints(count, x + 2, y + 4, 0, 4, {x = 1, y = 1})
-            --draw_item_stack(x, y, {id = self.slots[index].item_id, count = self.slots[index].count})
-          end
-        end
-      end
-    end
+    -- if show_count then
+    --   for i = 1, INVENTORY_ROWS do
+    --     for j = 1, INVENTORY_COLS do
+    --       local index = ((i-1)*INVENTORY_COLS) + j
+    --       local x, y = self.x + self.grid_x + ((j - 1) * (INVENTORY_SLOT_SIZE + 1)), self.y + self.grid_y + ((i-1) * (INVENTORY_SLOT_SIZE + 1))
+    --       if self.slots[index] and self.slots[index].item_id ~= 0 then
+    --         local item = ITEMS[self.slots[index].item_id]
+    --         local count = self.slots[index].count < 100 and self.slots[index].count or floor(self.slots[index].count/100) .. 'H'
+    --         prints(count, x + 3, y + 5, 0, 4, {x = 1, y = 1})
+    --         --draw_item_stack(x, y, {id = self.slots[index].item_id, count = self.slots[index].count})
+    --       end
+    --     end
+    --   end
+    -- end
     if slot then
-      ui.highlight(slot.x - 2, slot.y - 1, 8, 8, false, 3, 4)
+      ui.highlight(slot.x - 1, slot.y - 1, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE, false, 3, 4)
     end
     local x, y = hx + ((self.active_slot - 1) * (INVENTORY_SLOT_SIZE+1)), hy + offset - 1
-     ui.highlight(x, y, 8, 8, true, 3, 4)
+     ui.highlight(x, y, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE, true, 3, 4)
      if cursor.type == 'item' and cursor.item_stack and cursor.item_stack.id ~= 0 and self:is_hovered(cursor.x, cursor.y) then
       draw_item_stack(cursor.x + 2, cursor.y + 2, cursor.item_stack)
     end
   end
 
   if self.hotbar_vis and not self.vis then
-    ui.draw_panel(hx, hy - 1, self.w, INVENTORY_SLOT_SIZE + 4, self.bg, self.fg, false, 8)
-    ui.draw_grid(hx + 1, hy, 1, INVENTORY_COLS, self.grid_bg, self.grid_fg, INVENTORY_SLOT_SIZE+1)
+    ui.draw_panel(hx, hy, self.w, INVENTORY_SLOT_SIZE + 4, self.bg, self.fg, false, 8)
+    ui.draw_grid(hx + 1, hy + 1, 1, INVENTORY_COLS, self.grid_bg, self.grid_fg, INVENTORY_SLOT_SIZE+1)
     for col = 1, INVENTORY_COLS do
       local x, y = hx + ((col-1) * (INVENTORY_SLOT_SIZE+1)), hy + 4
-      prints(col, x + 5, y - 1, 0, 13)
-      local id = self.slots[INV_HOTBAR_OFFSET + col].item_id
+      if alt_mode then prints(col, x + 5, y - 1, 0, 13) end
+      local id, count = self.slots[INV_HOTBAR_OFFSET + col].item_id, self.slots[INV_HOTBAR_OFFSET + col].count
       if id ~= 0 then
-        sspr(ITEMS[id].sprite_id, x + 2, hy + 1, ITEMS[id].color_key)
+        --sspr(ITEMS[id].sprite_id, x + 3, hy + 2, ITEMS[id].color_key)
+        draw_item_stack(x + 2, hy + 2, {id = id, count = count})
       end
       if col == self.active_slot then
-        ui.highlight(x, hy, 8, 8, true, 3, 4)
+        ui.highlight(x+1, hy+1, INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE, true, 3, 4)
       end
     end
-  if show_count then
-    for col = 1, INVENTORY_COLS do
-      local x, y = hx + ((col-1) * (INVENTORY_SLOT_SIZE+1)), self.y + (INVENTORY_ROWS) * (INVENTORY_SLOT_SIZE + 1)
-      local id = self.slots[INV_HOTBAR_OFFSET + col].item_id
-      if id ~= 0 then
-        prints(self.slots[INV_HOTBAR_OFFSET + col].count, x + 4, y + 4, 0, 4, {x = 1, y = 1})
-      end
-    end
-  end
+  -- if show_count then
+  --   for col = 1, INVENTORY_COLS do
+  --     local x, y = hx + ((col-1) * (INVENTORY_SLOT_SIZE+1)), self.y + (INVENTORY_ROWS) * (INVENTORY_SLOT_SIZE + 1)
+  --     local id = self.slots[INV_HOTBAR_OFFSET + col].item_id
+  --     if id ~= 0 then
+  --       prints(self.slots[INV_HOTBAR_OFFSET + col].count, x + 4, y + 7, 0, 4, {x = 1, y = 1})
+  --     end
+  --   end
+  -- end
     local xx = (INVENTORY_SLOT_SIZE * INVENTORY_COLS) + INVENTORY_SLOT_SIZE - 2
     pix(self.x + self.grid_x, hy + 1, self.grid_fg)
-    pix(self.x + self.grid_x, hy + 8, self.grid_fg)
+    pix(self.x + self.grid_x, hy + INVENTORY_SLOT_SIZE, self.grid_fg)
     pix(self.x + self.grid_x + xx, hy + 1, self.grid_fg)
-    pix(self.x + self.grid_x + xx, hy + 8, self.grid_fg)
+    pix(self.x + self.grid_x + xx, hy + INVENTORY_SLOT_SIZE, self.grid_fg)
     if cursor.type == 'item' and cursor.item_stack and cursor.item_stack.id ~= 0 and self:is_hovered(cursor.x, cursor.y) then
       draw_item_stack(cursor.x + 2, cursor.y + 2, cursor.item_stack)
     end
@@ -300,16 +302,19 @@ function inventory:clicked(x, y)
       if key(64) then
         local ent = ui.active_window and ENTS[ui.active_window.ent_key] or false
         if result and ent and self.slots[result.index].item_id ~= 0 and ui.active_window and ent.deposit_stack then
-          local deposited, stack = ent:deposit_stack({id = self.slots[result.index].item_id, count = self.slots[result.index].count}, false)
+          local old_stack = {id = self.slots[result.index].item_id, count = self.slots[result.index].count}
+          local deposited, stack = ent:deposit_stack(old_stack, false)
           --trace('deposited: ' .. tostring(deposited))
           --trace('stack: ' .. (stack and ' id: ' .. stack.id .. ' count: ' .. stack.count) or '- no remaining items')
-          if deposited then
-            self.slots[result.index].item_id = 0
-            self.slots[result.index].count = 0
-          else
+          if stack then
+            self.slots[result.index].item_id = stack.id
             self.slots[result.index].count = stack.count
           end
-          return true
+          if deposited then
+            sound('deposit')
+            ui.new_alert(cursor.x, cursor.y, stack.count - old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
+            return true
+          end
         end
 
         if result.index >= 57 then
@@ -373,11 +378,11 @@ function inventory:get_hovered_slot(x, y)
   local rel_x = x - start_x
   local rel_y = y - start_y
   
-  local slot_x = math.floor(rel_x / 9)
-  local slot_y = math.floor(rel_y / 9)
+  local slot_x = math.floor(rel_x / (INVENTORY_SLOT_SIZE + 1))
+  local slot_y = math.floor(rel_y / (INVENTORY_SLOT_SIZE + 1))
   
-  local slot_pos_x = start_x + slot_x * 9
-  local slot_pos_y = start_y + slot_y * 9
+  local slot_pos_x = start_x + slot_x * (INVENTORY_SLOT_SIZE + 1)
+  local slot_pos_y = start_y + slot_y * (INVENTORY_SLOT_SIZE + 1)
   local slot_index = slot_y * INVENTORY_ROWS + slot_x + 1
   if slot_x >= 0 and slot_x < INVENTORY_COLS and slot_y >= 0 and slot_y < INVENTORY_ROWS then
     return {x = slot_pos_x, y = slot_pos_y, index = slot_index}

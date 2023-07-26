@@ -84,12 +84,27 @@ function Chest:deposit_stack(stack)
   return false, stack
 end
 
+function Chest:deposit(id)
+  for k, v in ipairs(self.slots) do
+    if (v.id == id and v.count < ITEMS[id].stack_size) or v.id == 0 then
+      v.id = id
+      v.count = v.count + 1
+      return
+    end
+  end
+end
+
 function Chest:update()
 
 end
 
 function Chest:can_deposit(stack)
-
+  for k, v in ipairs(self.slots) do
+    if (v.id == id and v.count + stack.count <= ITEMS[id].stack_size) or v.id == 0 then
+      return true
+    end
+  end
+  return false
 end
 
 function Chest:open()

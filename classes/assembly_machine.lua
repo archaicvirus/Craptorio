@@ -1,6 +1,9 @@
 CRAFTER_ID = 312
 CRAFTER_TICKRATE = 5
 CRAFTER_TIME_ID = 337
+CRAFTER_ANIM_FRAME = 0
+CRAFTER_ANIM_RATE = 5
+CRAFTER_ANIM_DIR = 1
 
 local Crafter = {
   x = 0,
@@ -26,24 +29,42 @@ function Crafter:draw_hover_widget(sx, sy)
   local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
   rect(sx + 1, sy + 1, w - 2, 8, 9)
   prints('Assembly Machine', sx + w/2 - width/2, sy + 2, 0, 4)
+  prints('state = ' .. tostring(self.state), sx + 2, sy + 11)
 end
 
 function Crafter:draw()
-  local sx, sy = world_to_screen(self.x, self.y)
+  local x, y = world_to_screen(self.x, self.y)
+  local offset = 0
   local blink = TICK % 60 < 30
-  sspr(CRAFTER_ID, sx, sy, 0, 1, 0, 0, 3, 3)
-  if self.recipe then
-    sspr(ITEMS[self.recipe.id].sprite_id, sx + 8, sy + 12, 0)
+  sspr(CRAFTER_ID, x, y, 0, 1, 0, 0, 3, 3)
+  if self.recipe and alt_mode then
+    sspr(ITEMS[self.recipe.id].sprite_id, x + 6, y + 5, ITEMS[self.recipe.id].color_key)
   end
   if self.state == 'crafting' then
-    pix(sx + 6, sy + 5, blink and 5 or 7)
-    line(sx + 6, sy + 9, sx + 6 + remap(self.progress, 0, self.recipe.crafting_time, 0, 12), sy + 9, 5)
+    if blink then
+      sspr(339, x + 16, y + 15, 0)
+      --rect(x + 16, y + 15, 2, 2, 7)
+    end
+    offset = CRAFTER_ANIM_FRAME
+    --pix(sx + 6, sy + 5, blink and 5 or 7)
+    --line(sx + 6, sy + 9, sx + 6 + remap(self.progress, 0, self.recipe.crafting_time, 0, 12), sy + 9, 5)
+
   end
+  --id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot
+  --rspr(347, x + 13.5, y + 12.4, 0, 1, 1, 0, self.state == 'crafting' and TICK*5 or 0, 1, 1)
+  sspr(348, x + 7 + offset, y + 12, 0)
+  sspr(348, x + 14, y + (6 - offset), 0, 1, 0, 3)
   if self.state == 'idle' then
-    pix(sx + 11, sy + 5, blink and 0 or 3)
+    pal({4,2,4,3,6,3})
+    sspr(339, x + 16, y + 15, 0)
+    pal()
+    --pix(sx + 11, sy + 5, blink and 0 or 3)
   end
   if self.state == 'ready' then
-    pix(sx + 16, sy + 5, blink and 0 or 2)
+    pal({4,2,5,2,6,2})
+    sspr(339, x + 16, y + 15, 0)
+    pal()
+    --pix(sx + 16, sy + 5, blink and 0 or 2)
   end
 end
 
@@ -164,7 +185,7 @@ function Crafter:open()
           prints('Select a recipe', btn.x + 2, btn.y + 2, 0, 4)
           --assembly machine graphic-and terrain background-------------------------
           --line(x + 1, y + 35, x + w - 2, y + 35, 9)
-          sspr(483, x + w/2 - 4, y + 16, 0, 1, 0, 0, 1, 1)
+          sspr(483, x + w/2 - 4, y + 16, 1, 1, 0, 0, 1, 1)
           sspr(CLOSE_ID, x + w - 7, y + 2, 15)
           --local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
           --prints('Assembly Machine', x + w/2 - width/2 + 1, y + 2, 0, 4)
@@ -175,6 +196,11 @@ function Crafter:open()
     }
   else
     ------------HAS recipe--------------------
+    local input_slots = {}
+    for i = 1, 4 do
+      input_slots[i] = {x = 139 + 3 + (i-1)*15, y = 1 + 58, w = 10, h = 10, hovered = false}
+    end
+    local output_slot = {x = 215, y = 1 + 58, w = 10, h = 10, hovered = false}
     return {
       width = 100,
       height = 75,
@@ -182,6 +208,8 @@ function Crafter:open()
       y = 1,
       bg = 8,
       fg = 9,
+      inputs = input_slots,
+      output = output_slot,
       close = function(self, sx, sy)
         -- 5x5 close button sprite
         local cx, cy, cw, ch = self.x + self.width - 7, self.y + 2, 5, 5
@@ -191,20 +219,103 @@ function Crafter:open()
         return false
       end,
       ent_key = self.x .. '-' .. self.y,
+
       click = function(self, sx, sy)
+        if self.output.hovered and cursor.l and not cursor.ll then
+          local ent = ENTS[self.ent_key]
+          if ent.output.count > 0 then
+            if key(64) then
+              local result, stack = inv:add_item({id = ent.output.id, count = ent.output.count})
+              if stack then
+                ent.output.count = stack.count
+                return true
+              else
+                ent.output.count = 0
+              end
+            elseif cursor.type == 'pointer' then
+              cursor.type = 'item'
+              cursor.item_stack = {id = ent.output.id, count = ent.output.count, slot = false}
+              ent.output.count = 0
+              return true
+
+            end
+          end
+        end
         --check for close-button
         if self:close(sx, sy) then
           ui.active_window = false
           return true
         end
           --check for other clicked input
+        local ent = ENTS[self.ent_key]
+        for k, v in ipairs(self.inputs) do
+          if v.hovered and ent.recipe and cursor.l and not cursor.ll then
+            if key(64) and ent.input[k].count > 0 then
+                local result, stack = inv:add_item({id = ent.input[k].id, count = ent.input[k].count})
+                if stack then
+                  ent.input[k].count = stack.count
+                  return true
+                else
+                  ent.input[k].count = 0
+                end
+              return false
+            end
+              if cursor.type == 'pointer' then
+                trace('clicked assembly input slot # ' .. k .. ' with empty cursor')
+                if ent.input[k].id ~= 0 and ent.input[k].count ~= 0 then
+                  cursor.type = 'item'
+                  cursor.item_stack.id = ent.input[k].id
+                  cursor.item_stack.count = ent.input[k].count
+                  ent.input[k].count = 0
+                  return true
+                end
+                --if ent and ent.
+              elseif cursor.item and cursor.item_stack.id ~= 0 then
+                trace('clicked assembly input slot # ' .. k .. ' holding ' .. cursor.item_stack.count .. 'x ' .. ITEMS[cursor.item_stack.id].fancy_name)
+                
+
+                
+                if cursor.item_stack.id == ent.input[k].id then
+                  local result, stack = ent:deposit_stack(cursor.item_stack)
+                  if result then
+                    if stack.id == 0 then
+                      cursor.item_stack.id = 0
+                      cursor.item_stack.count = 0
+                      cursor.type = 'pointer'
+                    else
+                      cursor.item_stack.id = stack.id
+                      cursor.item_stack.count = stack.count
+                    end
+                    return true
+                  end
+                end
+              end
+            
+            --if holding an item stack, try to deposit stack
+            
+            --if holding shift, try to deposit to inventory
+
+            --if not holding an item stack, try to take items from hovored slot
+
+          end
+        end
         return false
       end,
 
       is_hovered = function(self, x, y)
         return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height
       end,
+
       draw = function(self)
+        local hover = self:is_hovered(cursor.x, cursor.y)
+        for k, v in ipairs(self.inputs) do
+          if hovered({x = cursor.x, y = cursor.y}, v) then
+            v.hovered = true
+            break
+          end
+          v.hovered = false
+        end
+        self.output.hovered = hovered({x = cursor.x, y = cursor.y}, self.output)
         local ent = ENTS[self.ent_key]
         if not ent then self = nil return end
         local x, y, w, h, bg, fg = self.x, self.y, self.width, self.height, self.bg, self.fg
@@ -229,12 +340,12 @@ function Crafter:open()
         prints('Input', x + 16, y + 50, 0, 4)
         for i = 1, 4 do
           box(x + 3 + (i - 1)*15, y + 58, 10, 10, 0, 9)
-        end
-        for i = 1, 4 do
           if ent.input[i].count > 0 and ent.input[i].id ~= 0 then
             draw_item_stack(x + 4 + (i - 1)*15, y + 59, ent.input[i])
           end
         end
+        -- for i = 1, 4 do
+        -- end
         --output slot/items
         prints('Output', x + 66 + 4, y + 50, 0, 4)
         box(x + w - 28 + 4, y + 58, 10, 10, 0, 9)
@@ -247,8 +358,16 @@ function Crafter:open()
         line(x + 1, y + 47, x + w - 2, y + 47, 9)
         sspr(sprite_id, fx, fy, 0, 1, 0, 0, 3, 3)
         sspr(CLOSE_ID, x + w - 7, y + 2, 15)
-        for k, v in ipairs(ent.input) do
-          -- ?
+        for k, v in ipairs(self.inputs) do
+          if v.hovered then
+            ui.highlight(v.x, v.y, 8, 8, false, 3, 4)
+          end
+        end
+        if hover and cursor.item_stack.id ~= 0 then
+          draw_item_stack(cursor.x + 3, cursor.y + 3, cursor.item_stack)
+        end
+        if self.output.hovered then
+          ui.highlight(self.output.x, self.output.y, 8, 8, false, 3, 4)
         end
       end
     }
@@ -295,16 +414,44 @@ function Crafter:get_request()
 end
 
 function Crafter:deposit(id)
-  if self.state ~= 'idle' and self.recipe then
+  if self.recipe then
     for i = 1, #self.recipe.ingredients do
       if self.input[i].count < self.recipe.ingredients[i].count*5 and self.recipe.ingredients[i].id == id then
         self.input[i].count = self.input[i].count + 1
         self.input[i].id = id
+        self.state = 'ready'
         return true
       end
     end
   end
   return false
+end
+
+function Crafter:deposit_stack(stack)
+  if self.recipe then
+    for i = 1, #self.recipe.ingredients do
+      local max_stack_per_slot = self.recipe.ingredients[i].count*5
+      if self.recipe.ingredients[i].id == stack.id then
+        if self.input[i].count + stack.count <= max_stack_per_slot then
+          self.input[i].count = self.input[i].count + stack.count
+          self.input[i].id = stack.id
+          self.state = 'ready'
+          -- sound('deposit')
+          -- ui.new_alert(cursor.x, cursor.y, stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1000, 0, 11)
+          return true, {id = 0, count = 0}
+        elseif self.input[i].count < max_stack_per_slot and self.input[i].count + stack.count > max_stack_per_slot then
+          local diff = max_stack_per_slot - self.input[i].count
+          self.input[i].count = max_stack_per_slot
+          self.input[i].id = stack.id
+          self.state = 'ready'
+          -- sound('deposit')
+          -- ui.new_alert(cursor.x, cursor.y, stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1000, 0, 11)
+          return true, {id = stack.id, count = stack.count - diff}
+        end
+      end
+    end
+  end
+  return false, {id = stack.id, count = stack.count}
 end
 
 function new_assembly_machine(wx, wy)

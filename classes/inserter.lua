@@ -174,6 +174,13 @@ function Inserter.update(self)
             self.held_item_id = 0
             self.state = 'return'
           end
+        elseif ent.type == 'chest' then
+          trace('attempting chest deposit')
+          if ENTS[k]:can_deposit({id = self.held_item_id, count = 1}) then
+            ENTS[k]:deposit(self.held_item_id)
+            self.held_item_id = 0
+            self.state = 'return'
+          end
         end
       end
       -- if not ENTS[to].type == 'ground-items' or (ENTS[to].type == 'ground-items' and ENTS[to][1] == 0) then
@@ -271,31 +278,40 @@ function Inserter.update(self)
         if ENTS[k]:request_output(true) then
           self.held_item_id = ENTS[k]:request_output(false)
           self.state = 'send'
-          return
         end
+        return
       elseif ENTS[from].type == 'underground_belt' then
         local result = ENTS[from]:request_item(false)
         if result then
           self.held_item_id = result
           self.state = 'send'
-          return
         end
+        return
       elseif ENTS[from].type == 'underground_belt_exit' then
         local result = ENTS[ENTS[from].other_key]:request_item_exit(false)
         if result then
           self.held_item_id = result
           self.state = 'send'
-          return
         end
+        return
       elseif ENTS[from].type == 'assembly_machine' then
         trace('inserter: found assembler')
         if ENTS[from].output.id > 0 and ENTS[from].output.count > 0 then
           ENTS[from].output.count = ENTS[from].output.count - 1
           self.held_item_id = ENTS[from].output.id
           self.state = 'send'
-          return
         end
+        return
+      elseif ENTS[from].type == 'chest' then
+        trace('attempting chest retrieval')
+        if ENTS[k]:can_deposit({id = self.held_item_id, count = 1}) then
+          ENTS[k]:deposit(self.held_item_id)
+          self.held_item_id = 0
+          self.state = 'return'
+        end
+        return
       end
+      
       -- if GROUND_ITEMS[self.from_key] and GROUND_ITEMS[self.from_key][1] ~= 0 then
       -- --try to pick from ground
       --   self.held_item_id = GROUND_ITEMS[self.from_key][1]
