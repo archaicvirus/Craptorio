@@ -8,7 +8,7 @@ local Chest = {
   rows = 2,
   cols = 8,
   is_hovered = false,
-  item_id = 35,
+  item_id = 33,
   id = CHEST_ID,
   updated = false,
   drawn = false,
@@ -69,7 +69,7 @@ function Chest:deposit_stack(stack)
     if item then
       if v.id == stack.id and v.count + stack.count <= item.stack_size then
         v.count = v.count + stack.count
-        return true
+        return true, {id = 0, count = 0}
       elseif v.id == stack.id and v.count < item.stack_size and v.count + stack.count > item.stack_size then
         local diff = item.stack_size - v.count
         v.count = item.stack_size
@@ -78,7 +78,7 @@ function Chest:deposit_stack(stack)
     elseif v.id == 0 then
       v.count = stack.count
       v.id = stack.id
-      return true
+      return true, {id = 0, count = 0}
     end
   end
   return false, stack
@@ -131,9 +131,9 @@ function Chest:open()
         if self:is_hovered(cursor.x, cursor.y) then
           sspr(CURSOR_POINTER, cursor.x, cursor.y, 0)
           if cursor.item_stack.id ~= 0 then
-            draw_item_stack(cursor.x + 3, cursor.y + 3, cursor.item_stack)
+            draw_item_stack(cursor.x + 5, cursor.y + 5, cursor.item_stack)
           end
-          if slot then ui.highlight(slot.x-1, slot.y, 8, 8, false, 3, 4) end
+          if slot then ui.highlight(slot.x, slot.y, 8, 8, false, 3, 4) end
         end
       end
     end,
@@ -146,17 +146,23 @@ function Chest:open()
     click = function(self, x, y)
       local slot = self:get_hovered_slot(x, y)
       if slot then
-        trace('slot# ' .. slot.index .. ' clicked')
+        --trace('slot# ' .. slot.index .. ' clicked')
         local ent = ENTS[self.ent_key]
         
         if cursor.type == 'pointer' and ent.slots[slot.index].id ~= 0 then
           --grab stack from chest
           if key(64) then
+            local old_stack = ent.slots[slot.index]
             local result, stack = inv:add_item(ent.slots[slot.index])
             if stack then
               ENTS[self.ent_key].slots[slot.index] = stack
+              local deposited = old_stack.count - stack.count
+              ui.new_alert(cursor.x, cursor.y, '+' .. deposited .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
+              sound('deposit')
             else
               ENTS[self.ent_key].slots[slot.index] = {id = 0, count = 0}
+              ui.new_alert(cursor.x, cursor.y, '+' .. old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
+              sound('deposit')
             end
           else
             cursor.type = 'item'
@@ -176,7 +182,7 @@ function Chest:open()
       end
       if self:close(x, y) then
         ui.active_window = false
-        trace('closed chest')
+        --trace('closed chest')
       end
     end,
     is_hovered = function(self, x, y)
@@ -206,12 +212,43 @@ function Chest:request(stack, keep)
   return false
 end
 
-function new_chest(x, y, tier)
-  local chest = {x = x, y = y}
-  setmetatable(chest, {__index = Chest})
-  for i = 1, Chest.rows*Chest.cols do
-    chest.slots[i] = {id = 0, count = 0}
+function Chest:request_inserter()
+  local result = false
+  for k, v in ipairs(self.slots) do
+    if v.id ~= 0 and v.count > 0 then
+      result = v.id
+      v.count = v.count - 1
+      if v.count < 1 then
+        v.count = 0
+        v.id = 0
+      end
+      return result
+    end
   end
-  chest.slots[1] = {id = 5, count = 10}
-  return chest
+  return result
+end
+
+function Chest:return_all()
+  for k, v in ipairs(self.slots) do
+    if ITEMS[v.id] and v.count > 0 then
+      local old_stack = {id = v.id, count = v.count}
+      local result, stack = inv:add_item(old_stack)
+      v.id = stack.id
+      v.count = stack.count
+      if v.count < old_stack.count then
+        ui.new_alert(cursor.x, cursor.y, '+' .. (old_stack.count - v.count) .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 4)
+        sound('deposit')
+      end
+    end
+  end
+end
+
+function new_chest(x, y, tier)
+  local new_chest = {x = x, y = y, slots = {}}
+  setmetatable(new_chest, {__index = Chest})
+  for i = 1, Chest.rows*Chest.cols do
+    new_chest.slots[i] = {id = 0, count = 0}
+  end
+  -- chest.slots[1] = {id = 5, count = 10}
+  return new_chest
 end

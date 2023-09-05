@@ -9,7 +9,7 @@ biomes = {
     tree_id = 194,
     tree_density = 0.05,
     color_key = 0,
-    map_col = 4,
+    map_col = 5,
     clutter = 0.01
   },
   [2] = {

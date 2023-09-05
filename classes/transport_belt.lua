@@ -303,7 +303,7 @@ function Belt.set_output(self)
   self.exit = BELT_ROTATION_MAP[self.rot]
   local k = self.pos.x + self.exit.x .. '-' .. self.pos.y + self.exit.y
   self.output_key = k
-  local ent = ENTS[k]
+  local ent = ENTS[self.output_key]
   if ent then
 
     if ent.type == 'dummy_splitter' or ent.type == 'underground_belt_exit' then
@@ -315,7 +315,7 @@ function Belt.set_output(self)
     or ent.type == 'splitter' and ENTS[k].rot == self.rot
     or ent.type == 'underground_belt' then
 
-      self.output = BELT_OUTPUT_MAP[self.rot .. ent.rot]
+      self.output = ((ent.type == 'transport_belt' and ent.id == BELT_ID_CURVED) and BELT_OUTPUT_MAP[self.rot .. self.rot]) or BELT_OUTPUT_MAP[self.rot .. ent.rot]
 
     else
       self.output = nil

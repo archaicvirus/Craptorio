@@ -7,6 +7,10 @@ callbacks = {
   ['transport_belt'] = {
     place_item = function(x, y)
       local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       local key = wx .. '-' .. wy
       if not cursor.drag and cursor.l and cursor.ll then
         --drag locking/placing belts
@@ -14,6 +18,8 @@ callbacks = {
 
         cursor.drag_loc = {x = wx, y = wy}
         cursor.drag_dir = cursor.rot
+      elseif not cursor.l then
+        cursor.drag = false
       end
     
       local dx, dy = world_to_screen(cursor.drag_loc.x, cursor.drag_loc.y)
@@ -101,6 +107,10 @@ callbacks = {
     place_item = function(x, y)
       local child = SPLITTER_ROTATION_MAP[cursor.rot]
       local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       wx, wy = wx + child.x, wy + child.y
       local tile2, cell_x, cell_y = get_world_cell(x, y)
       local key1 = get_key(x, y)
@@ -153,6 +163,10 @@ callbacks = {
     place_item = function(x, y)
       local k = get_key(x, y)
       local tile, cell_x, cell_y = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       if ENTS[k] and ENTS[k].type == 'inserter' then
         if ENTS[k].rot ~= cursor.rot then
           ENTS[k]:rotate(rotation)
@@ -177,14 +191,16 @@ callbacks = {
       end
     end,
     draw_item = function(x, y)
-      if not ENTS[k] or (ENTS[k] and ENTS[k].type == 'inserter' and ENTS[k].rot ~= cursor.rot) then
-        local tile, world_x, world_y = get_world_cell(x, y)
-        local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rot)
-        temp_inserter:draw()
-        ui.highlight(cursor.tx-2, cursor.ty-2, 8, 8, false, 5, 6)
+      local tile, world_x, world_y = get_world_cell(x, y)
+      local temp_inserter = new_inserter({x = world_x, y = world_y}, cursor.rot)
+      local k = get_key(x, y)
+      temp_inserter:draw()
+      if not ENTS[k] or (ENTS[k].type == 'inserter' and ENTS[k].rot ~= cursor.rot) then
+        ui.highlight(cursor.tx-1, cursor.ty-1, 8, 8, false, 5, 6)
         --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
+      else
+        ui.highlight(cursor.tx-1, cursor.ty-1, 8, 8, false, 2, 2)
       end
-      ui.highlight(cursor.tx-2, cursor.ty-2, 8, 8, false, 2, 2)
       --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
     end
   },
@@ -192,6 +208,10 @@ callbacks = {
     place_item = function(x, y)
       local k = get_key(x,y)
       local tile, cell_x, cell_y = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       if not ENTS[k] then
         ENTS[k] = new_pole({x = cell_x, y = cell_y})
         sound('place_belt')
@@ -220,6 +240,11 @@ callbacks = {
   ['mining_drill'] = {
     place_item = function(x, y)
       local k = get_key(x, y)
+      local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       local found_ores = {}
       local field_keys = {}
       --local sx, sy = get_screen_cell(x, y)
@@ -312,6 +337,11 @@ callbacks = {
   },
   ['stone_furnace'] = {
     place_item = function(x, y)
+      local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       local key1 = get_key(x, y)
       local key2 = get_key(x + 8, y)
       local key3 = get_key(x + 8, y + 8)
@@ -350,6 +380,10 @@ callbacks = {
   ['underground_belt'] = {
     place_item = function(x, y)
       local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       local k = wx .. '-' .. wy
       if not ENTS[k] then
         local result, other_key, cells = get_ubelt_connection(x, y, cursor.rot)
@@ -410,6 +444,10 @@ callbacks = {
   ['assembly_machine'] = {
     place_item = function(x, y)
       local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       local k = wx .. '-' .. wy
       if not ENTS[k] then
         --check 3x3 area for ents
@@ -461,8 +499,12 @@ callbacks = {
   ['research_lab'] = {
     place_item = function(x, y)
       local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       local k = wx .. '-' ..wy
-      if tile.is_land and not ENTS[k] then
+      if not ENTS[k] then
         for i = 0, 2 do
           for j = 0, 2 do
             if ENTS[wx + j .. '-' .. i + wy] then 
@@ -508,6 +550,10 @@ callbacks = {
   ['chest'] = {
     place_item = function(x, y)
       local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land then
+        sound('deny')
+        return
+      end
       local k = wx .. '-' .. wy
       if not ENTS[k] then
         ENTS[k] = new_chest(wx, wy, 1)
@@ -529,7 +575,60 @@ callbacks = {
     end,
     draw_item = function(x, y)
       sspr(CHEST_ID, cursor.tx, cursor.ty, -1)
-      ui.highlight(cursor.tx-2, cursor.ty-1, 8, 8, false, 2, 2)
+      ui.highlight(cursor.tx-1, cursor.ty-1, 8, 8, false, 2, 2)
+    end
+  },
+  ['bio_refinery'] = {
+    place_item = function(x, y)
+      local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land or tile.is_tree then
+        sound('deny')
+        return
+      end
+      local k = wx .. '-' .. wy
+      if not ENTS[k] then
+        --check 3x3 area for ents
+        for i = 0, 2 do
+          for j = 0, 2 do
+            if ENTS[wx + j .. '-' .. i + wy] then 
+              sound('deny')
+              return
+            end
+          end
+        end
+        --else place dummy ents to reserve 3x3 tile area, and create the crafter
+        for i = 0, 2 do
+          for j = 0, 2 do
+            ENTS[wx + j .. '-' .. i + wy] = {type = 'dummy_refinery', other_key = k}
+          end
+        end
+        ENTS[k] = new_refinery(wx, wy)
+        sound('place_belt')
+        return true
+      else
+        sound('deny')
+      end
+      return false
+    end,
+    remove_item = function(x, y)
+      local tile, wx, wy = get_world_cell(x, y)
+      local k = wx .. '-' .. wy
+      if ENTS[k].other_key then
+        k = ENTS[k].other_key
+        wx, wy = ENTS[k].x, ENTS[k].y
+      end
+      if ENTS[k] and ENTS[k].type == 'bio_refinery' then
+        for i = 0, 2 do
+          for j = 0, 2 do
+            ENTS[wx + j .. '-' .. i + wy] = nil
+          end
+        end
+        ENTS[k] = nil
+        sound('delete')
+      end
+    end,
+    draw_item = function(x, y)
+      sspr(REFINERY_ID, cursor.tx, cursor.ty, ITEMS[30].color_key, 1, 0, 0, 3, 3)
     end
   },
 }

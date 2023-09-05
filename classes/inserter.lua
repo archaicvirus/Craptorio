@@ -169,13 +169,13 @@ function Inserter.update(self)
             self.state = 'return'
           end
         elseif ent.type == 'assembly_machine' then
-          trace('attempt assembler deposit')
+          --trace('attempt assembler deposit')
           if ENTS[k]:deposit(self.held_item_id) then
             self.held_item_id = 0
             self.state = 'return'
           end
         elseif ent.type == 'chest' then
-          trace('attempting chest deposit')
+          --trace('attempting chest deposit')
           if ENTS[k]:can_deposit({id = self.held_item_id, count = 1}) then
             ENTS[k]:deposit(self.held_item_id)
             self.held_item_id = 0
@@ -295,7 +295,7 @@ function Inserter.update(self)
         end
         return
       elseif ENTS[from].type == 'assembly_machine' then
-        trace('inserter: found assembler')
+        --trace('inserter: found assembler')
         if ENTS[from].output.id > 0 and ENTS[from].output.count > 0 then
           ENTS[from].output.count = ENTS[from].output.count - 1
           self.held_item_id = ENTS[from].output.id
@@ -303,11 +303,11 @@ function Inserter.update(self)
         end
         return
       elseif ENTS[from].type == 'chest' then
-        trace('attempting chest retrieval')
-        if ENTS[k]:can_deposit({id = self.held_item_id, count = 1}) then
-          ENTS[k]:deposit(self.held_item_id)
-          self.held_item_id = 0
-          self.state = 'return'
+        --trace('attempting chest retrieval')
+        local result = ENTS[from]:request_inserter()
+        if result then
+          self.held_item_id = result
+          self.state = 'send'
         end
         return
       end

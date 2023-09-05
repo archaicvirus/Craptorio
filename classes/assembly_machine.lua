@@ -153,7 +153,7 @@ function Crafter:open()
           --ui.assembly_recipe_widget(self)
           craft_menu.current_output = self.ent_key
           toggle_crafting(true)
-          trace('selecting recipe')
+          --trace('selecting recipe')
           return true
         end
         return false
@@ -173,7 +173,7 @@ function Crafter:open()
           local btn = {x = x + w/2 - width/2 - 2, y = y + 32, w = width + 4, h = 9}
           btn.color = c.x >= btn.x and c.x < btn.x + btn.w and c.y >= btn.y and c.y < btn.y + btn.h and 9 or 8
           --background window and border
-          trace('ent id: ' .. ent.id)
+          --trace('ent id: ' .. ent.id)
           ui.draw_panel(x, y, w, h, bg, fg, ITEMS[ent.id].fancy_name)
           --box(x, y, w, h, 8, 9)
           --rect(x + 1, y + 1, w - 2, 8, 9)
@@ -234,6 +234,7 @@ function Crafter:open()
               end
             elseif cursor.type == 'pointer' then
               cursor.type = 'item'
+              cursor.item = ITEMS[ent.output.id].name
               cursor.item_stack = {id = ent.output.id, count = ent.output.count, slot = false}
               ent.output.count = 0
               return true
@@ -251,17 +252,23 @@ function Crafter:open()
         for k, v in ipairs(self.inputs) do
           if v.hovered and ent.recipe and cursor.l and not cursor.ll then
             if key(64) and ent.input[k].count > 0 then
+              local start_stack = {id = ent.input[k].id, count = ent.input[k].count}
                 local result, stack = inv:add_item({id = ent.input[k].id, count = ent.input[k].count})
+                local item_name = ITEMS[ent.input[k].id].fancy_name
                 if stack then
+                  local added = start_stack.count - stack.count
                   ent.input[k].count = stack.count
+                  ui.new_alert(sx, sy, '+' .. added .. ' ' .. item_name, 1000, 0, 5)
+                  sound('deposit')
                   return true
                 else
                   ent.input[k].count = 0
+                  ui.new_alert(sx, sy, '+' .. start_stack.count .. ' ' .. item_name, 1000, 0, 5)
+                  sound('deposit')
                 end
               return false
             end
               if cursor.type == 'pointer' then
-                trace('clicked assembly input slot # ' .. k .. ' with empty cursor')
                 if ent.input[k].id ~= 0 and ent.input[k].count ~= 0 then
                   cursor.type = 'item'
                   cursor.item_stack.id = ent.input[k].id
@@ -269,11 +276,7 @@ function Crafter:open()
                   ent.input[k].count = 0
                   return true
                 end
-                --if ent and ent.
               elseif cursor.item and cursor.item_stack.id ~= 0 then
-                trace('clicked assembly input slot # ' .. k .. ' holding ' .. cursor.item_stack.count .. 'x ' .. ITEMS[cursor.item_stack.id].fancy_name)
-                
-
                 
                 if cursor.item_stack.id == ent.input[k].id then
                   local result, stack = ent:deposit_stack(cursor.item_stack)
@@ -381,7 +384,7 @@ function Crafter:set_recipe(item)
   end
   self.output.id = self.recipe.id
   self:set_requests()
-  trace('set recipe to: ' .. item.fancy_name)
+  --trace('set recipe to: ' .. item.fancy_name)
 end
 
 function Crafter:set_requests()

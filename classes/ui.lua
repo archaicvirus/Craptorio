@@ -182,11 +182,17 @@ function ui.item_box(x, y, w, h, bg, fg)
       local sx, sy = self.x + parent.x, self.y + parent.y
       --have we clicked box?
       if x >= sx and x < sx + self.w and y >= sy and y < sy + self.h then
-        trace('clicked box')
+        -- trace('clicked box')
         if key(64) and stack.id ~= 0 then
           local result, stack2 = inv:add_item(stack)
-          if result then return {id = 0, count = 0} end
-          if stack2 then return stack2 end
+          if result then
+            sound('deposit')
+            return {id = 0, count = 0}
+          end
+          if stack2 then
+            sound('deposit')
+            return stack2
+          end
         end
         --is player holding an item stack?
         if cursor.item_stack and cursor.item_stack.id ~= 0 then
@@ -259,7 +265,7 @@ local CraftPanel = {
   border = 9,
   vis = false,
   docked = true,
-  active_tab = 3,
+  active_tab = 1,
   current_output = 'player',
   tab = {
     [1] = {
@@ -285,22 +291,14 @@ local CraftPanel = {
       h = 24,
       spr_id = 393,
       slots = {},
-    },
-    -- [3] = {
-    --   x = 74,
-    --   y = 2,
-    --   w = 24,
-    --   h = 24,
-    --   spr_id = 497,
-    --   slots = {},
-    -- }
+    }
   }
 }
 
 CraftPanel.tab['logistics'] = CraftPanel.tab[0]
 CraftPanel.tab['production'] = CraftPanel.tab[1]
 CraftPanel.tab['intermediate'] = CraftPanel.tab[2]
-CraftPanel.tab['combat'] = CraftPanel.tab[3]
+--CraftPanel.tab['combat'] = CraftPanel.tab[3]
 
 function ui.draw_panel(x, y, w, h, bg, fg, label, shadow)
   bg, fg = bg or UI_BG, fg or UI_FG
@@ -398,7 +396,7 @@ function CraftPanel:draw()
     sspr(316, x + self.tab[2].x + 14, y + self.tab[2].y + 2, 0)-- TAB 2
     sspr(456, x + self.tab[2].x + 3, y + self.tab[2].y + 2, 0)-- TAB 2
     sspr(460, x + self.tab[3].x + 3, y + self.tab[3].y + 12, 0)-- TAb 3
-    sspr(482, x + self.tab[3].x + 3, y + self.tab[3].y + 2, 1)-- TAb 3
+    sspr(482, x + self.tab[3].x + 3, y + self.tab[3].y + 2, 6)-- TAb 3
     sspr(283, x + self.tab[3].x + 14, y + self.tab[3].y + 13, 4)-- TAb 3
     sspr(164, x + self.tab[3].x + 14, y + self.tab[3].y + 2, 4)-- TAb 3
     ui.draw_grid(x + self.grid_x, y + self.grid_y, CRAFT_ROWS, CRAFT_COLS, self.grid_bg, self.grid_fg, 9)
@@ -424,7 +422,13 @@ function CraftPanel:draw()
       for j = 1, #recipes[self.active_tab][i] do
         local item = ITEMS[recipes[self.active_tab][i][j]]
         if UNLOCKED_ITEMS[recipes[self.active_tab][i][j]] then
-          spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
+          if self.current_output ~= 'player' and ENTS[self.current_output].type == 'bio_refinery' then
+            if item.type == 'oil' then
+              spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
+            end
+          else
+            spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
+          end
         end
       end
     end
@@ -439,7 +443,7 @@ function CraftPanel:draw()
       if result then
         local row = math.ceil(slot_index / 10)
         local col = ((slot_index - 1) % 10) + 1
-        ui.highlight(sl_x - 2, sl_y - 1, 8, 8, false, 3, 4)
+        ui.highlight(sl_x - 1, sl_y - 1, 8, 8, false, 3, 4)
         --spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
         local id = recipes[self.active_tab][row][col]
         --if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] and ITEMS[].craftable and  then
@@ -461,19 +465,31 @@ function CraftPanel:click(x, y, side)
       local col = ((index - 1) % 10) + 1
       --spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
-        if self.current_output ~= 'player' then
-          --assembly machine crafting
-          if ENTS[self.current_output] then
-            if not ITEMS[recipes[self.active_tab][row][col]].craftable then sound('deny') return end
+        --if self.current_output ~= 'player' then
+        --assembly machine crafting
+        if ENTS[self.current_output] then
+          trace('clicked ' .. ENTS[self.current_output].type)
+          local item = ITEMS[recipes[self.active_tab][row][col]]
+          if item.craftable == false and item.type ~= 'oil' then sound('deny') return end
+          if item.type == 'oil' and ENTS[self.current_output].type == 'bio_refinery' then
+            ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
+            toggle_crafting()
+            ui.active_window = ENTS[self.current_output]:open()
+            self.current_output = 'player'
+            return true
+          elseif item.type ~= 'oil' and ENTS[self.current_output].type ~= 'bio_refinery' then
             ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
             toggle_crafting()
             ui.active_window = ENTS[self.current_output]:open()
             self.current_output = 'player'
             return true
           end
-        else
-
+          sound('deny')
+          return false
         end
+        --else
+
+        --end
       end
       --print(slot_index, mouse_x + 8, mouse_y - 3, 12, false, 1, true)
     elseif result and self.current_output == 'player' then
@@ -482,7 +498,7 @@ function CraftPanel:click(x, y, side)
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
         --player crafting
         local item = ITEMS[recipes[self.active_tab][row][col]]
-        trace('found item: ' .. item.fancy_name)
+        --trace('found item: ' .. item.fancy_name)
         if item and item.craftable then
           local can_craft = true
           for k, v in ipairs(item.recipe.ingredients) do
@@ -1173,15 +1189,17 @@ end
 
 function draw_tile_widget()
   local x, y = cursor.x, cursor.y
+  local sx, sy = get_screen_cell(x, y)
+  local tile, wx, wy = get_world_cell(x, y)
   if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) or (ui.active_window and ui.active_window:is_hovered(x,y)) then
     return
   end
-  local tile, wx, wy = get_world_cell(x, y)
   local k = get_key(x, y)
   local tile_type = tile.ore and ores[tile.ore].name .. ' Ore' or tile.is_land and 'Land' or 'Water'
   local biome = tile.is_land and biomes[tile.biome].name or 'Ocean'
   local info = {
-    [1] = {text = 'Biome: ' .. biome, bg = 0, fg = biomes[tile.biome].map_col},
+    -- [1] = {text = 'Biome: ' .. biome, bg = 0, fg = biomes[tile.biome].map_col},
+    [1] = {text = 'Biome: ' .. biome, bg = 0, fg = 10},
     [2] = {text = 'Type: ' .. tile_type, bg = 0, fg = 3},
     [3] = {text = 'Coords: ' .. wx .. ',' .. wy, bg = 0, fg = 11},
     -- [4] = 'Noise: '  .. tile.noise,
@@ -1334,8 +1352,13 @@ function draw_research_screen()
   --check available research hover
   local slot = get_hovered_slot(cursor.x, cursor.y, 1, 59, 25, 3, 4)
   if slot then
-    local index = current_tab and AVAILABLE_TECH[slot.index + ((current_page-1)*12)] or F_TECH[slot.index + ((current_page-1)*12)]
-    ui.highlight(slot.x - 1, slot.y, 24, 24, false, 3, 4)
+    local index = false
+    if current_tab then
+      index = AVAILABLE_TECH[slot.index + ((current_page-1)*12)] or false
+    else
+      index = F_TECH[slot.index + ((current_page-1)*12)] or false
+    end
+    ui.highlight(slot.x, slot.y, 24, 24, false, 3, 4)
     if not index then return end
     draw_tech_widget(cursor.x + 5, cursor.y + 5, index)
     if current_tab and cursor.l and not cursor.ll then
@@ -1356,20 +1379,26 @@ function draw_research_screen()
   --------MOUSE HOVER/CLICK EVENTS---------------------------
   slot = get_hovered_slot(cursor.x, cursor.y, 107, 8, 17, 1, 7)
   if slot then
-    ui.highlight(slot.x-1, slot.y, 16, 16, false, 3, 4)
+    ui.highlight(slot.x, slot.y, 16, 16, false, 3, 4)
   end
   if selected_research then
     slot = get_hovered_slot(cursor.x, cursor.y, 34, 39, 9, 1, #TECH[AVAILABLE_TECH[selected_research]].item_unlocks)
     if slot then
-      ui.highlight(slot.x-1, slot.y, 8, 8, false, 3, 4)
+      ui.highlight(slot.x, slot.y, 8, 8, false, 3, 4)
       draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[AVAILABLE_TECH[selected_research]].item_unlocks[slot.index])
     end
-    slot = get_hovered_slot(cursor.x, cursor.y, 29, 28, 8, 1, #TECH[AVAILABLE_TECH[selected_research]].science_packs)
-    if slot then
-      ui.highlight(slot.x-1, slot.y-1, 8, 8, false, 3, 4)
-      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[AVAILABLE_TECH[selected_research]].science_packs[slot.index].id)
+    for k, v in ipairs(TECH[AVAILABLE_TECH[selected_research]].science_packs) do
+      if hovered(cursor, {x = 30 + (k-1)*8, y = 28, w = 8, h = 8}) then
+        ui.highlight(29 + (k-1)*8, 27, 8, 8, false, 3, 4)
+        draw_recipe_widget(cursor.x + 5, cursor.y + 5, v.id)
+      end
     end
+    --draw tech tree
+    prints('tech tree', 120, 50, 0, 4)
   end
+  -- if current_research then
+  --   prints('tech tree', 120, 50, 0, 4)
+  -- end
 end
 
 function update_research_progress()
@@ -1379,13 +1408,18 @@ function update_research_progress()
   if tech.progress < 1.0 then
     tech.progress = tech.progress + frac
     if tech.progress >= 1.0 then
+      sound('tech_done')
+      local txt = tech.name .. ' research completed!'
+      ui.new_alert(120 - text_width(txt)/2, 68, txt, 2500, 0, 4)
       if tech.callback then tech:callback() end
       tech.completed = true
       for k, v in ipairs(tech.item_unlocks) do
         UNLOCKED_ITEMS[v] = true
       end
       for k, v in ipairs(tech.tech_unlocks) do
-        table.insert(AVAILABLE_TECH, v)
+        if not FINISHED_TECH[v] and not AVAILABLE_TECH[v] then
+          table.insert(AVAILABLE_TECH, v)
+        end
       end
       local tid = AVAILABLE_TECH[current_research]
       FINISHED_TECH[AVAILABLE_TECH[current_research]] = true
@@ -1399,7 +1433,10 @@ function update_research_progress()
                 n = n + 1
               end
             end
-            if n == #v.required_tech then
+            if n == #v.required_tech and not TECH[k].completed then
+              sound('tech_add')
+              local txt = '+ ' .. TECH[k].name .. ' research unlocked!'
+              ui.new_alert(120 - text_width(txt)/2, 76, txt, 2500, 0, 5)
               --trace('tech requirements met! adding : ' .. TECH[k].name)
               table.insert(AVAILABLE_TECH, k)
               break
@@ -1407,8 +1444,8 @@ function update_research_progress()
           end
         end
       end
-      current_research = false
-      selected_research = false
+      --current_research = false
+      --selected_research = false
     end
     return true
   end
@@ -1432,26 +1469,26 @@ function draw_image(x, y, width, height, pixel_data, color_key)
 end
 
 function draw_logo()
-  draw_image(0, 0, 240, 136, cover, 1)
+  draw_image(2, 48, 235, 41, logo, 1)
 end
 
 function ui.draw_menu()
   --cls(0)
   --vbank(0)
   --vbank(1)
-  if  STATE == 'start' then
-    --draw_logo()
+  if STATE == 'start' then
+    draw_logo()
     if ui.draw_text_button(120 - ((text_width('  Start  ') + 2) /2), 100, UI_BUTTON2, _, 8, 9, 15, 10, {text = '  Start  ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
       STATE = 'game'
       cls(0)
       vbank(0)
     end
     
-    if ui.draw_text_button(120 - ((text_width('  Settings  ') + 2) /2), 110, UI_BUTTON2, _, 8, 9, 15, 10, {text = '  Settings  ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
-      STATE = 'settings'
-    end
+    -- if ui.draw_text_button(120 - ((text_width('  Settings  ') + 2) /2), 110, UI_BUTTON2, _, 8, 9, 15, 10, {text = '  Settings  ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
+    --   STATE = 'settings'
+    -- end
     
-    if ui.draw_text_button(120 - ((text_width('  Controls  ') + 2) /2), 120, UI_BUTTON2, _, 8, 9, 15, 10, {text = '  Controls  ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
+    if ui.draw_text_button(120 - ((text_width('  Controls  ') + 2) /2), 110, UI_BUTTON2, _, 8, 9, 15, 10, {text = '  Controls  ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
       STATE = 'help'
     end
   elseif STATE == 'settings' then
@@ -1491,9 +1528,10 @@ function ui.draw_menu()
 end
 
 function ui.new_alert(sx, sy, text, duration, bg, fg)
+  local length = text_width(text)
   local alert = {
-    x = sx,
-    y = sy,
+    x = clamp(sx, 0, 240 - length),
+    y = clamp(sy + #ui.alerts*6, 1, 131),
     text = text,
     duration = duration or 3000,
     bg = bg or UI_TEXT_BG,
@@ -1516,6 +1554,6 @@ function ui.update_alerts()
     end
   end
   for i = 1, #trash do
-    table.remove(ui.alerts, trash[i])
+    if ui.alerts[trash[i]] then table.remove(ui.alerts, trash[i]) end
   end
 end

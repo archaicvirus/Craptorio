@@ -87,8 +87,8 @@ local Drill = {
   ore_type = false,
   ore_id = nil,
   output_key = nil,
-  output_slots = 5,
-  output = nil,
+  output_slots = 50,
+  output = {},
   field_keys = {},
   is_powered = true,
   yield_tick = 0,
@@ -99,38 +99,137 @@ local Drill = {
   drawn = false,
   updated = false,
   idle = false,
-  item_id = 13,
+  id = 13,
 }
 
 function Drill:draw_hover_widget()
   local sx, sy, w, h = cursor.x + 3, cursor.y + 3, 50, 50
   ui.draw_panel(sx, sy, w, h, UI_BG, UI_FG, 'Mining Drill', 0)
   box(sx + w/2 - 4, sy + h/2 - 4, 10, 10, 0, UI_FG)
-  if self.output and #self.output > 0 then
-    local stack = {id = self.output[1], count = #self.output}
+  if self.output and self.output.count > 0 then
+    local stack = {id = self.output.id, count = self.output.count}
     draw_item_stack(sx + w/2 - 4 + 1, sy + h/2 - 4 + 1, stack)
   end
     -- rectb(sx, sy, 50, 50, 13)
   -- rect(sx + 1, sy + 1, 48, 48, 0)
 end
 
+function Drill:open()
+  return {
+    x = 240 - 83 - 2,
+    y = 1,
+    w = 83,
+    h = 46,
+    ent_key = self.pos.x .. '-' .. self.pos.y,
+    close = function(self, sx, sy)
+      local btn = {x = self.x + self.w - 9, y = self.y + 1, w = 5, h = 5}
+      if sx >= btn.x and sy < btn.x + btn.w and sy >= btn.y and sy <= btn.y + btn.h then
+        return true
+      end
+      return false
+    end,
+    draw = function(self)
+      local txt = ITEMS[ENTS[self.ent_key].id].fancy_name
+      local ent = ENTS[self.ent_key]
+      ui.draw_panel(self.x, self.y, self.w, self.h, UI_BG, UI_FG, 'Mining Drill', UI_SH)
+      --box(self.x, self.y, self.w, self.h, 8, 9)
+      --rect(self.x + 1, self.y + 1, self.w - 2, 9, 9)
+      --close button
+      sspr(CLOSE_ID, self.x + self.w - 9, self.y + 2, 15)
+      box(self.x + self.w/2 - 5, self.y + 20, 10, 10, 0, 9)
+        if ent.output.count > 0 then
+          draw_item_stack(self.x + self.w/2 - 4, self.y + 21, {id = ent.output.id, count = ent.output.count})
+        end
+      if self:is_hovered(cursor.x, cursor.y) and cursor.type == 'item' then
+        draw_item_stack(cursor.x + 5, cursor.y + 5, {id = cursor.item_stack.id, count = cursor.item_stack.count})
+      end
+      if hovered(cursor, {x = self.x + self.w/2 - 5, y = self.y + 20, w = 10, h = 10}) then
+        ui.highlight(self.x + self.w/2 - 5, self.y + 20, 8, 8, false, 3, 4)
+      end
+    end,
+    click = function(self, sx, sy)
+      local ent = ENTS[self.ent_key]
+      if self:close(sx, sy) then
+        ui.active_window = nil
+        return true
+      end
+      if hovered(cursor, {x = self.x + self.w/2 - 5, y = self.y + 20, w = 10, h = 10}) then
+          -- ui.highlight(self.x + 13 + (i - 1)*13, self.y + 49, 10, 10, false, 3, 4)
+        if cursor.l and not cursor.ll then
+          --item interaction
+          if cursor.type == 'pointer' then
+            if key(64) and ent.output.count > 0 then
+              local old_count = ent.output.count
+              local result, stack = inv:add_item({id = ent.output.id, count = ent.output.count})
+              if result then
+                ent.output.count = stack.count
+                sound('deposit')
+                ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[ent.output.id].fancy_name, 1000, 0, 6)
+                return true
+              end
+            else
+
+              if ent.output.count > 0 then
+                cursor.type = 'item'
+                cursor.item_stack.id = ent.output.id
+                cursor.item_stack.count = ent.output.count
+                ent.output.count = 0
+                return true
+              end
+            end
+          -- elseif cursor.type == 'item' then
+          --   local stack_size = ITEMS[ent.output.id].stack_size
+          --   if cursor.item_stack.id == ent.output.id or ent.output.id == 0 then
+          --     if ent.output.id == 0 or ent.output.count == 0 then
+          --       ent.output.count = ent.output.count + cursor.item_stack.count
+          --       cursor.type = 'pointer'
+          --       cursor.item_stack.id = 0
+          --       cursor.item_stack.count = 0
+          --       return true
+          --     end
+          --     if ent.output.count + cursor.item_stack.count <= stack_size then
+          --       ent.output.count = ent.output.count + cursor.item_stack.count
+          --       cursor.type = 'pointer'
+          --       cursor.item_stack.id = 0
+          --       cursor.item_stack.count = 0
+          --       return true
+          --     elseif ent.output.count + cursor.item_stack.count > stack_size then
+          --       local old_count = ent.output.count
+          --       ent.output.count = stack_size
+          --       cursor.item_stack.count = cursor.item_stack.count - (stack_size - old_count)
+          --     end
+          --   end
+          end
+        end
+      end
+      return false
+    end,
+    is_hovered = function(self, x, y)
+      return x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h and true or false
+    end,
+  }
+end
+
 function Drill.yield(self)
-  if #self.output < self.output_slots then
+  if self.output.count < self.output_slots then
     --trace('current key: ' .. self.current_tile)
     local ore_key = self.field_keys[self.current_tile]
     local ore_id
     if ORES[ore_key] then
       --ore_id = ORES[ore_key].sprite_id
       ore_id = ORES[ore_key].id
-      ORES[ore_key].ore_remaining = ORES[ore_key].ore_remaining - 1
+      if self.output.id == 0 or self.output.count == 0 then self.output.id = ore_id end
+      if ore_id == self.output.id then
+        ORES[ore_key].ore_remaining = ORES[ore_key].ore_remaining - 1
+        self.output.count = self.output.count + 1
+      end
       if ORES[ore_key].ore_remaining < 1 then
         --trace('ore depleted')
         local wx, wy = ORES[ore_key].wx, ORES[ore_key].wy
         --trace('WX = ' .. wx .. ', WY = ' .. wy)
         TileMan:set_tile(wx, wy)
         ORES[ore_key] = nil
-      end      
-      table.insert(self.output, ore_id)
+      end
     else
       -- self.current_tile = self.current_tile + 1
       -- if self.current_tile > #self.field_keys then self.current_tile = 1 end
@@ -142,7 +241,8 @@ end
 
 function Drill.update(self)
   if self.is_powered and not self.idle then
-
+    local item = ITEMS[self.output.id]
+    if item and self.output.count == item.stack_size then return end
     --self:consume_electric()
     self.yield_tick = self.yield_tick + 1
     if self.yield_tick > 20 then
@@ -153,13 +253,17 @@ function Drill.update(self)
       self:yield()
     end
 
-    if #self.output > 0 and ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' then
+    --if TICK % 60 == 0 then trace(tostring(ENTS[self.output_key] and ENTS[self.output_key].type or 'nil')) end
+    --check for other ents
+    if self.output.count > 0 and ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' then
       local output = DRILL_BELT_OUTPUT_MAP[self.rot][ENTS[self.output_key].rot]
       if output then
+        
         if ENTS[self.output_key].lanes[output.lane][output.slot] == 0 then
           --trace('drill @ ' .. self.pos.x .. ',' .. self.pos.y .. ' outputting to belt @ ' .. self.output_key)
-          ENTS[self.output_key].lanes[output.lane][output.slot] = self.output[#self.output]
-          table.remove(self.output, #self.output)
+          ENTS[self.output_key].lanes[output.lane][output.slot] = self.ore_id
+          self.output.count = self.output.count - 1
+          if self.output.count < 1 then self.output.id = 0 end
         end
       end
     end
@@ -171,7 +275,7 @@ function Drill.update(self)
         break
       end
     end
-    if idle == true and #self.output < 1 then
+    if idle == true and self.output.count < 1 then
       self.idle = true
     end
   end
@@ -216,7 +320,7 @@ function new_drill(pos, rot, tiles)
   local out_pos = DRILL_OUTPUT_MAP[rot]
   local output_key = pos.x + out_pos.x .. '-' .. pos.y + out_pos.y
   trace(output_key)
-  local newdrill = {pos = pos, rot = rot, field_keys = tiles, output_key = output_key, output = {}}
+  local newdrill = {pos = pos, rot = rot, field_keys = tiles, output_key = output_key, output = {id = 0, count = 0}}
   setmetatable(newdrill, {__index = Drill})
   return newdrill
 end

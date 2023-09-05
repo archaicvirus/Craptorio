@@ -93,15 +93,15 @@ function Furnace:open()
         local item = ITEMS[id]
         if item then
           if item.type == 'ore' then
-            trace('item type is ' .. item.type)
+            --trace('item type is ' .. item.type)
             local input = self.input:click(sx, sy, self, ent.input_buffer)
             if input then ent.input_buffer = input end
           elseif item.type == 'fuel' then
-            trace('item type is ' .. item.type)
+            --trace('item type is ' .. item.type)
             local fuel = self.fuel:click(sx, sy, self, ent.fuel_buffer)
             if fuel then ent.fuel_buffer = fuel end
           elseif item.id == ent.output_buffer.id then
-            trace('item type is ' .. item.type)
+            --trace('item type is ' .. item.type)
             local output = self.output:click(sx, sy, self, ent.output_buffer)
             if output then ent.output_buffer = output end
           end
@@ -121,6 +121,7 @@ function Furnace:open()
       return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height and true or false
     end,
     draw = function(self)
+      --trace('drawing furnace UI')
       local bg, fg = 8, 9
       local ent = ENTS[self.ent_key]
       if not ent then return end
@@ -186,9 +187,20 @@ function Furnace:open()
       rectb(fx - 25, fy - 8, 66, 33, fg)
       --furnace graphic
       ent:draw_sprite(fx, fy, ent.is_smelting)
-      if self:is_hovered(cursor.x, cursor.y) and cursor.item_stack.id ~= 0 then
+      local hov = self:is_hovered(cursor.x, cursor.y)
+      if hov and cursor.item_stack.id ~= 0 then
         draw_item_stack(cursor.x + 5, cursor.y + 5, {id = cursor.item_stack.id, count = cursor.item_stack.count})
       end
+
+      if hov then
+        local slots = {[1] = self.input, [2] = self.output, [3] = self.fuel}
+        for k, v in ipairs(slots) do
+          if hovered({x = cursor.x, y = cursor.y}, {x = v.x + self.x, y = v.y + self.y, w = v.w, h = v.h}) then
+            ui.highlight(self.x + v.x, self.y + v.y, 8, 8, false, 3, 4)
+          end
+        end
+      end
+
     end
   }
 end
@@ -318,7 +330,7 @@ function Furnace:deposit_stack(stack)
 end
 
 function Furnace:deposit(id, keep)
-  trace('attempting quick-deposit')
+  --trace('attempting quick-deposit')
   keep = keep or false
   local item = ITEMS[id]
   if (item.type ~= 'ore' and item.type ~= 'fuel') and not item.smelted_id then return false end
@@ -381,23 +393,23 @@ end
 
 function new_furnace(x, y, keys)
   local new_furnace = {
-  x = x,
-  y = y,
-  type = 'stone_furnace',
-  is_hovered = false,
-  updated = false,
-  drawn = false,
-  fuel_slots = FURNACE_BUFFER_FUEL,
-  output_slots = FURNACE_BUFFER_SIZE,
-  output_buffer = {id = 0, count = 0},
-  input_buffer = {id = 0, count = 0},
-  fuel_buffer = {id = 0, count = 0},
-  dummy_keys = keys,
-  fuel_time = 0,
-  smelt_timer = 0,
-  ore_type = false,
-  is_smelting = false,
-}
+    x = x,
+    y = y,
+    type = 'stone_furnace',
+    is_hovered = false,
+    updated = false,
+    drawn = false,
+    fuel_slots = FURNACE_BUFFER_FUEL,
+    output_slots = FURNACE_BUFFER_SIZE,
+    output_buffer = {id = 0, count = 0},
+    input_buffer = {id = 0, count = 0},
+    fuel_buffer = {id = 0, count = 0},
+    dummy_keys = keys,
+    fuel_time = 0,
+    smelt_timer = 0,
+    ore_type = false,
+    is_smelting = false,
+  }
   setmetatable(new_furnace, {__index = Furnace})
   return new_furnace
 end

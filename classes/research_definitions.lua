@@ -1,4 +1,4 @@
-AVAILABLE_TECH = {1,2,3,4,5,6,7,8,9,10,11,12,13}
+AVAILABLE_TECH = {1,2,3,4,5,12}--,6,7,8,9,10,11,12,13}
 FINISHED_TECH = {}
 UNLOCKED_TECH = {}
 UNLOCKED_ITEMS = {}
@@ -6,7 +6,7 @@ current_research = false
 selected_research = false
 current_page = 1
 current_tab = true --tab to show available or unlocked tech
-local starting_items = {2, 9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 12, 14, 30, 13, 14, 35}
+local starting_items = {9, 20, 22, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 12, 14, 13, 14, 33}
 for i = 1, #ITEMS do
   UNLOCKED_ITEMS[i] = false
 end
@@ -22,7 +22,7 @@ TECH = {
     time = 3,
     tier = 1,
     science_packs = {
-      {id = 23, count = 5},
+      {id = 23, count = 1},
     },
     required_tech = {},
     item_unlocks = {18, 10, 11},
@@ -39,10 +39,10 @@ TECH = {
     time = 5,
     tier = 1,
     science_packs = {
-      {id = 23, count = 2}
+      {id = 23, count = 1}
     },
     required_tech = {},
-    item_unlocks = {19, 22},
+    item_unlocks = {19},
     tech_unlocks = {},
     sprite = {{id=312,tw=3,th=3,w=24,h=24,rot=0,ck=0,page=0,offset={x=0,y=0}}},
   },
@@ -69,10 +69,10 @@ TECH = {
     completed = false,
     time = 1,
     science_packs = {
-      {id = 23, count = 2}
+      {id = 23, count = 1}
     },
     required_tech = {},
-    item_unlocks = {29},
+    item_unlocks = {27},
     tech_unlocks = {},
     sprite = {
       {id=448,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=1,y=3}},
@@ -92,67 +92,93 @@ TECH = {
       {id = 23, count = 1}
     },
     required_tech = {},
-    item_unlocks = {1, 30},
+    item_unlocks = {2},
     tech_unlocks = {},    
     sprite = {
       {id=309,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
     },
   },
   [6] = {
-    name = 'Automation 2',
-    progress = 0,
-    completed = false,
-    time = 30,
-    tier = 2,
-    science_packs = {
-      {id = 23, count = 50}
-    },
-    required_tech = {2,3},
-    item_unlocks = {30},
-    tech_unlocks = {},    
-    sprite = {{id=312,tw=3,th=3,w=24,h=24,rot=0,ck=0,page=0,offset={x=0,y=0}}},
-  },
-  [7] = {
-    name = 'Logistics 2',
-    progress = 0,
-    completed = false,
-    time = 60,
-    tier = 2,
-    science_packs = {
-      {id = 23, count = 100}
-    },
-    required_tech = {1, 3},
-    item_unlocks = {},
-    tech_unlocks = {},
-    sprite = {{id=12,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=1,offset={x=0,y=0}}},
-  },
-  [8] = {
-    name = 'Solar Energy',
+    name = 'Laser Mining 1',
     progress = 0,
     completed = false,
     time = 5,
+    tier = 1,
+    science_packs = {
+      {id = 23, count = 1}
+    },
+    required_tech = {},
+    item_unlocks = {34},
+    info = {'Increases mining speed', 'by 150%'},
+    tech_unlocks = {},
+    sprite = {
+      {id=341,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
+    },
+    callback = function(self)
+      trace(self.name .. ' - callback triggered after research was completed')
+      CURSOR_MINING_SPEED = floor(CURSOR_MINING_SPEED - (CURSOR_MINING_SPEED*0.5))
+      trace('set CURSOR_MINING_SPEED to ' .. CURSOR_MINING_SPEED)
+    end,
+  },
+  [7] = {
+    name = 'Laser Mining 2',
+    progress = 0,
+    completed = false,
+    time = 5,
+    tier = 1,
     science_packs = {
       {id = 23, count = 1},
       {id = 24, count = 1},
     },
-    required_tech = {1, 3},
-    item_unlocks = {31},
+    required_tech = {6, 10},
+    item_unlocks = {38},
+    info = {'Increases mining speed', 'by 150%'},
     tech_unlocks = {},
-    sprite = {{id=475,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=0,offset={x=0,y=0}}},
+    sprite = {
+      {id=341,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
+    },
+    callback = function(self)
+      trace(self.name .. ' - callback triggered after research was completed')
+      CURSOR_MINING_SPEED = floor(CURSOR_MINING_SPEED - (CURSOR_MINING_SPEED*0.5))
+      trace('set CURSOR_MINING_SPEED to ' .. CURSOR_MINING_SPEED)
+    end,
   },
-  [9] = {
-    name = 'Bio-Oil Processing',
+  [8] = {
+    name = 'Laser Mining 3',
     progress = 0,
     completed = false,
     time = 5,
+    tier = 1,
     science_packs = {
       {id = 23, count = 1},
       {id = 24, count = 1},
       {id = 25, count = 1},
     },
-    required_tech = {1, 3},
-    item_unlocks = {32},
+    required_tech = {7, 15},
+    item_unlocks = {38},
+    info = {'Increases mining speed', 'by 150%'},
     tech_unlocks = {},
+    sprite = {
+      {id=341,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
+    },
+    callback = function(self)
+      trace(self.name .. ' - callback triggered after research was completed')
+      CURSOR_MINING_SPEED = floor(CURSOR_MINING_SPEED - (CURSOR_MINING_SPEED*0.5))
+      trace('set CURSOR_MINING_SPEED to ' .. CURSOR_MINING_SPEED)
+    end,
+  },
+  [9] = {
+    name = 'Oil Processing',
+    progress = 0,
+    completed = false,
+    time = 5,
+    science_packs = {
+      {id = 23, count = 1},
+      {id = 24, count = 1},
+    },
+    required_tech = {1, 3, 4},
+    item_unlocks = {30},
+    tech_unlocks = {14},
     sprite = {{id=371,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=0,offset={x=0,y=0}}},
   },
   [10] = {
@@ -162,10 +188,10 @@ TECH = {
     time = 30,
     tier = 2,
     science_packs = {
-      {id = 23, count = 50}
+      {id = 23, count = 1}
     },
-    required_tech = {5},
-    item_unlocks = {30},
+    required_tech = {5, 13},
+    item_unlocks = {1},
     tech_unlocks = {},
     sprite = {
       {id=309,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=0,y=0}},
@@ -173,20 +199,23 @@ TECH = {
     },
   },
   [11] = {
-    name = 'Biofuel Engine',
+    name = 'Biofuel Processing',
     progress = 0,
     completed = false,
     time = 30,
     science_packs = {
-      {id = 23, count = 100}
+      {id = 23, count = 1},
+      {id = 24, count = 1},
+      {id = 25, count = 1},
     },
-    required_tech = {},
-    item_unlocks = {33},
+    required_tech = {12, 3, 9, 14},
+    item_unlocks = {31, 35},
     tech_unlocks = {},
     sprite = {
-      {id=483,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=15,y=3}},
-      {id=452,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=1,y=3}},
-      {id=468,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=8,y=14}},
+      {id=462,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=2,y=2}},
+      {id=165,tw=1,th=1,w=8,h=8,rot=0,ck=4,page=0,offset={x=15,y=2}},
+      {id=483,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=2,y=13}},
+      {id=482,tw=1,th=1,w=8,h=8,rot=0,ck=6,page=0,offset={x=15,y=14}},
     },
   },
   [12] = {
@@ -198,7 +227,7 @@ TECH = {
       {id = 23, count = 1}
     },
     required_tech = {},
-    item_unlocks = {34},
+    item_unlocks = {32},
     tech_unlocks = {},
     sprite = {
       {id=451,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=0,y=3}},
@@ -207,26 +236,55 @@ TECH = {
     },
   },
   [13] = {
-    name = 'Laser Mining 1',
+    name = 'Plastic Bar',
     progress = 0,
     completed = false,
     time = 5,
-    tier = 1,
     science_packs = {
-      {id = 23, count = 5}
+      {id = 23, count = 1},
+      {id = 24, count = 1},
+      {id = 25, count = 1},
     },
-    required_tech = {},
+    required_tech = {9},
     item_unlocks = {36},
-    info = {'Increases mining speed', 'by 150%'},
+    tech_unlocks = {},
+    sprite = {{id=475,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=0,offset={x=0,y=0}}},
+  },
+  [14] = {
+    name = 'Biology Pack',
+    progress = 0,
+    completed = false,
+    time = 3,
+    science_packs = {
+      {id = 23, count = 1}
+    },
+    required_tech = {3, 9, 11, 12},
+    item_unlocks = {25},
     tech_unlocks = {},
     sprite = {
-      {id=341,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
+      {id=301,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=1,offset={x=4,y=4}},
+      {id=462,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=1,y=1}},
+      {id=399,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=15,y=1}},
     },
-    callback = function(self)
-      trace(self.name .. ' - callback triggered after research was completed')
-      CURSOR_MINING_SPEED = floor(CURSOR_MINING_SPEED - (CURSOR_MINING_SPEED*0.5))
-      trace('set CURSOR_MINING_SPEED to ' .. CURSOR_MINING_SPEED)
-    end,
+  },
+  [15] = {
+    name = 'Production Pack',
+    progress = 0,
+    completed = false,
+    time = 3,
+    science_packs = {
+      {id = 23, count = 1},
+      {id = 24, count = 1},
+      {id = 25, count = 1}
+    },
+    required_tech = {14},
+    item_unlocks = {26},
+    tech_unlocks = {},
+    sprite = {
+      {id=333,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=1,offset={x=4,y=4}},
+      {id=463,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=1,y=1}},
+      {id=399,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=15,y=1}},
+    },
   },
 }
 
