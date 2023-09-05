@@ -355,6 +355,7 @@ function Belt.request_item_furnace(self, keep, desired_type, sub_type)
 end
 
 function Belt:request_item(keep, lane, slot)
+  -- keep = does this belt keep the item, or remove and return it?
   if not lane and not slot then
     for i = 1, 2 do
       for j = 1, 8 do
@@ -370,6 +371,19 @@ function Belt:request_item(keep, lane, slot)
     local item_id = self.lanes[lane][slot]
     if not keep then self.lanes[lane][slot] = 0 end
     return item_id
+  end
+  return false
+end
+
+function Belt:request_item_inserter(needs)
+  for i = 1, 2 do
+    for j = 1, 8 do
+      if (needs and self.lanes[i][j] == needs) or (not needs and self.lanes[i][j] ~= 0) then
+        local id = self.lanes[i][j]
+        self.lanes[i][j] = 0
+        return id
+      end
+    end
   end
   return false
 end

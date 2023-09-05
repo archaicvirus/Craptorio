@@ -9,7 +9,7 @@ callbacks = {
       local tile, wx, wy = get_world_cell(x, y)
       if not tile.is_land then
         sound('deny')
-        return
+        return false
       end
       local key = wx .. '-' .. wy
       if not cursor.drag and cursor.l and cursor.ll then
@@ -52,8 +52,8 @@ callbacks = {
           ENTS[k]:update_neighbors()
           sound('place_belt')
           return true
-        elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= rot then
-          ENTS[k]:rotate(rot)
+        elseif ENTS[k] and ENTS[k].type == 'transport_belt' and ENTS[k].rot ~= cursor.rot then
+          ENTS[k]:rotate(cursor.rot)
           ENTS[k]:update_neighbors()
           sound('rotate_r')
           return false
@@ -583,7 +583,7 @@ callbacks = {
       local tile, wx, wy = get_world_cell(x, y)
       if not tile.is_land or tile.is_tree then
         sound('deny')
-        return
+        return false
       end
       local k = wx .. '-' .. wy
       if not ENTS[k] then
@@ -592,7 +592,7 @@ callbacks = {
           for j = 0, 2 do
             if ENTS[wx + j .. '-' .. i + wy] then 
               sound('deny')
-              return
+              return false
             end
           end
         end

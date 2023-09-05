@@ -134,13 +134,21 @@ function Lab:draw()
 end
 
 function Lab:draw_hover_widget(x, y)
-  local width = print(ITEMS[self.id].fancy_name, 0, -10, 0, false, 1, true)
-  local w, h = 75, 50
-  local sx, sy = clamp(x or cursor.x + 5, 0, 240 - width), clamp(y or cursor.y + 5, 0, 136 - h)
-  ui.draw_panel(sx, sy, w, h, 8, 9, ITEMS[self.id].fancy_name, 0)
-  -- box(sx, sy, w, h, 8, 9)
-  -- rect(sx + 1, sy + 1, w - 2, 9, 9)
-  --prints(ITEMS[self.id].fancy_name, sx + w/2 - width/2, sy + 2)
+  local x, y = clamp(cursor.x + 5, 1, 240 - 85), clamp(cursor.y + 5, 1, 136 - 46)
+  local w, h = 83, 46
+  local txt = ITEMS[self.item_id].fancy_name
+  local txt2 = current_research and TECH[AVAILABLE_TECH[current_research]].name or 'No Active Research'
+  ui.draw_panel(x, y, w, h, UI_BG, UI_FG, 'Research Lab', UI_SH)
+  prints(txt, x + w/2 - print(txt, 0, -10, 0, false, 1, true)/2, y + 2, 0, 4)
+  prints(txt2, x + w/2 - print(txt2, 0, -10, 0, false, 1, true)/2, y + 12, 0, 4)
+  for i = 1, 4 do
+    box(x + 14 + (i - 1)*13, y + 30, 10, 10, 0, 9)
+    if self.input[i].count > 0 then
+      draw_item_stack(x + 15 + (i - 1)*13, y + 31, self.input[i])
+    end
+  end
+  local time = current_research and TECH[AVAILABLE_TECH[current_research]].time or 0
+  ui.progress_bar(self.progress/(time * 60), x + 10, y + 20, w - 20, 6, UI_BG, UI_FG, 6, 2)
 end
 
 function Lab:update()
@@ -213,7 +221,7 @@ function new_lab(x, y, dummy_keys)
     slot_keys = {}
   }
   for i = 1, 4 do
-    newlab.input[i] = {id = 22 + i, count = 50}
+    newlab.input[i] = {id = 22 + i, count = 0}
     newlab.slot_keys[tostring(22+i)] = i
     --trace('created new_lab with slot_key[' .. tostring(22+i) .. '] = ' .. i)
   end

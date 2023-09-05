@@ -1,4 +1,4 @@
-AVAILABLE_TECH = {1,2,3,4,5,12}--,6,7,8,9,10,11,12,13}
+AVAILABLE_TECH = {1,2,3,4,5,6,12,13}--,6,7,8,9,10,11,12,13}
 FINISHED_TECH = {}
 UNLOCKED_TECH = {}
 UNLOCKED_ITEMS = {}
@@ -16,7 +16,7 @@ end
 
 TECH = {
   [1] = {
-    name = 'Logistics 1',
+    name = 'Logistics',
     progress = 0,
     completed = false,
     time = 3,
@@ -33,7 +33,7 @@ TECH = {
     end,
   },
   [2] = {
-    name = 'Automation 1',
+    name = 'Automation',
     progress = 0,
     completed = false,
     time = 5,
@@ -54,7 +54,7 @@ TECH = {
     science_packs = {
       {id = 23, count = 1}
     },
-    required_tech = {},
+    required_tech = {1},
     item_unlocks = {24},
     tech_unlocks = {},
     sprite = {
@@ -248,7 +248,13 @@ TECH = {
     required_tech = {9},
     item_unlocks = {36},
     tech_unlocks = {},
-    sprite = {{id=475,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=0,offset={x=0,y=0}}},
+    sprite = {
+      {id=283,tw=1,th=1,w=8,h=8,rot=0,ck=4,page=0,offset={x=0,y=2}},
+      {id=268,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=16,y=1}},
+      {id=165,tw=1,th=1,w=8,h=8,rot=0,ck=4,page=0,offset={x=8,y=2}},
+      {id=270,tw=1,th=1,w=8,h=8,rot=3,ck=0,page=0,offset={x=8,y=6}},
+      {id=374,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=9,y=14}},
+    },
   },
   [14] = {
     name = 'Biology Pack',
@@ -256,7 +262,8 @@ TECH = {
     completed = false,
     time = 3,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 23, count = 1},
+      {id = 24, count = 1},
     },
     required_tech = {3, 9, 11, 12},
     item_unlocks = {25},

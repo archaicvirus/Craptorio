@@ -422,13 +422,13 @@ function CraftPanel:draw()
       for j = 1, #recipes[self.active_tab][i] do
         local item = ITEMS[recipes[self.active_tab][i][j]]
         if UNLOCKED_ITEMS[recipes[self.active_tab][i][j]] then
-          if self.current_output ~= 'player' and ENTS[self.current_output].type == 'bio_refinery' then
-            if item.type == 'oil' then
-              spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
-            end
-          else
-            spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
-          end
+          spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
+          -- if ENTS[self.current_output].type == 'bio_refinery' then
+          --   if item.type == 'oil' then
+          --   end
+          -- else
+          --   spr(item.sprite_id, self.x + self.grid_x + (j*9) - 9 + 1, self.y + self.grid_y + 1 + (i * 9) - 9, item.color_key)
+          -- end
         end
       end
     end

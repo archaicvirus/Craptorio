@@ -656,7 +656,7 @@ ITEMS = {
     id = 36,
     sprite_id = 455,
     belt_id = 471,
-    color_key = 1,
+    color_key = 0,
     type = 'oil',
     craftable = false,
     stack_size = 100,
@@ -673,7 +673,7 @@ ITEMS = {
   },
   [37] = {
     name = 'processing_unit',
-    fancy_name = 'Plastic Bar',
+    fancy_name = 'Processing Unit',
     info = 'Crafed in a Bio Refinery',
     id = 36,
     sprite_id = 458,

@@ -248,7 +248,7 @@ function inventory:slot_clicked(index, button)
       local inv_item = {id = self.slots[index].id, count = self.slots[index].count}
       self.slots[index].id = cursor.item_stack.id
       self.slots[index].count = cursor.item_stack.count
-      cursor.item_stack = {id = inv_item.id, count = inv_item.count}
+      cursor.item_stack = {id = inv_item.id, count = inv_item.count, slot = false}
       cursor.type = 'item'
       cursor.item = ITEMS[inv_item.id].name
     end
@@ -269,7 +269,10 @@ function inventory:slot_clicked(index, button)
         end
         return true
       end
-      cursor.item_stack = {id = id, count = count, slot = index}
+      --trace('setting item stack from inv')
+      cursor.item_stack.id = id
+      cursor.item_stack.count = count
+      cursor.item_stack.slot = false
       cursor.type = 'item'
       cursor.item = ITEMS[id].name
       self.slots[index].id = 0

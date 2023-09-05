@@ -140,6 +140,10 @@ opensies = {
 inv = make_inventory()
 inv.slots[1].id  = 33 inv.slots[1].count  = ITEMS[33].stack_size
 inv.slots[2].id  = 18 inv.slots[2].count  = ITEMS[18].stack_size
+inv.slots[3].id  = 23 inv.slots[3].count  = ITEMS[23].stack_size
+inv.slots[4].id  = 24 inv.slots[4].count  = ITEMS[24].stack_size
+inv.slots[5].id  = 25 inv.slots[5].count  = ITEMS[25].stack_size
+inv.slots[6].id  = 26 inv.slots[6].count  = ITEMS[26].stack_size
 inv.slots[57].id = 9  inv.slots[57].count = ITEMS[9].stack_size
 inv.slots[58].id = 10 inv.slots[58].count = ITEMS[10].stack_size
 inv.slots[59].id = 11 inv.slots[59].count = ITEMS[11].stack_size
@@ -643,8 +647,13 @@ end
 
 function cycle_hotbar(dir)
   if cursor.type == 'item' and cursor.item_stack then
-    inv.slots[inv.active_slot + 56].id = cursor.item_stack.id
-    inv.slots[inv.active_slot + 56].count = cursor.item_stack.count
+    if cursor.item_stack.slot then
+      inv.slots[cursor.item_stack.slot].id = cursor.item_stack.id
+      inv.slots[cursor.item_stack.slot].count = cursor.item_stack.count
+    else
+      inv:add_item({id = cursor.item_stack.id, count = cursor.item_stack.count})
+      set_cursor_item()
+    end
     --set_cursor_item()
   end
   inv.active_slot = inv.active_slot + dir
@@ -899,10 +908,13 @@ function set_cursor_item(stack, slot)
     cursor.item = false
     cursor.item_stack.id = 0
     cursor.item_stack.count = 0
+    cursor.item_stack.slot = false
     cursor.type = 'pointer'
   else
     cursor.type = 'item'
-    cursor.item_stack = {id = stack.id, count = stack.count, slot = slot or cursor.item_stack.slot}
+    cursor.item_stack.id = stack.id
+    cursor.item_stack.count = stack.count
+    cursor.item_stack.slot = slot
     cursor.item = ITEMS[stack.id].type == 'placeable' and ITEMS[stack.id].name or false
   end
 end
@@ -920,26 +932,26 @@ function pipette()
           cursor.type = 'item'
           cursor.item = ent.type
           cursor.item_stack = {id = inv.slots[i].id, count = inv.slots[i].count, slot = i}
-          inv.slots[i].id = 0
-          inv.slots[i].count = 0
+          -- inv.slots[i].id = 0
+          -- inv.slots[i].count = 0
           if ent.rot then
             cursor.rot = ent.rot
           end
+          if i > 56 then inv.active_slot = i - 56 end
           return
         end
       end
       for i = 1, #inv.slots - INVENTORY_COLS do
         if inv.slots[i].id == ENTS[k].item_id then
-          inv.slots[i].id = 0
-          inv.slots[i].count = 0
           cursor.type = 'item'
           cursor.item = ent.type
           cursor.item_stack = {id = inv.slots[i].id, count = inv.slots[i].count, slot = i}
-          inv.slots[i].id = 0
-          inv.slots[i].count = 0
+          -- inv.slots[i].id = 0
+          -- inv.slots[i].count = 0
           if ent.rot then
             cursor.rot = ent.rot
           end
+          if i > 56 then inv.active_slot = i - 56 end
           return
         end
       end
@@ -951,13 +963,13 @@ function pipette()
       -- end
       -- return
     elseif cursor.item_stack.slot and inv.slots[cursor.item_stack.slot].id ~= 0 then
-      set_cursor_item(inv.slots[cursor.item_stack.slot], cursor.item_stack.slot)
+      set_cursor_item({id = inv.slots[cursor.item_stack.slot].id, count = inv.slots[cursor.item_stack.slot].count}, cursor.item_stack.slot)
       -- inv.slots[cursor.item_stack.slot].id = 0
       -- inv.slots[cursor.item_stack.slot].count = 0
     end
   elseif cursor.type == 'item' then
     if not cursor.item_stack.slot then
-      inv:add_item(cursor.item_stack)
+      inv:add_item({id = cursor.item_stack.id, count = cursor.item_stack.count})
     else
       inv.slots[cursor.item_stack.slot].id = cursor.item_stack.id
       inv.slots[cursor.item_stack.slot].count = cursor.item_stack.count
@@ -1032,7 +1044,7 @@ function dispatch_keypress()
   --Y
   if keyp(25) then debug = not debug end
   --SHIFT
-  if key(64) and not keyp(18) and alt_mode then show_tile_widget = true else show_tile_widget = false end
+  show_tile_widget = key(64)
   --ALT
   if keyp(65) then alt_mode = not alt_mode end
   --CTRL
@@ -1143,7 +1155,7 @@ function dispatch_input()
         if slot and item_consumed then
           inv.slots[slot].count = inv.slots[slot].count - 1
           cursor.item_stack.count = inv.slots[slot].count
-        elseif item_consumed then
+        elseif item_consumed ~= false then
           cursor.item_stack.count = cursor.item_stack.count - 1
           if cursor.item_stack.count < 1 then
             set_cursor_item()
@@ -1158,20 +1170,16 @@ function dispatch_input()
       elseif cursor.l and not cursor.ll and ITEMS[cursor.item_stack.id].type == 'placeable' then
         if callbacks[cursor.item] then
           local item_consumed = callbacks[cursor.item].place_item(cursor.x, cursor.y)
-          if item_consumed then
+          if item_consumed ~= false then
+            cursor.item_stack.count = cursor.item_stack.count - 1
+            if cursor.item_stack.count < 1 then
+              set_cursor_item()
+            end
             if cursor.item_stack.slot then
               inv.slots[cursor.item_stack.slot].count = inv.slots[cursor.item_stack.slot].count - 1
-              cursor.item_stack.count = inv.slots[cursor.item_stack.slot].count
               if inv.slots[cursor.item_stack.slot].count < 1 then
                 inv.slots[cursor.item_stack.slot].id = 0
                 inv.slots[cursor.item_stack.slot].count = 0
-                set_cursor_item()
-              else
-
-              end
-            else
-              cursor.item_stack.count = cursor.item_stack.count - 1
-              if cursor.item_stack.count < 1 then 
                 set_cursor_item()
               end
             end
@@ -1517,7 +1525,7 @@ function TIC()
   info[12] = 'hold time: ' .. cursor.hold_time
   local _, wx, wy  = get_world_cell(cursor.tx, cursor.ty)
   local k = wx .. '-' .. wy
-  if ENTS[k] and alt_mode then
+  if key(64) and ENTS[k] then
     if ENTS[k].type == 'underground_belt_exit' then
       ENTS[ENTS[k].other_key]:draw_hover_widget(k)
     else
@@ -1533,7 +1541,7 @@ function TIC()
   end
   if show_tech then draw_research_screen() end
   -- if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
-  if show_tile_widget then draw_tile_widget() end
+  if show_tile_widget and not ENTS[k] then draw_tile_widget() end
   render_cursor_progress()
   ui.update_alerts()
   last_frame_time = time()
@@ -2181,7 +2189,7 @@ end
 -- 196:00ec0e00ecfccfc0efceecfe0cecfeccccefcec0efceecfe0cfccfce00e0ce00
 -- 197:0000000000003f00003003f003f303f003f303f003fff3f000333f0000000000
 -- 198:000000000c0d00000d0c00000d0d00000c0d00000c0c00000d0d000000000000
--- 199:000000000cd00000cccd00000cccd00000cccd00000cccd00000cd0000000000
+-- 199:000000000bd00000bbbd00000bbbd00000bbbd00000bbbd00000bd0000000000
 -- 200:0666666734444466666664663444644466646666006444440066666600000000
 -- 201:0222222134444422222224223444244422242222002444440022222200000000
 -- 202:0999999834444499999994993444944499949999009444440099999900000000
@@ -2197,6 +2205,7 @@ end
 -- 212:1111111111111111bbbbbbbbdcdcdcdccdcdcdcdbbbbbbbb1111111111111111
 -- 213:bbb11111dcd11111bbb111111111111111111111111111111111111111111111
 -- 214:4430000032200000133000000000000000000000000000000000000000000000
+-- 215:bb000000bbb000000bd000000000000000000000000000000000000000000000
 -- 219:11111111111111111111bb11111b9b1111b89b111b9a9b1bb8989bc8baaaabca
 -- 220:111111111111111111bb11111b9b111bb89b11b89a9b1b9a989bc898aaabcaaa
 -- 221:1111111111111111bb1111bb9b111b9b9b11b89b9b1b9a9b9bc8989babcaaaab
