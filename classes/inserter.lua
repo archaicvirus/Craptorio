@@ -119,72 +119,87 @@ function Inserter.update(self)
     to = self.to_key
   end
   if not ENTS[from] or not ENTS[to] then return end
+
   if self.state == 'send' then
     self.anim_frame = self.anim_frame - 1
     if self.anim_frame <= 1 then
       self.anim_frame = 1
       --try to deposit item
       --trace('looking for output')
-      if ENTS[to].type == 'transport_belt' then
-        ENTS[to].idle = false
-        --trace('FOUND belt')
-        for i = 8, 1, -1 do
-          local index = ENTS[to].rot
-          local lane = INSERTER_DEPOSIT_MAP[self.rot][index]
-          if ENTS[to].lanes[lane][i] == 0 then
-            ENTS[to].lanes[lane][i] = self.held_item_id
-            self.held_item_id = 0
-            self.state = 'return'
-            break
-          end
-        end
-        --return
-      elseif ENTS[to].type == 'stone_furnace' then
-        --trace('furnace detected')
-        if ENTS[to]:deposit(self.held_item_id, false) then
-          self.held_item_id = 0
-          self.state = 'return'
-        end
-        --return
-      elseif ENTS[to].type == 'underground_belt' then
-        if ENTS[to]:deposit(self.held_item_id, 0) then
-          self.held_item_id = 0
-          self.state = 'return'
-        end
-      elseif ENTS[to].type == 'underground_belt_exit' then
-        if ENTS[to]:deposit(self.held_item_id, 1) then
-          self.held_item_id = 0
-          self.state = 'return'
-        end
-      elseif ENTS[to].type == 'splitter' then
-        if ENTS[to]:input(self.held_item_id, 2) then
-          self.held_item_id = 0
-          self.state = 'return'
-        end
-      elseif ENTS[to].type == 'assembly_machine' then
-        --trace('attempt assembler deposit')
-        if ENTS[to]:deposit(self.held_item_id) then
-          self.held_item_id = 0
-          self.state = 'return'
-        end
-      elseif ENTS[to].type == 'chest' then
-        --trace('attempting chest deposit')
-        if ENTS[to]:can_deposit({id = self.held_item_id, count = 1}) then
-          ENTS[to]:deposit(self.held_item_id)
-          self.held_item_id = 0
-          self.state = 'return'
-        end
-      elseif ENTS[to].type == 'research_lab' then
-        for i = 1, 4 do
-          if ENTS[to].input[i].id == self.held_item_id and ENTS[to].input[i].count < 2 then
-            self.held_item_id = 0
-            ENTS[to].input[i].count = ENTS[to].input[i].count + 1
-            self.state = 'return'
-            break
-          end
-        end
-        return
-      end
+      if ENTS[to] then ENTS[to]:deposit(self.held_item_id) end
+      self.state = 'return'
+      self.held_item_id = 0
+      return
+
+      -- if ENTS[to].type == 'transport_belt' then
+      --   ENTS[to].idle = false
+      --   --trace('FOUND belt')
+      --   for i = 8, 1, -1 do
+      --     local index = ENTS[to].rot
+      --     local lane = INSERTER_DEPOSIT_MAP[self.rot][index]
+      --     if ENTS[to].lanes[lane][i] == 0 then
+      --       ENTS[to].lanes[lane][i] = self.held_item_id
+      --       self.held_item_id = 0
+      --       self.state = 'return'
+      --       break
+      --     end
+      --   end
+      --   --return
+      -- elseif ENTS[to].type == 'stone_furnace' then
+      --   --trace('furnace detected')
+      --   if ENTS[to]:deposit(self.held_item_id, false) then
+      --     self.held_item_id = 0
+      --     self.state = 'return'
+      --   end
+      --   --return
+      -- elseif ENTS[to].type == 'underground_belt' then
+      --   if ENTS[to]:deposit(self.held_item_id, 0) then
+      --     self.held_item_id = 0
+      --     self.state = 'return'
+      --   end
+      -- elseif ENTS[to].type == 'underground_belt_exit' then
+      --   if ENTS[to]:deposit(self.held_item_id, 1) then
+      --     self.held_item_id = 0
+      --     self.state = 'return'
+      --   end
+      -- elseif ENTS[to].type == 'splitter' then
+      --   if ENTS[to]:input(self.held_item_id, 2) then
+      --     self.held_item_id = 0
+      --     self.state = 'return'
+      --   end
+      -- elseif ENTS[to].type == 'assembly_machine' then
+      --   --trace('attempt assembler deposit')
+      --   if ENTS[to]:deposit(self.held_item_id) then
+      --     self.held_item_id = 0
+      --     self.state = 'return'
+      --   end
+      -- elseif ENTS[to].type == 'chest' then
+      --   --trace('attempting chest deposit')
+      --   if ENTS[to]:can_deposit({id = self.held_item_id, count = 1}) then
+      --     ENTS[to]:deposit(self.held_item_id)
+      --     self.held_item_id = 0
+      --     self.state = 'return'
+      --   end
+      -- elseif ENTS[to].type == 'research_lab' then
+      --   for i = 1, 4 do
+      --     if ENTS[to].input[i].id == self.held_item_id and ENTS[to].input[i].count < 2 then
+      --       self.held_item_id = 0
+      --       ENTS[to].input[i].count = ENTS[to].input[i].count + 1
+      --       self.state = 'return'
+      --       break
+      --     end
+      --   end
+      --   return
+      -- elseif ENTS[to].type == 'bio_refinery' and ENTS[to].recipe then
+      --   for i = 1, 3 do
+      --     if ENTS[to].input[i].id == self.held_item_id and ENTS[to].input[i].count < ENTS[to].recipe.ingredients[i].count then
+      --       self.held_item_id = 0
+      --       ENTS[to].input[i].count = ENTS[to].input[i].count + 1
+      --       self.state = 'return'
+      --       break
+      --     end
+      --   end
+      -- end
     end
   elseif self.state == 'return' then
     self.anim_frame = self.anim_frame + 1
@@ -194,86 +209,102 @@ function Inserter.update(self)
       self.state = 'wait'
     end
   elseif self.state == 'wait' then
+    if not ENTS[to] or not ENTS[from] then return end
+    local desired_item = ENTS[to]:request_deposit()
+    --if desired_item then trace('inserter: desired item = ' .. tostring(ITEMS[desired_item].fancy_name)) end
+    if not desired_item then return end
+    local retrieved_item = ENTS[from]:item_request(desired_item)
+    if retrieved_item ~= false then trace('inserter: retrieved_item = ' .. tostring(ITEMS[retrieved_item].fancy_name)) end
+    if not retrieved_item then return end
+    if ENTS[to].assign_delivery then ENTS[to]:assign_delivery(retrieved_item) end
+    self.held_item_id = retrieved_item
+    self.state = 'send'
+    -- if ENTS[from].type == 'transport_belt' then
 
-    if ENTS[from].type == 'transport_belt' then
+    --   if ENTS[to] and ENTS[to].type == 'stone_furnace' then
+    --     --check if output destination can take an item
+    --     --before we pick it up from the belt
+    --     --to prevent inserter stuck holding item
+    --     local desired_type, sub_type = ENTS[to]:request()
+    --     local item_id = ENTS[from]:request_item_furnace(true, desired_type, sub_type)
 
-      if ENTS[to] and ENTS[to].type == 'stone_furnace' then
-        --check if output destination can take an item
-        --before we pick it up from the belt
-        --to prevent inserter stuck holding item
-        local desired_type, sub_type = ENTS[to]:request()
-        local item_id = ENTS[from]:request_item_furnace(true, desired_type, sub_type)
+    --     if item_id and ENTS[to]:deposit(item_id, true) then
+    --       --ENTS[to]:deposit(item_id, false)
+    --       self.held_item_id = ENTS[from]:request_item_furnace(false, desired_type, sub_type)
+    --       self.state = 'send'
+    --     end
+    --     return
+    --   end
 
-        if item_id and ENTS[to]:deposit(item_id, true) then
-          --ENTS[to]:deposit(item_id, false)
-          self.held_item_id = ENTS[from]:request_item_furnace(false, desired_type, sub_type)
-          self.state = 'send'
-        end
-        return
-      end
+    --   local item_id = ENTS[from]:request_item(false)
+    --   if item_id then
+    --     self.held_item_id = item_id
+    --     self.state = 'send'
+    --     return
+    --   end
+    -- elseif ENTS[from].type == 'splitter' then
+    --   local item = ENTS[ENTS[from]]:give_inserter('left')
+    --   if item then
+    --     self.held_item_id = item
+    --     self.state = 'send'
+    --     return
+    --   end      
+    -- elseif ENTS[from].type == 'stone_furnace' then
 
-      local item_id = ENTS[from]:request_item(false)
-      if item_id then
-        self.held_item_id = item_id
-        self.state = 'send'
-        return
-      end
-    elseif ENTS[from].type == 'splitter' then
-      local item = ENTS[ENTS[from]]:give_inserter('left')
-      if item then
-        self.held_item_id = item
-        self.state = 'send'
-        return
-      end      
-    elseif ENTS[from].type == 'stone_furnace' then
-
-      if ENTS[from]:request_output(true) then
-        self.held_item_id = ENTS[from]:request_output(false)
-        self.state = 'send'
-      end
-      return
-    elseif ENTS[from].type == 'underground_belt' then
-      local result = ENTS[from]:request_item(false)
-      if result then
-        self.held_item_id = result
-        self.state = 'send'
-      end
-      return
-    elseif ENTS[from].type == 'underground_belt_exit' then
-      local result = ENTS[ENTS[from].other_key]:request_item_exit(false)
-      if result then
-        self.held_item_id = result
-        self.state = 'send'
-      end
-      return
-    elseif ENTS[from].type == 'assembly_machine' then
-      --trace('inserter: found assembler')
-      if ENTS[from].output.id > 0 and ENTS[from].output.count > 0 then
-        ENTS[from].output.count = ENTS[from].output.count - 1
-        self.held_item_id = ENTS[from].output.id
-        self.state = 'send'
-      end
-      return
-    elseif ENTS[from].type == 'chest' then
-      --trace('attempting chest retrieval')
-      local result = ENTS[from]:request_inserter()
-      if result then
-        self.held_item_id = result
-        self.state = 'send'
-      end
-      return
-    elseif ENTS[from].type == 'research_lab' and ENTS[to].type == 'research_lab' then
-      --trace('r2r detected')
-      for i = 1, 4 do
-        if ENTS[from].input[i].count > 0 and ENTS[to].input[i].count < 2 then
-          self.held_item_id = ENTS[from].input[i].id
-          ENTS[from].input[i].count = ENTS[from].input[i].count - 1
-          self.state = 'send'
-          break
-        end
-      end
-      return
-    end
+    --   if ENTS[from]:request_output(true) then
+    --     self.held_item_id = ENTS[from]:request_output(false)
+    --     self.state = 'send'
+    --   end
+    --   return
+    -- elseif ENTS[from].type == 'underground_belt' then
+    --   local result = ENTS[from]:request_item(false)
+    --   if result then
+    --     self.held_item_id = result
+    --     self.state = 'send'
+    --   end
+    --   return
+    -- elseif ENTS[from].type == 'underground_belt_exit' then
+    --   local result = ENTS[ENTS[from].other_key]:request_item_exit(false)
+    --   if result then
+    --     self.held_item_id = result
+    --     self.state = 'send'
+    --   end
+    --   return
+    -- elseif ENTS[from].type == 'assembly_machine' then
+    --   --trace('inserter: found assembler')
+    --   if ENTS[from].output.id > 0 and ENTS[from].output.count > 0 then
+    --     ENTS[from].output.count = ENTS[from].output.count - 1
+    --     self.held_item_id = ENTS[from].output.id
+    --     self.state = 'send'
+    --   end
+    --   return
+    -- elseif ENTS[from].type == 'chest' then
+    --   --trace('attempting chest retrieval')
+    --   local result = ENTS[from]:request_inserter()
+    --   if result then
+    --     self.held_item_id = result
+    --     self.state = 'send'
+    --   end
+    --   return
+    -- elseif ENTS[from].type == 'research_lab' and ENTS[to].type == 'research_lab' then
+    --   --trace('r2r detected')
+    --   for i = 1, 4 do
+    --     if ENTS[from].input[i].count > 0 and ENTS[to].input[i].count < 2 then
+    --       self.held_item_id = ENTS[from].input[i].id
+    --       ENTS[from].input[i].count = ENTS[from].input[i].count - 1
+    --       self.state = 'send'
+    --       break
+    --     end
+    --   end
+    --   return
+    -- elseif ENTS[from].type == 'bio_refinery' then
+    --   if ENTS[from].output.count > 0 then
+    --     self.held_item_id = ENTS[from].output.id
+    --     ENTS[from].output.count = ENTS[from].output.count - 1
+    --     self.state = 'send'
+    --     return
+    --   end
+    -- end
       
       -- if GROUND_ITEMS[self.from_key] and GROUND_ITEMS[self.from_key][1] ~= 0 then
       -- --try to pick from ground
@@ -286,7 +317,20 @@ function Inserter.update(self)
 end
 
 function new_inserter(position, rotation)
-  local new_inserter = {pos = position, rot = rotation}
+  local new_inserter = {
+    pos = position,
+    rot = rotation,
+    color_keys = {15},
+    from_key = '0-0',
+    to_key = '0-0',
+    anim_frame = 5,
+    state = 'wait',
+    held_item_id = 0,
+    is_hovered = false,
+    type = 'inserter',
+    item_id = 11,
+    filter = {item_id = 0}
+  }
   setmetatable(new_inserter, {__index = Inserter})
   --new_Inserter.pos = position
   --new_Inserter.rot = rotation

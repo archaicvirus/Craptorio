@@ -519,12 +519,14 @@ function Belt.update(self)
             --------------------------------------------------------------------------------------------------
             elseif ENTS[self.output_key].type == 'splitter' or ENTS[self.output_key].type == 'dummy_splitter' then
               local key = self.output_key
+              local side = 2
               --if key is a dummy splitter, then get the parent splitter's key
               if ENTS[key].type == 'dummy_splitter' then
                 key = ENTS[self.output_key].other_key
+                side = 1
               end
               --if not ENTS[key].updated then ENTS[key]:update() end
-              if ENTS[key]:input(id, i) then
+              if ENTS[key]:input(id, i, side) then
                 self.lanes[i][1] = 0
               end
               --if should_shift then ENTS[key].shift = not ENTS[key].shift end

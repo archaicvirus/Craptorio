@@ -212,6 +212,17 @@ function Chest:request(stack, keep)
   return false
 end
 
+function Chest:item_request(id)
+  for k, v in ipairs(self.slots) do
+    if v.id == id then
+      v.count = v.count - 1
+      if v.count < 1 then v.id = 0 end
+      return v.id
+    end
+  end
+  return false
+end
+
 function Chest:request_inserter()
   local result = false
   for k, v in ipairs(self.slots) do

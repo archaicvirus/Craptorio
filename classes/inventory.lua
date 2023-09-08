@@ -209,7 +209,21 @@ function inventory:remove_stack(stack)
 end
 
 function inventory:slot_clicked(index, button)
+  --trace('clicked slot: ' .. index)
+  --trace('cursor.item_stack.slot = ' .. tostring(cursor.item_stack.slot))
+  --trace('inv.active_slot = ' .. inv.active_slot)
   button = button or cursor.ll
+  if index == cursor.item_stack.slot then return end
+  if cursor.type == 'item' and cursor.item_stack.slot and index ~= cursor.item_stack.slot then
+    --trace('swapping active slot for CLICKED slot')
+    local old_item = self.slots[index]
+    self.slots[cursor.item_stack.slot].id = self.slots[index].id
+    self.slots[cursor.item_stack.slot].count = self.slots[index].count
+    self.slots[index].id = cursor.item_stack.id
+    self.slots[index].count = cursor.item_stack.count
+    set_cursor_item()
+    return
+  end
   if cursor.type == 'item' and not button then
     if self.slots[index].id == 0 then
       --trace('depositing to slot: ' .. index)
@@ -217,14 +231,15 @@ function inventory:slot_clicked(index, button)
       self.slots[index].id = cursor.item_stack.id
       self.slots[index].count = cursor.item_stack.count
       if cursor.item_stack.slot and cursor.item_stack.slot ~= index then
-        inv.slots[cursor.item_stack.slot].id = 0
-        inv.slots[cursor.item_stack.slot].count = 0
+        self.slots[cursor.item_stack.slot].id = 0
+        self.slots[cursor.item_stack.slot].count = 0
       end
       cursor.item_stack.id = 0
       cursor.item_stack.count = 0
       cursor.item_stack.slot = false
       cursor.type = 'pointer'
     elseif self.slots[index].id == cursor.item_stack.id then
+
       local item = ITEMS[self.slots[index].id]
       if self.slots[index].count == item.stack_size then
         local stack = {id = self.slots[index].id, count = self.slots[index].count}
@@ -298,10 +313,10 @@ function inventory:clicked(x, y)
           --   self.slots[result.index].count = stack.count
           -- end
           if deposited then
+            ui.new_alert(cursor.x, cursor.y, '-' .. self.slots[result.index].count - stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 2)
             self.slots[result.index].id = stack.id
             self.slots[result.index].count = stack.count
             sound('deposit')
-            ui.new_alert(cursor.x, cursor.y, (stack and stack.count or 0) - old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 2)
             return true
           end
         end

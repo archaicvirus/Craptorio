@@ -53,7 +53,7 @@ local Splitter = {
   key2 = '',
   is_hovered = false,
   lanes = {left = {}, right = {}},
-  shift = false,
+  shift = true,
   output_key_l = 'nil',
   output_l = nil,
   output_r = nil,
@@ -194,25 +194,23 @@ function Splitter.set_output(self)
 
 end
 
-function Splitter:input(item_id, lane)
-  -- if self.shift then
-  --   if self.lanes.right[lane][8] == 0 then
-  --     self.lanes.right[lane][8] = item_id
-  --     return true
-  --   end
-  -- else
-  --   if self.lanes.left[lane][8] == 0 then
-  --     self.lanes.left[lane][8] = item_id
-  --     return true
-  --   end
-  -- end
-  -- return false
-  if self.shift and self.lanes.right[lane][8] == 0 then
-    self.lanes.right[lane][8] = item_id
-    return true
-  elseif self.lanes.left[lane][8] == 0 then
-    self.lanes.left[lane][8] = item_id
-    return true
+function Splitter:input(item_id, lane, side)
+  if self.shift then
+    if self.lanes.right[lane][8] == 0 then
+      self.lanes.right[lane][8] = item_id
+      return true
+    elseif self.lanes.left[lane][8] == 0 then
+      self.lanes.left[lane][8] = item_id
+      return true
+    end
+  else
+    if self.lanes.left[lane][8] == 0 then
+      self.lanes.left[lane][8] = item_id
+      return true
+    elseif self.lanes.right[lane][8] == 0 then
+      self.lanes.right[lane][8] = item_id
+      return true
+    end
   end
   return false
 end
@@ -243,17 +241,13 @@ function Splitter.give_inserter(self, side)
 end
 
 function Splitter.update(self)
-  --self.shift = not self.shift
   if not self.updated then
-    self.updated = true
     self.shift = not self.shift
+    self.updated = true
     for i = 1, 2 do
       for j = 1, 8 do
         if j == 1 then
-          self.shift = not self.shift
-
           local l, r = ENTS[self.output_key_l], ENTS[self.output_key_r]
-
           if self.output_l ~= nil and l and self.lanes.left[i][1] ~= 0 then
             if l.type == 'splitter' or l.type == 'dummy_splitter' then
               local key = self.output_key_l
@@ -262,10 +256,8 @@ function Splitter.update(self)
               if ENTS[key]:input(self.lanes.left[i][1], 2) then
                 self.lanes.left[i][1] = 0
               end
-
             elseif l.type == 'transport_belt' then
               if not l.updated then ENTS[self.output_key_l]:update() end
-
               if l.id == BELT_ID_CURVED and l.lanes[i][8] == 0 then
                 --add item to other belt
                 ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
@@ -278,12 +270,6 @@ function Splitter.update(self)
               end
             elseif l.type == 'underground_belt' then
               if not l.updated then ENTS[self.output_key_l]:update() end
-
-              -- if l.lanes[i][8] == 0 then
-              --   --add item to other belt
-              --   ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
-              --   --remove item from self
-              --   self.lanes.left[i][1] = 0
               if l.lanes[self.output_l[i].lane][self.output_l[i].slot] == 0 then
                 ENTS[self.output_key_l].lanes[self.output_l[i].lane][self.output_l[i].slot] = self.lanes.left[i][1]
                 --ENTS[self.output_key].idle = false
@@ -302,7 +288,6 @@ function Splitter.update(self)
               if ENTS[key]:input(self.lanes.right[i][1], 2) then
                 self.lanes.right[i][1] = 0
               end
-
             elseif r.type == 'transport_belt' and r.lanes[i][8] == 0 then
               if not r.updated then ENTS[self.output_key_r]:update() end
               if r.id == BELT_ID_CURVED and r.lanes[i][8] == 0 then
@@ -317,12 +302,6 @@ function Splitter.update(self)
               end
             elseif r.type == 'underground_belt' then
               if not r.updated then ENTS[self.output_key_r]:update() end
-
-              -- if l.lanes[i][8] == 0 then
-              --   --add item to other belt
-              --   ENTS[self.output_key_l].lanes[i][8] = self.lanes.left[i][1]
-              --   --remove item from self
-              --   self.lanes.left[i][1] = 0
               if r.lanes[self.output_r[i].lane][self.output_r[i].slot] == 0 then
                 ENTS[self.output_key_r].lanes[self.output_r[i].lane][self.output_r[i].slot] = self.lanes.right[i][1]
                 --ENTS[self.output_key].idle = false

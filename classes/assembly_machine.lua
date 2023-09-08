@@ -383,17 +383,13 @@ function Crafter:set_recipe(item)
     self.input[i].id = self.recipe.ingredients[i].id
   end
   self.output.id = self.recipe.id
-  self:set_requests()
-  --trace('set recipe to: ' .. item.fancy_name)
-end
-
-function Crafter:set_requests()
   self.requests = {}
   for i = 1, #self.recipe.ingredients do
     self.requests[i] = {true, false}
     --[1] = 'do I need this item'
     --[2] = 'is an inserter currently delivering this'
   end
+  --trace('set recipe to: ' .. item.fancy_name)
 end
 
 function Crafter:update_requests()
@@ -411,6 +407,16 @@ function Crafter:get_request()
       self.requests[i][2] = true
       return self.recipe.ingredients[i].id
       --now an inserter has been dispatched to retrieve this item
+    end
+  end
+  return false
+end
+
+function Crafter:request_deposit()
+  if not self.recipe then return false end
+  for k, v in ipairs(self.input) do
+    if v.count < self.recipe.ingredients[k].count then
+      return v.id
     end
   end
   return false

@@ -14,6 +14,7 @@ UI_BUTTON = 438
 UI_PAUSE = 354
 UI_CLOSE = 355
 UI_BUTTON2 = 113
+UI_PROG_ID = 128
 BTN_MAIN = 12
 BTN_SHADOW = 2
 BTN_HOVER = 11
@@ -647,17 +648,16 @@ function ui.progress_bar(progress, x, y, w, h, bg, fg, fill, option)
   --0 - rounded/fancy
   --1 - square with border
   --2 - square no border
+  local prog_width = math.min(w-2, math.ceil((w-2)*progress))
   if option == 0 then
-    ui.draw_panel(x, y, w, h, bg, fg)
-    --rect(x + 1, y + 1, progress * (w-2), h - 2, fill)
-    -- line(x, y + 2, x, y + h - 3, fg)
-    -- line(x + 1, y + 1, x + 1, y + h - 2, fg)
-    -- line(x + w - 1, y + 2, x + w - 1, y + h - 3, fg)
-    -- line(x + w - 2, y + 1, x + w - 2, y + h - 2, fg)
-    -- rectb(x + 2, y, w - 4, h, fg)
-    -- rectb(x + 2, y + 1, w - 4, h - 2, fg)
-    -- rect(x + 2, y + 2, w - 4, h - 4, bg)
-    -- rect(x+2, y+2, w-4, h-4, 2)
+    pal({1, fg, 4, bg})
+    rect(x + 1, y + 1, w - 2, 4, bg)
+    rect(x + 1, y + 1, prog_width, 4, fill)
+    sspr(UI_PROG_ID, x, y, 0)
+    sspr(UI_PROG_ID, x + w - 8, y, 0, 1, 1)
+    line(x + 4, y, x + w - 4, y, fg)
+    line(x + 4, y + 5, x + w - 4, y + 5, fg)
+    pal()
   elseif option == 1 then
     rectb(x, y, w, h, fg)
     rect(x + 1, y + 1, progress * (w-2), h - 2, fill)

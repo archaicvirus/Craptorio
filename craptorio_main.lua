@@ -144,6 +144,9 @@ inv.slots[3].id  = 23 inv.slots[3].count  = ITEMS[23].stack_size
 inv.slots[4].id  = 24 inv.slots[4].count  = ITEMS[24].stack_size
 inv.slots[5].id  = 25 inv.slots[5].count  = ITEMS[25].stack_size
 inv.slots[6].id  = 26 inv.slots[6].count  = ITEMS[26].stack_size
+inv.slots[7].id  =  6 inv.slots[7].count  = ITEMS[6].stack_size
+inv.slots[8].id  =  8 inv.slots[8].count  = ITEMS[8].stack_size
+inv.slots[9].id  = 32 inv.slots[9].count  = ITEMS[32].stack_size
 inv.slots[57].id = 9  inv.slots[57].count = ITEMS[9].stack_size
 inv.slots[58].id = 10 inv.slots[58].count = ITEMS[10].stack_size
 inv.slots[59].id = 11 inv.slots[59].count = ITEMS[11].stack_size
@@ -177,7 +180,7 @@ sounds = {
   ['rotate_l']    = {id =  7, note = 'E-5', duration =  5, channel = 2, volume =  8, speed = 4},
   ['move_cursor'] = {id =  0, note = 'C-4', duration =  4, channel = 0, volume =  8, speed = 5},
   ['axe']         = {id =  9, note = 'D-3', duration = 20, channel = 0, volume =  6, speed = 4},
-  ['laser']       = {id =  0, note = 'D-3', duration = 20, channel = 0, volume =  4, speed = 4},
+  ['laser']       = {id =  0, note = 'D-3', duration =  5, channel = 0, volume =  4, speed = 7},
   ['move']        = {id = 10, note = 'D-3', duration =  5, channel = 3, volume =  2, speed = 5},
   ['deposit']     = {id = 11, note = 'D-6', duration =  3, channel = 1, volume =  5, speed = 7},
   ['tech_done']   = {id = 12, note = 'D-8', duration = 50, channel = 2, volume = 10, speed = 6},
@@ -673,7 +676,7 @@ function set_active_slot(slot)
   else
     cursor.item = false
     cursor.type = 'pointer'
-    cursor.item_stack = {id = 0, count = 0}
+    cursor.item_stack = {id = 0, count = 0, slot = false}
   end
 end
 
@@ -1227,13 +1230,13 @@ function dispatch_input()
       ui.highlight(sx - 1, sy - 1, 8, 8, false, 3, 4)
     end
     if (ENTS[k] or tile.is_tree or tile.ore or result) then
-      if TICK % 20 == 0 then
-        if tile.is_tree then
-          sound('axe')
-        else
+      --if TICK % 20 == 0 then
+        --if tile.is_tree then
+        --  sound('axe')
+        --else
           sound('laser')
-        end
-      end
+        --end
+      --end
       cursor.prog = remap(clamp(cursor.hold_time, 0, CURSOR_MINING_SPEED), 0, CURSOR_MINING_SPEED, 0, 9)
       -- line(cursor.x - 4, cursor.y + 7, cursor.x + 5, cursor.y + 7, 0)
       -- line(cursor.x - 4, cursor.y + 7, cursor.x - 4 + prog, cursor.y + 7, 2)
@@ -1364,13 +1367,13 @@ function draw_ents()
   for i, k in pairs(vis_ents['chest']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
+  for i, k in pairs(vis_ents['bio_refinery']) do
+    if ENTS[k] then ENTS[k]:draw() end
+  end
   for i, k in pairs(vis_ents['inserter']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
   for i, k in pairs(vis_ents['power_pole']) do
-    if ENTS[k] then ENTS[k]:draw() end
-  end
-  for i, k in pairs(vis_ents['bio_refinery']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
 end
@@ -1617,6 +1620,7 @@ end
 -- 097:b0000000bb000000bbc00000bde0000000000000000000000000000000000000
 -- 112:1111111111141111111c4111111cc411111cc211111c21111112111111111111
 -- 113:144411114ccc1111cccc1111cccc1111cccc1111cccc11112ccc111112221111
+-- 128:0111000011000000100000001000000011000000011100000000000000000000
 -- 135:1111111111111111111111111157575615656565575756566676676767677676
 -- 136:1111111511111156111115755611176765611177565611176767111176756561
 -- 137:7571111156561111757571116767611177771111775757711565656657575757
@@ -2025,8 +2029,8 @@ end
 -- 005:00ffffff0feeeeeefeddddd4fefddf4ffe4ff44ffed44dd4fedddddefefddfef
 -- 006:00ffffff0feeeeeefeeddd4ffeddd4fdfefdd4fdfe4ff44ffed44ddefeddddef
 -- 007:00ffffff0feeeeeefeedd4fdfedd4fddfedd4fddfefdf4fdfe4ff4defed44def
--- 008:ffffffd1fffffd11ffffd11fdddd11ff111111ffffff111ffffff111ffffff1d
--- 009:ffffffff444fffff0044ffffff044434ff0444340044ffff444fffffffffffff
+-- 008:fffff0d1ffff0d110000d110dddd110f1111110f00001110ffff0111fffff01d
+-- 009:000fffff4440ffff00440000ff044434ff044434004400004440ffff000fffff
 -- 010:ff04fffffff04fff0ff04fff40004ffff44444ffffff444ffffff444ffffff44
 -- 011:f40ff04ff40ff04fff4004fffff44fffff1441fff114411f11133111c1f44f1c
 -- 012:000000000600500000506060006b65000b6766b00bc77cb00bccccb000bbbb00
@@ -2211,7 +2215,7 @@ end
 -- 221:1111111111111111bb1111bb9b111b9b9b11b89b9b1b9a9b9bc8989babcaaaab
 -- 222:0e0e0e0000dcd0000001000000010000000100000001000000010000000e0000
 -- 223:e00cd00e0eedcee0000cd000000dc000000cd000000dc000000cd000000dc000
--- 225:0f066666f1f6666610f666666666666666666666666666666666666666666666
+-- 225:6066666600066666f0f666666666666666666666666666666666666666666666
 -- 226:6660666666000666660f066660e0006660000066600000666600066666666666
 -- 227:111111111bb11bb1ddddddddcccccccccedededccedededcceeeeeeccccccccc
 -- 228:dbe11111dee11111ccc111111111111111111111111111111111111111111111
@@ -2302,7 +2306,7 @@ end
 -- </WAVES>
 
 -- <SFX>
--- 000:4a715a817a728a41aa40ba7ffa7efa5e6a3e6a3e5a7f4a614a635a436a317a317a607a7f6a6f5a3f4a205a216a427a727a726a515a305a2f6a4f7a5f222000060306
+-- 000:5ac07a808ad0aaf0ba90daf0eaa0fa506a306a305a704a604a605a406a307a307a607a706a605a304a205a206a407a707a706a505a305a206a407a50227000060500
 -- 001:8000800080009000a000c000e000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000220000000000
 -- 002:090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900090009000900a00000000000
 -- 003:050005100520153025504560659085b095f0a5f0b5f0c5f0d5f0e5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0f5f0414000000000
