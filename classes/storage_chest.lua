@@ -214,13 +214,17 @@ end
 
 function Chest:item_request(id)
   for k, v in ipairs(self.slots) do
-    if v.id == id then
+    if v.id == id or (v.id ~= 0 and id == 'any') then
       v.count = v.count - 1
       if v.count < 1 then v.id = 0 end
       return v.id
     end
   end
   return false
+end
+
+function Chest:request_deposit()
+  return 'any'
 end
 
 function Chest:request_inserter()

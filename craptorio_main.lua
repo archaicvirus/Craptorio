@@ -1122,7 +1122,7 @@ function dispatch_input()
   end
   
   if inv:is_hovered(cursor.x, cursor.y) then
-    if cursor.l and not cursor.ll then
+    if (cursor.l and not cursor.ll) or (cursor.r and not cursor.lr) then
       inv:clicked(cursor.x, cursor.y)
     end
     return

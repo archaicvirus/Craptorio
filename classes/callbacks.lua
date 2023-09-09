@@ -67,6 +67,7 @@ callbacks = {
       if not ENTS[k] then return end
       if ENTS[k] and ENTS[k].type == 'transport_belt' then
         sound('delete')
+        ENTS[k]:return_all()
         ENTS[k] = nil
       end
       local tiles = {
@@ -567,6 +568,7 @@ callbacks = {
       local tile, wx, wy = get_world_cell(x, y)
       local k = wx .. '-' .. wy
       if ENTS[k] then
+        ENTS[k]:return_all()
         ENTS[k] = nil
         sound('delete')
         return true

@@ -194,7 +194,7 @@ function Splitter.set_output(self)
 
 end
 
-function Splitter:input(item_id, lane, side)
+function Splitter:input(item_id, lane)
   if self.shift then
     if self.lanes.right[lane][8] == 0 then
       self.lanes.right[lane][8] = item_id
@@ -438,6 +438,37 @@ function Splitter.draw_items(self)
   --   sspr(297, wx + k - 1, wy + (i*8) - 8, 0)
   -- end
 end
+
+function Splitter:item_request(id)
+  for i = 1, 2 do
+    for j = 8, 1, -1 do
+      if self.lanes.left[i][j] == id or (self.lanes.left[i][j] ~= 0 and id == 'any') then
+        return self.lanes.left[i][j]
+      end
+      if self.lanes.right[i][j] == id or (self.lanes.right[i][j] ~= 0 and id == 'any') then
+        return self.lanes.right[i][j]
+      end
+    end
+  end
+  return false
+end
+
+function Splitter:request_deposit()
+  return 'any'
+end
+
+function Splitter:deposit(id, other_rot)
+  local lane = INSERTER_DEPOSIT_MAP[other_rot][self.rot]
+  return self:input(id, lane)
+  -- for i = 8, 1, -1 do
+  --   if self.lanes.left[lane][i] == 0 then
+  --     self.lanes.left[lane][i] = id
+  --     return true
+  --   end
+  -- end
+  -- return false
+end
+
 
 function new_splitter(x, y, rot)
   local new_splitter = {x = x, y = y, rot = rot}

@@ -212,7 +212,6 @@ function inventory:slot_clicked(index, button)
   --trace('clicked slot: ' .. index)
   --trace('cursor.item_stack.slot = ' .. tostring(cursor.item_stack.slot))
   --trace('inv.active_slot = ' .. inv.active_slot)
-  button = button or cursor.ll
   if index == cursor.item_stack.slot then return end
   if cursor.type == 'item' and cursor.item_stack.slot and index ~= cursor.item_stack.slot then
     --trace('swapping active slot for CLICKED slot')
@@ -224,23 +223,42 @@ function inventory:slot_clicked(index, button)
     set_cursor_item()
     return
   end
-  if cursor.type == 'item' and not button then
+  if cursor.type == 'item' then
     if self.slots[index].id == 0 then
       --trace('depositing to slot: ' .. index)
       --deposit
       self.slots[index].id = cursor.item_stack.id
-      self.slots[index].count = cursor.item_stack.count
-      if cursor.item_stack.slot and cursor.item_stack.slot ~= index then
-        self.slots[cursor.item_stack.slot].id = 0
-        self.slots[cursor.item_stack.slot].count = 0
+
+      if cursor.r then
+        self.slots[index].count = 1
+        cursor.item_stack.count = cursor.item_stack.count - 1
+        if cursor.item_stack.count < 1 then
+          set_cursor_item()
+        end
+      else
+        self.slots[index].count = cursor.item_stack.count
+        if cursor.item_stack.slot and cursor.item_stack.slot ~= index then
+          self.slots[cursor.item_stack.slot].id = 0
+          self.slots[cursor.item_stack.slot].count = 0
+        end
+        set_cursor_item()
       end
-      cursor.item_stack.id = 0
-      cursor.item_stack.count = 0
-      cursor.item_stack.slot = false
-      cursor.type = 'pointer'
+
+
     elseif self.slots[index].id == cursor.item_stack.id then
+      if cursor.r then
+        if self.slots[index].count < ITEMS[self.slots[index].id].stack_size then
+          self.slots[index].count = self.slots[index].count + 1
+          cursor.item_stack.count = cursor.item_stack.count - 1
+          if cursor.item_stack.count < 1 then
+            set_cursor_item()
+          end
+          return true
+        end
+      end
 
       local item = ITEMS[self.slots[index].id]
+      --swap held partial stack with full stack
       if self.slots[index].count == item.stack_size then
         local stack = {id = self.slots[index].id, count = self.slots[index].count}
         self.slots[index].count = cursor.item_stack.count
@@ -267,9 +285,14 @@ function inventory:slot_clicked(index, button)
       cursor.type = 'item'
       cursor.item = ITEMS[inv_item.id].name
     end
-  elseif cursor.type == 'pointer' and not button then
+  elseif cursor.type == 'pointer' then
     local id, count = self.slots[index].id, self.slots[index].count
     if id ~= 0 then
+      if cursor.r and not cursor.lr then
+        set_cursor_item({id = id, count = math.ceil(count/2)}, false)
+        self.slots[index].count = math.floor(count/2)
+        return true
+      end
       --try to move to hotbar first
       if index < 57 and key(64) then
         local stack = {id = id, count = count}
@@ -299,7 +322,7 @@ end
 function inventory:clicked(x, y)
   if self:is_hovered(x, y) then
     local result = self:get_hovered_slot(x, y)
-    if cursor.l and not cursor.ll and result then
+    if result then
       --if self.slots[result.index].id == 0 then
       if key(64) then
         local ent = ui.active_window and ENTS[ui.active_window.ent_key] or false
@@ -338,7 +361,11 @@ function inventory:clicked(x, y)
       self.slots[result.index]:callback()
       
       return true
-    elseif cursor.r and not cursor.lr and result then
+    --elseif cursor.r and not cursor.lr and result then
+      -- if self.slots[result.index].id ~= 0 then
+      --   set_cursor_item({id = self.slots[result.index].id, count = math.ceil(self.slots[result.index].count/2)}, false)
+      --   self.slots[result.index].count = math.floor(self.slots[result.index].count/2)
+      -- end
       --try to take half stack
     end
   end

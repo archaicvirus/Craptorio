@@ -126,7 +126,7 @@ function Inserter.update(self)
       self.anim_frame = 1
       --try to deposit item
       --trace('looking for output')
-      if ENTS[to] then ENTS[to]:deposit(self.held_item_id) end
+      if ENTS[to] then ENTS[to]:deposit(self.held_item_id, self.rot) end
       self.state = 'return'
       self.held_item_id = 0
       return
@@ -214,7 +214,7 @@ function Inserter.update(self)
     --if desired_item then trace('inserter: desired item = ' .. tostring(ITEMS[desired_item].fancy_name)) end
     if not desired_item then return end
     local retrieved_item = ENTS[from]:item_request(desired_item)
-    if retrieved_item ~= false then trace('inserter: retrieved_item = ' .. tostring(ITEMS[retrieved_item].fancy_name)) end
+    --if retrieved_item ~= false then trace('inserter: retrieved_item = ' .. tostring(ITEMS[retrieved_item].fancy_name or false)) end
     if not retrieved_item then return end
     if ENTS[to].assign_delivery then ENTS[to]:assign_delivery(retrieved_item) end
     self.held_item_id = retrieved_item

@@ -408,6 +408,34 @@ function Belt.update_neighbors(self, k)
   self:set_curved()
 end
 
+function Belt:item_request(id)
+  for i = 1, 2 do
+    for j = 8, 1, -1 do
+      if self.lanes[i][j] == id or (self.lanes[i][j] ~= 0 and id == 'any') then
+        local item = self.lanes[i][j]
+        self.lanes[i][j] = 0
+        return item
+      end
+    end
+  end
+  return false
+end
+
+function Belt:request_deposit()
+  return 'any'
+end
+
+function Belt:deposit(id, other_rot)
+  local lane = INSERTER_DEPOSIT_MAP[other_rot][self.rot]
+  for i = 8, 1, -1 do
+    if self.lanes[lane][i] == 0 then
+      self.lanes[lane][i] = id
+      return true
+    end
+  end
+  return false
+end
+
 function Belt.set_curved(self)
   local ents = {['underground_belt_exit'] = true, ['transport_belt'] = true, ['splitter'] = true, ['dummy_splitter'] = true}
   if not self.curve_checked then
@@ -599,6 +627,27 @@ function Belt.draw_items(self)
   -- if self.is_hovered then
   --   self:draw_hover_widget()
   -- end
+end
+
+function Belt:return_all()
+  local item_stacks = {}
+  for i = 1, 2 do
+    for j = 1, 8 do
+      if self.lanes[i][j] ~= 0 then
+        local id = self.lanes[i][j]
+        if not item_stacks[id] then item_stacks[id] = 0 end
+        item_stacks[id] = item_stacks[id] + 1
+        self.lanes[i][j] = 0
+      end
+    end
+  end
+
+  local offset = 0
+  for k, v in pairs(item_stacks) do
+    inv:add_item({id = k, count = v})
+    ui.new_alert(cursor.x, cursor.y + offset, '+' .. v .. ' ' .. ITEMS[k].fancy_name, 1000, 0, 11)
+    offset = offset + 6
+  end
 end
 
 function new_belt(pos, rotation, children)
