@@ -442,12 +442,24 @@ end
 function Splitter:item_request(id)
   for i = 1, 2 do
     for j = 8, 1, -1 do
-      if self.lanes.left[i][j] == id or (self.lanes.left[i][j] ~= 0 and id == 'any') then
-        return self.lanes.left[i][j]
+      local side = (self.lanes.left[i][j] > 0 and {id = self.lanes.left[i][j], lane = 'left'}) or (self.lanes.right[i][j] > 0 and {id = self.lanes.right[i][j], lane = 'right'})
+      local item = side and ITEMS[side.id]
+      if item then
+        if item.type == id or side.id == id or id == 'any' then
+          if side.lane == 'left' then
+            self.lanes.left[i][j] = 0
+          elseif side.lane == 'right' then
+            self.lanes.right[i][j] = 0
+          end
+          return item.id
+        end
       end
-      if self.lanes.right[i][j] == id or (self.lanes.right[i][j] ~= 0 and id == 'any') then
-        return self.lanes.right[i][j]
-      end
+      -- if self.lanes.left[i][j] == id or (self.lanes.left[i][j] ~= 0 and id == 'any') then
+      --   return self.lanes.left[i][j]
+      -- end
+      -- if self.lanes.right[i][j] == id or (self.lanes.right[i][j] ~= 0 and id == 'any') then
+      --   return self.lanes.right[i][j]
+      -- end
     end
   end
   return false

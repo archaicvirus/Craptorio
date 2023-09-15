@@ -94,8 +94,8 @@ function inventory:draw()
 
   if slot and self.slots[slot.index].id ~= 0 then
     if self.vis or (self.hotbar_vis and slot.index >= 57) then
-      local xoff = cursor.type == 'item' and cursor.item_stack.id ~= 0 and 12 or 5
-      draw_recipe_widget(cursor.x + xoff, cursor.y + 5, self.slots[slot.index].id)
+      --local xoff = cursor.type == 'item' and cursor.item_stack.id ~= 0 and 12 or 5
+      if key(64) then draw_recipe_widget(cursor.x + 5, cursor.y + 5, self.slots[slot.index].id) end
     end
   end
 end

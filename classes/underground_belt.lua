@@ -50,11 +50,11 @@ function underground_belt:draw()
   local sx, sy = world_to_screen(self.x, self.y)
   self.screen_pos = {x = sx, y = sy}
   if self.is_exit then
-    local c = UBELT_CLIP_OUT[self.rot]
-    --rect(sx+c.x,sy+c.y,c.w,c.h,2)
-    clip(sx+c.x,sy+c.y,c.w,c.h)
-    sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, 0, 1, 0, self.rot)
-    clip()
+    -- local c = UBELT_CLIP_OUT[self.rot]
+    -- --rect(sx+c.x,sy+c.y,c.w,c.h,2)
+    -- clip(sx+c.x,sy+c.y,c.w,c.h)
+    -- sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, 0, 1, 0, self.rot)
+    -- clip()
     --sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
   else
     if self.exit_key and ENTS[self.exit_key] then
@@ -76,7 +76,7 @@ function underground_belt:draw()
     clip()
     --sspr(UBELT_IN + UBELT_TICK, sx, sy, 0, 1, self.flip, self.rot)
   end
-  clip()
+  --clip()
 end
 
 function underground_belt:draw_hover_widget(other)
@@ -128,11 +128,16 @@ function underground_belt:draw_items()
 
   --output head
   if self.exit_lanes then
+    if ENTS[self.output_key] and (ENTS[self.output_key].type == 'underground_belt' or ENTS[self.output_key].type == 'transport_belt') and
+    not ENTS[self.output_key].drawn then
+      ENTS[self.output_key]:draw()
+      ENTS[self.output_key]:draw_items()
+    end
     --trace('try draw exit items')
     local sx, sy = world_to_screen(ENTS[self.exit_key].x, ENTS[self.exit_key].y)
     for i = 1, 2 do
       for j = 1, 2 do
-        if self.exit_lanes[i][j] ~= 0 then
+        if self.exit_lanes[i][j] > 0 then
           local x, y = item_locations[j][i].x + sx, item_locations[j][i].y + sy
           local item = ITEMS[self.exit_lanes[i][j]]
           sspr(item.belt_id, x, y, item.color_key)
@@ -145,94 +150,71 @@ end
 
 function underground_belt:update()
   self.updated = true
-  --trace('UPDATED underground_belt @TICK ' .. TICK)
     --update exit 'belt'
-    if self.exit_lanes then
-      for i = 1, 2 do
-        for j = 1, 8 do
-          if j == 1 and self.output_key and ENTS[self.output_key] then
-            -- local exit = ENTS[self.exit_key]
-            -- local sx, sy = world_to_screen(exit.x, exit.y)
-            -- local wx, wy = screen_to_world(exit.x - 8, exit.y)
-            -- local key = wx .. '-' .. wy
-            -- if ENTS[key] and ENTS[key].type == 'transport_belt' then
-
-            -- end
-            -- self.exit_lanes[i][8] = self.u_lanes[i][j]
-            -- self.u_lanes[i][j] = 0
-            
-            -- if self.output_item_key and ent then
-            --   if ENTS[self.output_key] and ENTS[self.output_key].lanes[i][8]
-            -- end
-
-            if self.output_key and ENTS[self.output_key] and self.exit_lanes[i][1] ~= 0 then
-              local ent = ENTS[self.output_key]
-              local k = self.output_key
-              if ent.type == 'transport_belt' then
+  if self.exit_lanes then
+    for i = 1, 2 do
+      for j = 1, 8 do
+        if j == 1 and self.exit_lanes[i][j] > 0 then
+          if self.output_key and ENTS[self.output_key] then
+            local ent = ENTS[self.output_key]
+            local k = self.output_key
+            if ent.type == 'transport_belt' then
+              if not ent.updated then ENTS[k]:update() end
+              if self.exit_lanes[i][1] ~= 0 then
+                ENTS[k].idle = false
+                --if i am facing another belt, update that belt first
                 if not ent.updated then ENTS[k]:update() end
-                if self.exit_lanes[i][1] ~= 0 then
-                  --trace('try depositing [' .. tostring(self.exit_lanes[i][1]) .. '] to transport_belt')
-                  ENTS[k].idle = false
-                  --if i am facing another belt, update that belt first
-                  if not ent.updated then ENTS[k]:update() end
-                  --if we find a belt, and the ENTS nearest slot is empty (equals 0) then
-                  --move item to that belt
-                  if ent.id == BELT_ID_CURVED and ent.lanes[i][8] == 0 then
-                    --add item to other belt
-                    ENTS[k].lanes[i][8] = self.exit_lanes[i][1]
-                    --remove item from self
-                    self.exit_lanes[i][1] = 0
-                  elseif ent.lanes[self.exit_output[i].a][self.exit_output[i].b] == 0 then
-                    ENTS[k].lanes[self.exit_output[i].a][self.exit_output[i].b] = self.exit_lanes[i][1]
-                    --ENTS[self.output_key].idle = false
-                    self.exit_lanes[i][1] = 0
-                  end
-                end
-
-
-              elseif ent.type == 'underground_belt' or ent.type == 'underground_belt_exit' then
-                if ent.type == 'underground_belt_exit' then
-                  self.output_key = ENTS[key].other_key
-                  key = self.output_key
-                end
-                if ENTS[k].lanes[self.output[i].a][self.output[i].b] == 0 then
-                  ENTS[k].lanes[self.output[i].a][self.output[i].b] = self.exit_lanes[i][j]
+                --if we find a belt, and the ENTS nearest slot is empty (equals 0) then
+                --move item to that belt
+                if ent.id == BELT_ID_CURVED and ent.lanes[i][8] == 0 then
+                  --add item to other belt
+                  ENTS[k].lanes[i][8] = self.exit_lanes[i][1]
+                  --remove item from self
+                  self.exit_lanes[i][1] = 0
+                elseif ent.lanes[self.exit_output[i].a][self.exit_output[i].b] == 0 then
+                  ENTS[k].lanes[self.exit_output[i].a][self.exit_output[i].b] = self.exit_lanes[i][1]
                   --ENTS[self.output_key].idle = false
-                  self.exit_lanes[i][j] = 0
-                end
-              --------------------------------------------------------------------------------------------------
-              elseif ENTS[k].type == 'splitter' or ENTS[k].type == 'dummy_splitter' then
-                --if key is a dummy splitter, then get the parent splitter's key
-                if ENTS[k].type == 'dummy_splitter' then
-                  self.output_key = ENTS[k].exit_key
-                  k = ENTS[k].exit_key
-                end
-                --if not ENTS[k].updated then ENTS[key]:update() end
-                if ENTS[k]:input(self.exit_lanes[i][1], i) then
                   self.exit_lanes[i][1] = 0
                 end
-                --if should_shift then ENTS[k].shift = not ENTS[k].shift end
               end
-            ------------------------------------------------------------------------------------------------------
+            elseif ent.type == 'underground_belt' or ent.type == 'underground_belt_exit' then
+              if ent.type == 'underground_belt_exit' then
+                self.output_key = ENTS[key].other_key
+                key = self.output_key
+              end
+              if ENTS[k].lanes[self.exit_output[i].a][self.exit_output[i].b] == 0 then
+                ENTS[k].lanes[self.exit_output[i].a][self.exit_output[i].b] = self.exit_lanes[i][j]
+                --ENTS[self.output_key].idle = false
+                self.exit_lanes[i][j] = 0
+              end
+            elseif ENTS[k].type == 'splitter' or ENTS[k].type == 'dummy_splitter' then
+              --if key is a dummy splitter, then get the parent splitter's key
+              if ENTS[k].type == 'dummy_splitter' then
+                self.output_key = ENTS[k].exit_key
+                k = ENTS[k].exit_key
+              end
+              --if not ENTS[k].updated then ENTS[key]:update() end
+              if ENTS[k]:input(self.exit_lanes[i][1], i) then
+                self.exit_lanes[i][1] = 0
+              end
+              --if should_shift then ENTS[k].shift = not ENTS[k].shift end
             end
-
-
-          elseif self.exit_lanes[i][j] ~= 0 and self.exit_lanes[i][j - 1] == 0 then
-            self.exit_lanes[i][j - 1] = self.exit_lanes[i][j]
-            self.exit_lanes[i][j] = 0
           end
+        elseif j > 1 and self.exit_lanes[i][j] > 0 and self.exit_lanes[i][j - 1] == 0 then
+          self.exit_lanes[i][j - 1] = self.exit_lanes[i][j]
+          self.exit_lanes[i][j] = 0
         end
       end
     end
-
+  end
   --update hidden underground belt
   if self.u_lanes then
     for i = 1, 2 do
-      for j = 1, #self.u_lanes[i] do
-        if j == 1 and self.u_lanes[i][1] ~= 0 and self.exit_lanes[i][8] == 0 then
-          self.exit_lanes[i][8] = self.u_lanes[i][1]
-          self.u_lanes[i][1] = 0
-        elseif j > 1 and self.u_lanes[i][j] ~= 0 and self.u_lanes[i][j - 1] == 0 then
+      for j = 1, #self.u_lanes[1] do
+        if j == 1 and self.exit_lanes and self.u_lanes[i][j] > 0 and self.exit_lanes[i][8] == 0 then
+          self.exit_lanes[i][8] = self.u_lanes[i][j]
+          self.u_lanes[i][j] = 0
+        elseif j > 1 and self.u_lanes[i][j] > 0 and self.u_lanes[i][j - 1] == 0 then
           self.u_lanes[i][j - 1] = self.u_lanes[i][j]
           self.u_lanes[i][j] = 0
         end
@@ -240,12 +222,16 @@ function underground_belt:update()
     end
   end
 
+
   --update entrance 'belt'
   for i = 1, 2 do
     for j = 1, 8 do
 
       if j == 1 then
-        if self.u_lanes and self.lanes[i][1] ~= 0 and self.u_lanes[i][#self.u_lanes[i]] == 0 then
+        if not self.u_lanes and self.exit_lanes and self.lanes[i][1] ~= 0 and self.exit_lanes[i][8] == 0 then
+          self.exit_lanes[i][8] = self.lanes[i][1]
+          self.lanes[i][1] = 0
+        elseif self.u_lanes and self.lanes[i][1] ~= 0 and self.u_lanes[i][#self.u_lanes[i]] == 0 then
           self.u_lanes[i][#self.u_lanes[i]] = self.lanes[i][1]
           self.lanes[i][1] = 0
         end
@@ -260,7 +246,6 @@ function underground_belt:update()
 end
 
 function underground_belt:connect(world_x, world_y, distance)
-  self.u_lanes = {}
   self.exit_lanes = {}
   for i = 1, 2 do
     self.exit_lanes[i] = {}
@@ -268,12 +253,17 @@ function underground_belt:connect(world_x, world_y, distance)
       self.exit_lanes[i][j] = 0
     end
   end
-  for i = 1, 2 do
-    self.u_lanes[i] = {}
-    for j = 1, distance * 8 do
-      self.u_lanes[i][j] = 0
+  
+  if distance > 0 then
+    self.u_lanes = {}
+    for i = 1, 2 do
+      self.u_lanes[i] = {}
+      for j = 1, distance * 8 do
+        self.u_lanes[i][j] = 0
+      end
     end
   end
+
   self.exit_key = world_x .. '-' .. world_y
   local exit = BELT_ROTATION_MAP[self.rot]
   local key = world_x + exit.x .. '-' .. world_y + exit.y
@@ -306,6 +296,47 @@ function underground_belt:set_output()
     end
   else
     self.exit_output = nil
+  end
+end
+
+function underground_belt:update_neighbors()
+  local cell_x, cell_y = self.x, self.y
+  local tiles = {
+    [1] = {x = cell_x, y = cell_y - 1},
+    [2] = {x = cell_x + 1, y = cell_y},
+    [3] = {x = cell_x, y = cell_y + 1},
+    [4] = {x = cell_x - 1, y = cell_y}}
+  for i = 1, 4 do
+    local k = tiles[i].x .. '-' .. tiles[i].y
+    if ENTS[k] then
+      if ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
+      if ENTS[k].type == 'splitter' then ENTS[k]:set_output() end
+      if ENTS[k].type == 'dummy_splitter' then ENTS[ENTS[k].other_key]:set_output() end
+      if ENTS[k].type == 'underground_belt_exit' then ENTS[ENTS[k].other_key]:set_output() end
+      if ENTS[k].type == 'underground_belt' then ENTS[k]:set_output() end
+    end
+  end
+end
+
+function underground_belt:update_neighbors_exit()
+  if ENTS[self.exit_key] then
+    local cell_x, cell_y = ENTS[self.exit_key].x, ENTS[self.exit_key].y
+    local tiles = {
+      [1] = {x = cell_x, y = cell_y - 1},
+      [2] = {x = cell_x + 1, y = cell_y},
+      [3] = {x = cell_x, y = cell_y + 1},
+      [4] = {x = cell_x - 1, y = cell_y}
+    }
+    for i = 1, 4 do
+      local k = tiles[i].x .. '-' .. tiles[i].y
+      if ENTS[k] then
+        if ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
+        if ENTS[k].type == 'splitter' then ENTS[k]:set_output() end
+        if ENTS[k].type == 'dummy_splitter' then ENTS[ENTS[k].other_key]:set_output() end
+        if ENTS[k].type == 'underground_belt_exit' then ENTS[ENTS[k].other_key]:set_output() end
+        if ENTS[k].type == 'underground_belt' then ENTS[k]:set_output() end
+      end
+    end
   end
 end
 
@@ -361,8 +392,12 @@ function get_ubelt_connection(x, y, rot)
     for i = 1, 5 do
       local k = wx + (dir.x * i) .. '-' .. wy + (dir.y * i)
       local ent = ENTS[k]
-      if ent and (ent.type == 'underground_belt' or ent.type == 'underground_belt_exit') then
-        if ent.type == 'underground_belt_exit' then k = ent.other_key end
+      if ent and i == 1 and ent.type ==  'underground_belt_exit' and ent.rot == rot then
+        --ent = ENTS[ent.other_key]
+        return false
+      end
+      if ent and ent.type == 'underground_belt' then
+        --if ent.type == 'underground_belt_exit' then k = ent.other_key end
         if ENTS[k].rot == rot then
           --found another underground_belt, that is facing our same direction
           --trace('found suitable connection')
@@ -381,26 +416,150 @@ function get_ubelt_connection(x, y, rot)
   return false
 end
 
-function underground_belt:deposit(id, side)
-  --side 0 is entrance, 1 is exit
-  if side == 1 then
-    if self.exit_lanes[1][8] == 0 then
-      self.exit_lanes[1][8] = id
-      return true
-    elseif self.exit_lanes[2][8] == 0 then
-      self.exit_lanes[2][8] = id
-      return true
-    end
+-- function underground_belt:deposit(id, side)
+--   --side 0 is entrance, 1 is exit
+--   if side == 1 then
+--     if self.exit_lanes[1][8] == 0 then
+--       self.exit_lanes[1][8] = id
+--       return true
+--     elseif self.exit_lanes[2][8] == 0 then
+--       self.exit_lanes[2][8] = id
+--       return true
+--     end
+--   else
+--     if self.lanes[1][8] == 0 then
+--       self.lanes[1][8] = id
+--       return true
+--     elseif self.lanes[2][8] == 0 then
+--       self.lanes[2][8] = id
+--       return true
+--     end
+--   end
+--   return false
+-- end
+
+function underground_belt:request_deposit()
+  return 'any'
+end
+
+function underground_belt:deposit(id, other_rot, is_exit)
+  local lane = INSERTER_DEPOSIT_MAP[other_rot][self.rot]
+  if is_exit then
+    --for lane = 1, 2 do
+      for slot = 8, 1, -1 do
+        if self.exit_lanes[lane][slot] == 0 then
+          self.exit_lanes[lane][slot] = id
+          return true
+        end
+      end
+    --end
   else
-    if self.lanes[1][8] == 0 then
-      self.lanes[1][8] = id
-      return true
-    elseif self.lanes[2][8] == 0 then
-      self.lanes[2][8] = id
-      return true
+    --for lane = 1, 2 do
+      for slot = 8, 1, -1 do
+        if self.lanes[lane][slot] == 0 then
+          self.lanes[lane][slot] = id
+          return true
+        end
+      end
+    --end
+  end
+  return false
+end
+
+function underground_belt:item_request(id, is_exit)
+  is_exit = is_exit or false
+  for i = 1, 2 do
+    for j = 8, 1, -1 do
+      if is_exit and self.exit_lanes then
+        if self.exit_lanes[i][j] > 0 and (self.exit_lanes[i][j] == id or id == 'any' or ITEMS[self.exit_lanes[i][j]].type == id) then
+          local item_id = self.exit_lanes[i][j]
+          self.exit_lanes[i][j] = 0
+          return item_id
+        end
+      else
+        if self.lanes[i][j] > 0 and (self.lanes[i][j] == id or id == 'any' or ITEMS[self.lanes[i][j]].type == id) then
+          local item_id = self.lanes[i][j]
+          self.lanes[i][j] = 0
+          return item_id
+        end
+      end
     end
   end
   return false
+end
+
+function underground_belt:deposit_stack(stack)
+  if self.recipe then
+    for i = 1, #self.recipe.ingredients do
+      local max_stack_per_slot = self.recipe.ingredients[i].count*5
+      if self.recipe.ingredients[i].id == stack.id then
+        if self.input[i].count + stack.count <= max_stack_per_slot then
+          self.input[i].count = self.input[i].count + stack.count
+          self.input[i].id = stack.id
+          self.state = 'ready'
+          -- sound('deposit')
+          -- ui.new_alert(cursor.x, cursor.y, stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1000, 0, 11)
+          return true, {id = 0, count = 0}
+        elseif self.input[i].count < max_stack_per_slot and self.input[i].count + stack.count > max_stack_per_slot then
+          local diff = max_stack_per_slot - self.input[i].count
+          self.input[i].count = max_stack_per_slot
+          self.input[i].id = stack.id
+          self.state = 'ready'
+          -- sound('deposit')
+          -- ui.new_alert(cursor.x, cursor.y, stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1000, 0, 11)
+          return true, {id = stack.id, count = stack.count - diff}
+        end
+      end
+    end
+  end
+  return false, {id = stack.id, count = stack.count}
+end
+
+function underground_belt:return_all()
+  local item_stacks = {}
+  for i = 1, 2 do
+    for j = 1, 8 do
+      if self.lanes[i][j] > 0 then
+        local id = self.lanes[i][j]
+        if not item_stacks[id] then item_stacks[id] = 0 end
+        item_stacks[id] = item_stacks[id] + 1
+        self.lanes[i][j] = 0
+      end
+    end
+  end
+
+  if self.u_lanes then
+    for i = 1, 2 do
+      for j = 1, #self.u_lanes[1] do
+        if self.u_lanes[i][j] > 0 then
+          local id = self.u_lanes[i][j]
+          if not item_stacks[id] then item_stacks[id] = 0 end
+          item_stacks[id] = item_stacks[id] + 1
+          self.u_lanes[i][j] = 0
+        end
+      end
+    end
+  end
+
+  if self.exit_lanes then
+    for i = 1, 2 do
+      for j = 1, 8 do
+        if self.exit_lanes[i][j] > 0 then
+          local id = self.exit_lanes[i][j]
+          if not item_stacks[id] then item_stacks[id] = 0 end
+          item_stacks[id] = item_stacks[id] + 1
+          self.exit_lanes[i][j] = 0
+        end
+      end
+    end
+  end
+
+  local offset = 0
+  for k, v in pairs(item_stacks) do
+    inv:add_item({id = k, count = v})
+    ui.new_alert(cursor.x, cursor.y + offset, '+' .. v .. ' ' .. ITEMS[k].fancy_name, 1000, 0, 11)
+    offset = offset + 6
+  end
 end
 
 function new_underground_belt(x, y, rot)

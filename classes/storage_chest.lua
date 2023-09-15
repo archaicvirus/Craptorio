@@ -86,16 +86,13 @@ end
 
 function Chest:deposit(id)
   for k, v in ipairs(self.slots) do
-    if (v.id == id and v.count < ITEMS[id].stack_size) or v.id == 0 then
+    if v.id == 0 or (v.id == id and v.count < ITEMS[id].stack_size) then
       v.id = id
       v.count = v.count + 1
-      return
+      return true
     end
   end
-end
-
-function Chest:update()
-
+  return false
 end
 
 function Chest:can_deposit(stack)
@@ -124,8 +121,6 @@ function Chest:open()
     draw = function(self)
       if self.vis then
         local slot = self:get_hovered_slot(cursor.x, cursor.y)
-        -- ui.draw_panel(self.x, self.y, self.w, self.h, UI_BG, UI_FG, self.name, UI_BG)
-        -- ui.draw_grid(self.x + self.grid_x, self.y + self.grid_y, self.rows, self.cols, UI_BG, UI_FG, 9, true, true)
         ENTS[self.ent_key]:draw_inventory(self.x, self.y)
         self:close(cursor.x, cursor.y)
         if self:is_hovered(cursor.x, cursor.y) then
@@ -134,6 +129,9 @@ function Chest:open()
             draw_item_stack(cursor.x + 5, cursor.y + 5, cursor.item_stack)
           end
           if slot then ui.highlight(slot.x, slot.y, 8, 8, false, 3, 4) end
+          if (alt_mode and key(64)) and slot and ENTS[self.ent_key].slots[slot.index].id > 0 then
+            draw_recipe_widget(cursor.x + 5, cursor.y + 5, ENTS[self.ent_key].slots[slot.index].id)
+          end
         end
       end
     end,
@@ -148,36 +146,108 @@ function Chest:open()
       if slot then
         --trace('slot# ' .. slot.index .. ' clicked')
         local ent = ENTS[self.ent_key]
-        
+        if key(64) then
+          local result, stack = inv:add_item({id = ent.slots[slot.index].id, count = ent.slots[slot.index].count})
+          if stack.count < ent.slots[slot.index].count then
+            sound('deposit')
+            ui.new_alert(cursor.x, cursor.y, '+' .. ent.slots[slot.index].count - stack.count .. ' ' .. ITEMS[ent.slots[slot.index].id].fancy_name, 1500, 0, 4)
+            ent.slots[slot.index].id = stack.id
+            ent.slots[slot.index].id = stack.count
+            return true
+          end
+          return false
+        end
         if cursor.type == 'pointer' and ent.slots[slot.index].id ~= 0 then
-          --grab stack from chest
-          if key(64) then
-            local old_stack = ent.slots[slot.index]
-            local result, stack = inv:add_item(ent.slots[slot.index])
-            if stack then
-              ENTS[self.ent_key].slots[slot.index] = stack
-              local deposited = old_stack.count - stack.count
-              ui.new_alert(cursor.x, cursor.y, '+' .. deposited .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
-              sound('deposit')
-            else
-              ENTS[self.ent_key].slots[slot.index] = {id = 0, count = 0}
-              ui.new_alert(cursor.x, cursor.y, '+' .. old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
-              sound('deposit')
+          if cursor.r then
+            set_cursor_item({id = ent.slots[slot.index].id, count = math.ceil(ent.slots[slot.index].count/2)})
+            ent.slots[slot.index].count = floor(ent.slots[slot.index].count/2)
+            if ent.slots[slot.index].count < 1 then
+              ent.slots[slot.index].id = 0
+              ent.slots[slot.index].count = 0
+              return true
             end
           else
-            cursor.type = 'item'
-            cursor.item_stack = {id = ent.slots[slot.index].id, count = ent.slots[slot.index].count}
-            ENTS[self.ent_key].slots[slot.index] = {id = 0, count = 0}
+            set_cursor_item({id = ent.slots[slot.index].id, count = ent.slots[slot.index].count})
+            ent.slots[slot.index].id = 0
+            ent.slots[slot.index].count = 0
+            return true
           end
-        elseif cursor.type == 'item' and ent.slots[slot.index].id ~= 0 then
-          local stack = {id = ent.slots[slot.index].id, count = ent.slots[slot.index].count}
-          ENTS[self.ent_key].slots[slot.index] = {id = cursor.item_stack.id, count = cursor.item_stack.count}
-          cursor.item_stack = stack
-        elseif cursor.type == 'item' and ent.slots[slot.index].id == 0 then
-          ENTS[self.ent_key].slots[slot.index] = {id = cursor.item_stack.id, count = cursor.item_stack.count}
-          cursor.item_stack = {id = 0, count = 0}
-          cursor.type = 'pointer'
+        elseif cursor.type == 'item' then
+          if cursor.item_stack.id ~= ent.slots[slot.index].id and ent.slots[slot.index].count > 0 then
+            --swap stacks
+            local chest_stack = {id = ent.slots[slot.index].id, count = ent.slots[slot.index].count}
+            ent.slots[slot.index].id = cursor.item_stack.id
+            ent.slots[slot.index].count = cursor.item_stack.count
+            set_cursor_item({id = chest_stack.id, count = chest_stack.count})
+            return true
+          end
+
+          if ent.slots[slot.index].count < ITEMS[cursor.item_stack.id].stack_size and
+          ent.slots[slot.index].id == 0 or
+          ent.slots[slot.index].id == cursor.item_stack.id then
+            ent.slots[slot.index].id = cursor.item_stack.id
+            if cursor.r then
+              ent.slots[slot.index].count = ent.slots[slot.index].count + 1
+              cursor.item_stack.count = cursor.item_stack.count - 1
+              if cursor.item_stack.count < 1 then
+                set_cursor_item()
+              end
+            else
+              --try deposit whole stack
+              local stack_size = ITEMS[ent.slots[slot.index].id].stack_size
+              if ent.slots[slot.index].count + cursor.item_stack.count <= stack_size then
+                ent.slots[slot.index].count = ent.slots[slot.index].count + cursor.item_stack.count
+                set_cursor_item()
+                return true
+              elseif ent.slots[slot.index].count + cursor.item_stack.count > stack_size then
+                local old_count = ent.slots[slot.index].count
+                ent.slots[slot.index].count = stack_size
+                cursor.item_stack.count = cursor.item_stack.count - (stack_size - old_count)
+                return true
+              end
+
+              -- if stack.count < ent.slots[slot.index].count then
+              --   sound('deposit')
+              --   ui.new_alert(cursor.x, cursor.y, '+' .. ent.slots[slot.index].count - stack.count .. ' ' .. ITEMS[ent.slots[slot.index].id].fancy_name, 1500, 0, 4)
+              -- end
+              -- ent.slots[slot.index].count = stack.count
+              -- if ent.slots[slot.index].count < 1 then
+              --   ent.slots[slot.index].id = 0
+              --   ent.slots[slot.index].count = 0
+              -- end
+            end
+          end
+          return false
         end
+        -- if cursor.type == 'pointer' and ent.slots[slot.index].id ~= 0 then
+        --   --grab stack from chest
+        --   if key(64) then
+        --     local old_stack = ent.slots[slot.index]
+        --     local result, stack = inv:add_item(ent.slots[slot.index])
+        --     if stack then
+        --       ENTS[self.ent_key].slots[slot.index] = stack
+        --       local deposited = old_stack.count - stack.count
+        --       ui.new_alert(cursor.x, cursor.y, '+' .. deposited .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
+        --       sound('deposit')
+        --     else
+        --       ENTS[self.ent_key].slots[slot.index] = {id = 0, count = 0}
+        --       ui.new_alert(cursor.x, cursor.y, '+' .. old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 11)
+        --       sound('deposit')
+        --     end
+        --   else
+        --     cursor.type = 'item'
+        --     cursor.item_stack = {id = ent.slots[slot.index].id, count = ent.slots[slot.index].count}
+        --     ENTS[self.ent_key].slots[slot.index] = {id = 0, count = 0}
+        --   end
+        -- elseif cursor.type == 'item' and ent.slots[slot.index].id ~= 0 then
+        --   local stack = {id = ent.slots[slot.index].id, count = ent.slots[slot.index].count}
+        --   ENTS[self.ent_key].slots[slot.index] = {id = cursor.item_stack.id, count = cursor.item_stack.count}
+        --   cursor.item_stack = stack
+        -- elseif cursor.type == 'item' and ent.slots[slot.index].id == 0 then
+        --   ENTS[self.ent_key].slots[slot.index] = {id = cursor.item_stack.id, count = cursor.item_stack.count}
+        --   cursor.item_stack = {id = 0, count = 0}
+        --   cursor.type = 'pointer'
+        -- end
         
       end
       if self:close(x, y) then
@@ -203,10 +273,8 @@ function Chest:request(stack, keep)
           v.count = 0
           v.id = 0
         end
-        return stack
-      else
-        return true
       end
+      return true
     end
   end
   return false
@@ -214,7 +282,8 @@ end
 
 function Chest:item_request(id)
   for k, v in ipairs(self.slots) do
-    if v.id == id or (v.id ~= 0 and id == 'any') then
+    local item = ITEMS[v.id]
+    if v.id > 0 and (v.id == id or id == 'any' or (item and id == item.type)) then
       v.count = v.count - 1
       if v.count < 1 then v.id = 0 end
       return v.id

@@ -10,6 +10,7 @@ local Lab = {
   type = 'research_lab',
   input = {},
   dummy_keys = {},
+  requests = {},
   progress = 0,
 }
 
@@ -67,31 +68,43 @@ function Lab:open()
       for i = 1, 4 do
         if hovered(cursor, {x = self.x + 14 + (i - 1)*13, y = self.y + 50, w = 10, h = 10}) then
           -- ui.highlight(self.x + 13 + (i - 1)*13, self.y + 49, 10, 10, false, 3, 4)
-          if cursor.l and not cursor.ll then
-            --item interaction
-            if cursor.type == 'pointer' then
-              if key(64) then
-                local old_count = ent.input[i].count
-                local result, stack = inv:add_item(ent.input[i])
-                if result then
-                  ent.input[i].count = stack.count
-                  sound('deposit')
-                  ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[ent.input[i].id].fancy_name, 1000, 0, 6)
-                  return true
-                end
-              else
-
-                if ent.input[i].count > 0 then
-                  cursor.type = 'item'
-                  cursor.item_stack.id = ent.input[i].id
+          
+          --item interaction
+          if cursor.type == 'pointer' then
+            if key(64) then
+              local old_count = ent.input[i].count
+              local result, stack = inv:add_item(ent.input[i])
+              if result then
+                ent.input[i].count = stack.count
+                sound('deposit')
+                ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[ent.input[i].id].fancy_name, 1000, 0, 6)
+                return true
+              end
+            else
+              if ent.input[i].count > 0 then
+                if cursor.r then
+                  cursor.item_stack.count = math.ceil(ent.input[i].count/2)
+                  ent.input[i].count = floor(ent.input[i].count/2)
+                else
                   cursor.item_stack.count = ent.input[i].count
                   ent.input[i].count = 0
-                  return true
                 end
+                cursor.type = 'item'
+                cursor.item_stack.id = ent.input[i].id
+                return true
               end
-            elseif cursor.type == 'item' then
-              local stack_size = ITEMS[ent.input[i].id].stack_size
-              if cursor.item_stack.id == ent.input[i].id then
+
+            end
+          elseif cursor.type == 'item' then
+            local stack_size = ITEMS[ent.input[i].id].stack_size
+            if cursor.item_stack.id == ent.input[i].id then
+              if cursor.r then
+                if ent.input[i].count < stack_size then
+                  ent.input[i].count = ent.input[i].count + 1
+                  cursor.item_stack.count = cursor.item_stack.count - 1
+                  if cursor.item_stack.count < 1 then set_cursor_item() end
+                end
+              else
                 if ent.input[i].count + cursor.item_stack.count <= stack_size then
                   ent.input[i].count = ent.input[i].count + cursor.item_stack.count
                   cursor.type = 'pointer'
@@ -103,8 +116,10 @@ function Lab:open()
                   cursor.item_stack.count = cursor.item_stack.count - (stack_size - old_count)
                 end
               end
+
             end
           end
+
         end
       end
       return false
@@ -152,6 +167,7 @@ function Lab:draw_hover_widget(x, y)
 end
 
 function Lab:update()
+  self:update_requests()
   if not current_research then
     self.progress = 0
     return
@@ -179,10 +195,6 @@ function Lab:update()
   end
 end
 
-function Lab:request(keep)
-  
-end
-
 function Lab:deposit_stack(stack)
   for i = 1, 4 do
     local stack_size = ITEMS[self.input[i].id].stack_size
@@ -199,6 +211,91 @@ function Lab:deposit_stack(stack)
     end
   end
   return false, stack
+end
+
+function Lab:update_requests()
+  for i = 1, #self.requests do
+    --if ingredients are low, request more items
+    if self.input[i].count < 2 then
+      self.requests[i][1] = true
+    end
+    --self.requests[i][2] = false
+  end
+end
+
+function Lab:get_request()
+  for i = 1, #self.requests do
+    -- check if inserter is already dispatched for this item
+    if self.requests[i][1] and not self.requests[i][2] then
+      return self.input[i].id
+    end
+  end
+  return false
+end
+
+function Lab:assign_delivery(id)
+  for k, v in ipairs(self.input) do
+    if v.id == id then
+      self.requests[k][2] = true
+      --now, an inserter has been dispatched to retrieve this item
+      --freeing up other possible inserters for different tasks
+      return
+    end
+  end
+end
+
+function Lab:request_deposit(inserter)
+      --   for i = 1, 4 do
+    --     if ENTS[from].input[i].count > 0 and ENTS[to].input[i].count < 2 then
+    --       self.held_item_id = ENTS[from].input[i].id
+    --       ENTS[from].input[i].count = ENTS[from].input[i].count - 1
+    --       self.state = 'send'
+    --       break
+    --     end
+    --   end
+  return self:get_request()
+end
+
+function Lab:deposit(id)
+  if id < 23 or id > 26 then return false end
+  for k, v in ipairs(self.input) do
+    if id == self.input[k].id then
+      self.input[k].count = self.input[k].count + 1
+      self.requests[k][2] = false
+      if self.input[k].count >= 2 then
+        self.requests[k][1] = false
+      end
+      return true
+    end
+  end
+  return false
+end
+
+function Lab:item_request(id, inserter)
+  if id < 23 or id > 26 then return false end
+  local ent = ENTS[inserter.to_key]
+  if ent.type == 'research_lab' then
+    for k, v in ipairs(self.input) do
+      if v.count > 1 and v.id == id then
+        v.count = v.count - 1
+        return v.id
+      end
+    end
+  end
+  return false
+end
+
+function Lab:return_all()
+  for k, v in ipairs(self.input) do
+    if v.count > 0 then
+      local result, stack = inv:add_item(v)
+      if stack.count < v.count then
+        sound('deposit')
+        ui.new_alert(cursor.x, cursor.y, '+' .. v.count - stack.count .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 5)
+      end
+      v.count = stack.count
+    end
+  end
 end
 
 function new_lab(x, y, dummy_keys)
@@ -218,11 +315,13 @@ function new_lab(x, y, dummy_keys)
     input = {},
     progress = 10,
     dummy_keys = dummy_keys,
-    slot_keys = {}
+    slot_keys = {},
+    requests = {},
   }
   for i = 1, 4 do
     newlab.input[i] = {id = 22 + i, count = 0}
     newlab.slot_keys[tostring(22+i)] = i
+    newlab.requests[i] = {true, false}
     --trace('created new_lab with slot_key[' .. tostring(22+i) .. '] = ' .. i)
   end
   setmetatable(newlab, {__index = Lab})

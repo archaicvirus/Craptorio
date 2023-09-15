@@ -23,13 +23,38 @@ local Crafter = {
 }
 
 function Crafter:draw_hover_widget(sx, sy)
-  local sx, sy = sx or cursor.x + 3, sy or cursor.y + 3
-  local x, y, w, h = sx, sy, 69, 50
-  box(sx, sy, w, h, 8, 9)
-  local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
-  rect(sx + 1, sy + 1, w - 2, 8, 9)
-  prints('Assembly Machine', sx + w/2 - width/2, sy + 2, 0, 4)
-  prints('state = ' .. tostring(self.state), sx + 2, sy + 11)
+  sx, sy = sx or cursor.x + 5, sy or cursor.y + 5
+  if not self.recipe then
+    return
+  end
+  local w = 73
+  local h = 74
+  local x = clamp(sx, 1, 240 - w - 1)
+  local y = clamp(sy, 1, 136 - h - 1)
+  ui.draw_panel(x, y, w, h, UI_BG, UI_FG, 'Assembly Machine', UI_SH)
+  ui.progress_bar(math.min(1.0, self.progress/self.recipe.crafting_time), x + w/2 - 30, y + 12, 60, 6, UI_BG, UI_FG, 6, 0)
+  prints('Input', x + w/2 - 12, y + h - 24)
+  for k, v in ipairs(self.input) do
+    box(x + w/2 - ((#self.input*13)/2) + (k-1)*13, y + h - 15, 10, 10, 8, 9)
+    if v.id ~= 0 and v.count > 0 then
+      draw_item_stack(x + w/2 - ((#self.input*13)/2) + (k-1)*13 + 1, y + h - 15 + 1, v)
+    end
+  end
+  --draw output items
+  prints('Output', x + w/2 - 12, y + 19)
+  box(x + w/2 - 6, y + 27, 10, 10, 8, 9)
+  for k, v in ipairs(self.recipe.ingredients) do
+    draw_item_stack(x + 10 + (k-1)*15 + 1, y + h - 35 + 1, v, true)
+    if k < #self.recipe.ingredients then
+      prints('+', x + 10 + (k-1)*15 + 1 + 10, y + h - 34 + 1)
+    else
+      prints('=', x + 10 + (k-1)*15 + 1 + 10, y + h - 34 + 1)
+    end
+  end
+  draw_item_stack(x + 12 + #self.recipe.ingredients*15, y + h - 35 + 1, {id = self.recipe.id, count = self.recipe.count}, true)
+  if self.output.count > 0 then
+    draw_item_stack(x + w/2 - 5, y + 28, {id = self.output.id, count = self.output.count})
+  end
 end
 
 function Crafter:draw()
@@ -50,8 +75,6 @@ function Crafter:draw()
     --line(sx + 6, sy + 9, sx + 6 + remap(self.progress, 0, self.recipe.crafting_time, 0, 12), sy + 9, 5)
 
   end
-  --id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot
-  --rspr(347, x + 13.5, y + 12.4, 0, 1, 1, 0, self.state == 'crafting' and TICK*5 or 0, 1, 1)
   sspr(348, x + 7 + offset, y + 12, 0)
   sspr(348, x + 14, y + (6 - offset), 0, 1, 0, 3)
   if self.state == 'idle' then
@@ -69,7 +92,6 @@ function Crafter:draw()
 end
 
 function Crafter:update()
-  --trace('crafter state: ' .. tostring(self.state))
   if self.recipe then
     self:update_requests()
     if self.state ~= 'crafting' and self.state ~= 'idle' then
@@ -86,33 +108,27 @@ function Crafter:update()
     end
     --if crafting in progress, update it
     if self.state == 'crafting' then
-      --trace(self.progress)
       self.progress = self.progress + CRAFTER_TICKRATE
       --we have reached full progress, so check for ingredients to make new item
       if self.progress >= self.recipe.crafting_time then
         self.progress = 0
         self.state = 'ready'
-
         local has_enough = false
         for i = 1, #self.recipe.ingredients do
           if self.input[i].count >= self.recipe.ingredients[i].count then
             has_enough = true
           end
         end
-
         if has_enough and self.output.count < 5 then
           for i = 1, #self.recipe.ingredients do
             self.input[i].count = self.input[i].count - self.recipe.ingredients[i].count
           end
           self.output.count = self.output.count + self.recipe.count
         end
-
         if self.output.count >= self.recipe.count * 5 then
           self.state = 'idle'
         end
       end
-
-
     end
   end
 end
@@ -121,9 +137,9 @@ function Crafter:open()
   if not self.recipe then
     -------------NO recipe--------------------
     return {
-      width = 80,
+      width = 73,
       height = 55,
-      x = 70,
+      x = 73,
       y = 18,
       bg = 8,
       fg = 9,
@@ -153,7 +169,6 @@ function Crafter:open()
           --ui.assembly_recipe_widget(self)
           craft_menu.current_output = self.ent_key
           toggle_crafting(true)
-          --trace('selecting recipe')
           return true
         end
         return false
@@ -163,216 +178,180 @@ function Crafter:open()
         return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height and true or false
       end,
       draw = function(self)
-        if not self.recipe then
-          local ent = ENTS[self.ent_key]
-          if not ent then self = nil return end
-          local input, output, fuel = ent.input_buffer, ent.output_buffer, ent.fuel_buffer
-          local x, y, w, h, bg, fg = self.x, self.y, self.width, self.height, self.bg, self.fg
-          local width = print('Select a recipe', 0, -10, 0, false, 1, true)
-          local c = cursor          
-          local btn = {x = x + w/2 - width/2 - 2, y = y + 32, w = width + 4, h = 9}
-          btn.color = c.x >= btn.x and c.x < btn.x + btn.w and c.y >= btn.y and c.y < btn.y + btn.h and 9 or 8
-          --background window and border
-          --trace('ent id: ' .. ent.id)
-          ui.draw_panel(x, y, w, h, bg, fg, ITEMS[ent.id].fancy_name)
-          --box(x, y, w, h, 8, 9)
-          --rect(x + 1, y + 1, w - 2, 8, 9)
-          --input input icon, and item count------------------------------------------
-
-          --input slot
-          --box(x + 3, y + 40, 10, 10, 0, 9)
-          box(btn.x, btn.y, btn.w, btn.h, btn.color, 9)
-          prints('Select a recipe', btn.x + 2, btn.y + 2, 0, 4)
-          --assembly machine graphic-and terrain background-------------------------
-          --line(x + 1, y + 35, x + w - 2, y + 35, 9)
-          sspr(483, x + w/2 - 4, y + 16, 1, 1, 0, 0, 1, 1)
-          sspr(CLOSE_ID, x + w - 7, y + 2, 15)
-          --local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
-          --prints('Assembly Machine', x + w/2 - width/2 + 1, y + 2, 0, 4)
-        else
-
-        end
+        local ent = ENTS[self.ent_key]
+        if not ent then self = nil return end
+        local input, output, fuel = ent.input_buffer, ent.output_buffer, ent.fuel_buffer
+        local x, y, w, h, bg, fg = self.x, self.y, self.width, self.height, self.bg, self.fg
+        local width = print('Select a recipe', 0, -10, 0, false, 1, true)
+        local c = cursor          
+        local btn = {x = x + w/2 - width/2 - 2, y = y + 32, w = width + 4, h = 9}
+        btn.color = c.x >= btn.x and c.x < btn.x + btn.w and c.y >= btn.y and c.y < btn.y + btn.h and 9 or 8
+        --background window and border
+        ui.draw_panel(x, y, w, h, bg, fg, ITEMS[ent.id].fancy_name)
+        --input input icon, and item count----------------------------------------
+        box(btn.x, btn.y, btn.w, btn.h, btn.color, 9)
+        prints('Select a recipe', btn.x + 2, btn.y + 2, 0, 4)
+        --assembly machine graphic-and terrain background-------------------------
+        sspr(483, x + w/2 - 4, y + 16, 1, 1, 0, 0, 1, 1)
+        sspr(CLOSE_ID, x + w - 7, y + 2, 15)
       end
     }
   else
     ------------HAS recipe--------------------
-    local input_slots = {}
-    for i = 1, 4 do
-      input_slots[i] = {x = 139 + 3 + (i-1)*15, y = 1 + 58, w = 10, h = 10, hovered = false}
-    end
-    local output_slot = {x = 215, y = 1 + 58, w = 10, h = 10, hovered = false}
     return {
-      width = 100,
-      height = 75,
-      x = 139,
+      x = 240 - 85,
       y = 1,
-      bg = 8,
-      fg = 9,
-      inputs = input_slots,
-      output = output_slot,
+      w = 80,
+      h = 74,
+      ent_key = self.x .. '-' .. self.y,
       close = function(self, sx, sy)
-        -- 5x5 close button sprite
-        local cx, cy, cw, ch = self.x + self.width - 7, self.y + 2, 5, 5
-        if sx >= cx and sx < sx + cw and sy >= cy and sy < cy + ch then
+        local btn = {x = self.x + self.w - 9, y = self.y + 1, w = 5, h = 5}
+        if sx >= btn.x and sy < btn.x + btn.w and sy >= btn.y and sy <= btn.y + btn.h then
           return true
         end
         return false
       end,
-      ent_key = self.x .. '-' .. self.y,
-
-      click = function(self, sx, sy)
-        if self.output.hovered and cursor.l and not cursor.ll then
-          local ent = ENTS[self.ent_key]
-          if ent.output.count > 0 then
-            if key(64) then
-              local result, stack = inv:add_item({id = ent.output.id, count = ent.output.count})
-              if stack then
-                ent.output.count = stack.count
-                return true
-              else
-                ent.output.count = 0
-              end
-            elseif cursor.type == 'pointer' then
-              cursor.type = 'item'
-              cursor.item = ITEMS[ent.output.id].name
-              cursor.item_stack = {id = ent.output.id, count = ent.output.count, slot = false}
-              ent.output.count = 0
-              return true
-
-            end
+      draw = function(self)
+        local ent = ENTS[self.ent_key]
+        ui.draw_panel(self.x, self.y, self.w, self.h, UI_BG, UI_FG, 'Assembly Machine', UI_SH)
+        ui.progress_bar(math.min(1.0, ent.progress/ent.recipe.crafting_time), self.x + self.w/2 - 30, self.y + 12, 60, 6, UI_BG, UI_FG, 6, 0)
+        sspr(CLOSE_ID, self.x + self.w - 9, self.y + 2, 15)
+        prints('Input', self.x + self.w/2 - 12, self.y + self.h - 24)
+        for k, v in ipairs(ent.input) do
+          box(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, self.y + self.h - 15, 10, 10, 8, 9)
+          if v.id ~= 0 and v.count > 0 then
+            draw_item_stack(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13 + 1, self.y + self.h - 15 + 1, v)
           end
         end
-        --check for close-button
+      --draw output items
+        prints('Output', self.x + self.w/2 - 12, self.y + 19)
+        box(self.x + self.w/2 - 6, self.y + 27, 10, 10, 8, 9)
+        for k, v in ipairs(ent.recipe.ingredients) do
+          draw_item_stack(self.x + 10 + (k-1)*15 + 1, self.y + self.h - 35 + 1, v, true)
+          if k < #ent.recipe.ingredients then
+            prints('+', self.x + 10 + (k-1)*15 + 1 + 10, self.y + self.h - 34 + 1)
+          else
+            prints('=', self.x + 10 + (k-1)*15 + 1 + 10, self.y + self.h - 34 + 1)
+          end
+        end
+        draw_item_stack(self.x + 12 + #ent.recipe.ingredients*15, self.y + self.h - 35 + 1, {id = ent.recipe.id, count = ent.recipe.count}, true)
+        if ent.output.count > 0 then
+          draw_item_stack(self.x + self.w/2 - 5, self.y + 28, {id = ent.output.id, count = ent.output.count})
+        end
+        if hovered(cursor, {x = self.x + self.w/2 - 6, y = self.y + 27, w = 10, h = 10}) then
+          ui.highlight(self.x + self.w/2 - 6, self.y + 27, 8, 8, false, 3, 4)
+          draw_recipe_widget(cursor.x + 5, cursor.y + 5, ent.output.id)
+        end
+        --draw cursor item
+        if self:is_hovered(cursor.x, cursor.y) and cursor.type == 'item' then
+          draw_item_stack(cursor.x + 5, cursor.y + 5, {id = cursor.item_stack.id, count = cursor.item_stack.count})
+        end
+        --input slots hover
+        for k, v in ipairs(ent.input) do
+          if hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
+            ui.highlight(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, self.y + self.h - 15, 8, 8, false, 3, 4)
+            if v.id ~= 0 then draw_recipe_widget(cursor.x + 5, cursor.y + 5, v.id) end
+          end
+        end
+      end,
+      click = function(self, sx, sy)
+        local ent = ENTS[self.ent_key]
         if self:close(sx, sy) then
-          ui.active_window = false
+          ui.active_window = nil
           return true
         end
-          --check for other clicked input
-        local ent = ENTS[self.ent_key]
-        for k, v in ipairs(self.inputs) do
-          if v.hovered and ent.recipe and cursor.l and not cursor.ll then
-            if key(64) and ent.input[k].count > 0 then
-              local start_stack = {id = ent.input[k].id, count = ent.input[k].count}
-                local result, stack = inv:add_item({id = ent.input[k].id, count = ent.input[k].count})
-                local item_name = ITEMS[ent.input[k].id].fancy_name
-                if stack then
-                  local added = start_stack.count - stack.count
-                  ent.input[k].count = stack.count
-                  ui.new_alert(sx, sy, '+' .. added .. ' ' .. item_name, 1000, 0, 5)
+        for k, v in ipairs(ent.input) do
+          if v.id ~= 0 and hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
+            local stack_size = ITEMS[ent.output.id].recipe.ingredients[k].count * 5
+            --item interaction
+            -----------------------------------------------------------------------------------------------------
+            if cursor.type == 'pointer' then
+              if key(64) then
+                local old_count = v.count
+                local result, stack = inv:add_item({id = v.id, count = v.count})
+                if result then
+                  v.count = stack.count
                   sound('deposit')
+                  ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 6)
+                  return true
+                end
+              elseif v.count > 0 then
+                if cursor.r and v.count > 1 then
+                  set_cursor_item({id = v.id, count = math.ceil(v.count/2)}, false)
+                  v.count = math.floor(v.count/2)
                   return true
                 else
-                  ent.input[k].count = 0
-                  ui.new_alert(sx, sy, '+' .. start_stack.count .. ' ' .. item_name, 1000, 0, 5)
-                  sound('deposit')
-                end
-              return false
-            end
-              if cursor.type == 'pointer' then
-                if ent.input[k].id ~= 0 and ent.input[k].count ~= 0 then
-                  cursor.type = 'item'
-                  cursor.item_stack.id = ent.input[k].id
-                  cursor.item_stack.count = ent.input[k].count
-                  ent.input[k].count = 0
+                  set_cursor_item({id = v.id, count = (v.count)}, false)
+                  v.count = 0
                   return true
                 end
-              elseif cursor.item and cursor.item_stack.id ~= 0 then
-                
-                if cursor.item_stack.id == ent.input[k].id then
-                  local result, stack = ent:deposit_stack(cursor.item_stack)
+              end
+            elseif cursor.type == 'item' and cursor.item_stack.id == v.id then
+              --try to combine stacks, leaving extra on cursor
+              if key(64) then
+                if v.count > 0 then
+                  local result, stack = inv:add_item({id = v.id, count = v.count})
                   if result then
-                    if stack.id == 0 then
-                      cursor.item_stack.id = 0
-                      cursor.item_stack.count = 0
-                      cursor.type = 'pointer'
-                    else
-                      cursor.item_stack.id = stack.id
-                      cursor.item_stack.count = stack.count
-                    end
-                    return true
+                    v.count = stack.count
+                    sound('deposit')
+                    ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 6)
                   end
                 end
+                return true
               end
-            
-            --if holding an item stack, try to deposit stack
-            
-            --if holding shift, try to deposit to inventory
-
-            --if not holding an item stack, try to take items from hovored slot
-
+              if cursor.r then
+                if v.count + 1 < stack_size then
+                  v.count = v.count + 1
+                  cursor.item_stack.count = cursor.item_stack.count - 1
+                  if cursor.item_stack.count < 1 then
+                    set_cursor_item()
+                  end
+                  return true
+                end
+              else
+                if cursor.item_stack.count + v.count > stack_size then
+                  local old_count = v.count
+                  v.count = stack_size
+                  cursor.item_stack.count = cursor.item_stack.count - (stack_size - old_count)
+                  return true
+                else
+                  v.count = v.count + cursor.item_stack.count
+                  set_cursor_item()
+                  return true
+                end
+              end
+            end
+            --------------------------------------------------------------------------------------------
+          end
+        end
+        --check output slot
+        if ent.output.count > 0 and cursor.type == 'pointer' and hovered({x = sx, y = sy}, {x = self.x + self.w/2 - 6, y = self.y + 27, w = 10, h = 10}) then
+          if key(64) then
+            local old_count = ent.output.count
+            local result, stack = inv:add_item({id = ent.output.id, count = ent.output.count})
+            if result then
+              ent.output.count = stack.count
+              ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[ent.output.id].fancy_name, 1000, 0, 6)
+              sound('deposit')
+              return true
+            end
+          else
+            if cursor.r and ent.output.count > 1 then
+              set_cursor_item({id = ent.output.id, count = math.ceil(ent.output.count/2)}, false)
+              ent.output.count = math.floor(ent.output.count/2)
+              return true
+            else
+              set_cursor_item({id = ent.output.id, count = (ent.output.count)}, false)
+              ent.output.count = 0
+              return true
+            end
           end
         end
         return false
       end,
-
       is_hovered = function(self, x, y)
-        return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height
+        return x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h and true or false
       end,
-
-      draw = function(self)
-        local hover = self:is_hovered(cursor.x, cursor.y)
-        for k, v in ipairs(self.inputs) do
-          if hovered({x = cursor.x, y = cursor.y}, v) then
-            v.hovered = true
-            break
-          end
-          v.hovered = false
-        end
-        self.output.hovered = hovered({x = cursor.x, y = cursor.y}, self.output)
-        local ent = ENTS[self.ent_key]
-        if not ent then self = nil return end
-        local x, y, w, h, bg, fg = self.x, self.y, self.width, self.height, self.bg, self.fg
-        --background window and border
-        ui.draw_panel(x, y, w, h, bg, fg, 'Assembly Machine')
-        --recipe icons
-        for k, v in ipairs(ent.recipe.ingredients) do
-          draw_item_stack(x + 4 + (k-1)*14, y + 15, {id = v.id, count = v.count})
-          if k < #ent.recipe.ingredients then prints('+', x + 4 + (k-1)*14 + 10, y + 16, 0, 11) end
-        end
-        local xx = x + 3 + (#ent.recipe.ingredients * 14) + 2
-        prints('= ', xx - 5, y + 16, 0, 11)
-        draw_item_stack(xx, y + 15, {id = ent.recipe.id, count = ent.recipe.count})
-        --crafting progress bar
-        box(x + 4, y + 30, 67, 6, 0, 9)
-        sspr(CRAFTER_TIME_ID, x + 4, y + 38, 1)
-        prints(ent.recipe.crafting_time .. 's', x + 12, y + 38, UI_TEXT_BG, UI_TEXT_FG)
-        if ent.state == 'crafting' then
-          rect(x + 29, y + 39, remap(ent.progress, 0, ent.recipe.crafting_time, 0, 67), 4, 5)
-        end
-        --input slots and items
-        prints('Input', x + 16, y + 50, 0, 4)
-        for i = 1, 4 do
-          box(x + 3 + (i - 1)*15, y + 58, 10, 10, 0, 9)
-          if ent.input[i].count > 0 and ent.input[i].id ~= 0 then
-            draw_item_stack(x + 4 + (i - 1)*15, y + 59, ent.input[i])
-          end
-        end
-        -- for i = 1, 4 do
-        -- end
-        --output slot/items
-        prints('Output', x + 66 + 4, y + 50, 0, 4)
-        box(x + w - 28 + 4, y + 58, 10, 10, 0, 9)
-        if ent.output.count > 0 then
-          draw_item_stack(x + w - 28 + 5, y + 59, {id = ent.output.id, count = ent.output.count})
-        end
-        --assembly machine graphic-and terrain background-------------------------
-        local sprite_id = CRAFTER_ID
-        local fx, fy = x + w - 26, y + 12 --crafter icon screen pos
-        line(x + 1, y + 47, x + w - 2, y + 47, 9)
-        sspr(sprite_id, fx, fy, 0, 1, 0, 0, 3, 3)
-        sspr(CLOSE_ID, x + w - 7, y + 2, 15)
-        for k, v in ipairs(self.inputs) do
-          if v.hovered then
-            ui.highlight(v.x, v.y, 8, 8, false, 3, 4)
-          end
-        end
-        if hover and cursor.item_stack.id ~= 0 then
-          draw_item_stack(cursor.x + 3, cursor.y + 3, cursor.item_stack)
-        end
-        if self.output.hovered then
-          ui.highlight(self.output.x, self.output.y, 8, 8, false, 3, 4)
-        end
-      end
     }
   end
 end
@@ -383,55 +362,71 @@ function Crafter:set_recipe(item)
     self.input[i].id = self.recipe.ingredients[i].id
   end
   self.output.id = self.recipe.id
+  self.output.count = 0
   self.requests = {}
   for i = 1, #self.recipe.ingredients do
-    self.requests[i] = {true, false}
+    self.requests[i] = {[1] = true, [2] = false}
     --[1] = 'do I need this item'
     --[2] = 'is an inserter currently delivering this'
   end
-  --trace('set recipe to: ' .. item.fancy_name)
 end
 
 function Crafter:update_requests()
   for i = 1, #self.requests do
     --if ingredients are low, request more items
-    if self.requests[i][1] and not self.requests[i][2] then
-      self.requests[i][1] = self.input[i].count < self.recipe.ingredients[i].count
+    if self.input[i].count < self.recipe.ingredients[i].count*2 then
+      self.requests[i][1] = true
     end
+    --self.requests[i][2] = false
   end
 end
 
 function Crafter:get_request()
-  for i = 1, #self.recipe.ingredients do
-    if self.requests[i][1] and not self.requests[i][2] and #self.output < 5 then
-      self.requests[i][2] = true
+  for i = 1, #self.requests do
+    -- check if inserter is already dispatched for this item
+    if self.requests[i][1] and not self.requests[i][2] then
       return self.recipe.ingredients[i].id
-      --now an inserter has been dispatched to retrieve this item
     end
   end
   return false
+end
+
+function Crafter:assign_delivery(id)
+  for k, v in ipairs(self.recipe.ingredients) do
+    if v.id == id then
+      self.requests[k][2] = true
+      --now, an inserter has been dispatched to retrieve this item
+      --freeing up other possible inserters for different tasks
+      return
+    end
+  end
 end
 
 function Crafter:request_deposit()
   if not self.recipe then return false end
-  for k, v in ipairs(self.input) do
-    if v.count < self.recipe.ingredients[k].count then
-      return v.id
+  return self:get_request()
+end
+
+function Crafter:deposit(id)
+  if not self.recipe then return false end
+  for k, v in ipairs(self.recipe.ingredients) do
+    if id == self.input[k].id then
+      self.input[k].count = self.input[k].count + 1
+      self.requests[k][2] = false
+      if self.input[k].count >= v.count*2 then
+        self.requests[k][1] = false
+      end
+      return true
     end
   end
   return false
 end
 
-function Crafter:deposit(id)
-  if self.recipe then
-    for i = 1, #self.recipe.ingredients do
-      if self.input[i].count < self.recipe.ingredients[i].count*5 and self.recipe.ingredients[i].id == id then
-        self.input[i].count = self.input[i].count + 1
-        self.input[i].id = id
-        self.state = 'ready'
-        return true
-      end
-    end
+function Crafter:item_request(id)
+  if not self.recipe then return false end
+  if self.output.count > 0 and (self.output.id == id or id == 'any') then
+    self.output.count = self.output.count - 1
+    return self.output.id
   end
   return false
 end
@@ -461,6 +456,28 @@ function Crafter:deposit_stack(stack)
     end
   end
   return false, {id = stack.id, count = stack.count}
+end
+
+function Crafter:return_all()
+  if not self.recipe then return end
+  for k, v in ipairs(self.input) do
+    if v.count > 0 then
+      local result, stack = inv:add_item(v)
+      if stack.count < v.count then
+        sound('deposit')
+        ui.new_alert(cursor.x, cursor.y, '+' .. v.count - stack.count .. ' ' .. ITEMS[v.id].fancy_name, 1500, 0, 5)
+      end
+      v.count = stack.count
+    end
+  end
+  if self.output.count > 0 then
+    local result, stack = inv:add_item({id = self.output.id, count = self.output.count})
+    if self.output.count > stack.count then
+      sound('deposit')
+      ui.new_alert(cursor.x, cursor.y, '+' .. self.output.count - stack.count .. ' ' .. ITEMS[self.output.id].fancy_name, 1500, 0, 5)
+    end
+    self.output.count = stack.count
+  end
 end
 
 function new_assembly_machine(wx, wy)

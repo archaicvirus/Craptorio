@@ -16,6 +16,7 @@ local Refinery = {
   requests = false,
   progress = 0,
   requests = {},
+  dummy_keys = {},
 }
 
 function Refinery:update()
@@ -76,7 +77,7 @@ function Refinery:draw_hover_widget()
   local w, h = 63, 66
   local x, y = clamp(cursor.x + 5, 1, 240 - w - 2), clamp(cursor.y + 5, 1, 135 - h - 1)
   if not self.recipe then
-    ui.draw_panel(x, y, w, 10, 8, 9, 'No Recipe', 0)
+    ui.draw_panel(x, y, w, 10, 8, 9, 'No Recipe Set', 0)
     return
   end
   
@@ -95,21 +96,6 @@ function Refinery:draw_hover_widget()
   box(x + w/2 - 6, y + 27, 10, 10, 8, 9)
   if self.output.count > 0 then
     draw_item_stack(x + w/2 - 4, y + 28, {id = self.output.id, count = self.output.count})
-  end
-  if hovered(cursor, {x = x + w/2 - 6, y = y + 27, w = 10, h = 10}) then
-    ui.highlight(x + w/2 - 6, y + 27, 8, 8, false, 3, 4)
-    draw_recipe_widget(cursor.x + 5, cursor.y + 5, self.output.id)
-  end
-  --draw cursor item
-  if hovered(cursor, {x = x, y = y, w = w, h = h}) and cursor.type == 'item' then
-    draw_item_stack(cursor.x + 5, cursor.y + 5, {id = cursor.item_stack.id, count = cursor.item_stack.count})
-  end
-  --input slots hover
-  for k, v in ipairs(self.input) do
-    if hovered(cursor, {x = x + w/2 - ((#self.input*13)/2) + (k-1)*13, y = y + h - 15, w = 10, h = 10}) then
-      ui.highlight(x + w/2 - ((#self.input*13)/2) + (k-1)*13, y + h - 15, 8, 8, false, 3, 4)
-      draw_recipe_widget(cursor.x + 5, cursor.y + 5, v.id)
-    end
   end
 end
 
@@ -177,7 +163,7 @@ function Refinery:open()
             draw_item_stack(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13 + 1, self.y + self.h - 15 + 1, v)
           end
         end
-      --draw output items
+        --draw output items
         prints('Output', self.x + self.w/2 - 12, self.y + 19)
         box(self.x + self.w/2 - 6, self.y + 27, 10, 10, 8, 9)
         if ent.output.count > 0 then
@@ -185,7 +171,7 @@ function Refinery:open()
         end
         if hovered(cursor, {x = self.x + self.w/2 - 6, y = self.y + 27, w = 10, h = 10}) then
           ui.highlight(self.x + self.w/2 - 6, self.y + 27, 8, 8, false, 3, 4)
-          draw_recipe_widget(cursor.x + 5, cursor.y + 5, ent.output.id)
+          if key(64) then draw_recipe_widget(cursor.x + 5, cursor.y + 5, ent.output.id) end
         end
         --draw cursor item
         if self:is_hovered(cursor.x, cursor.y) and cursor.type == 'item' then
@@ -195,7 +181,7 @@ function Refinery:open()
         for k, v in ipairs(ent.input) do
           if hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
             ui.highlight(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, self.y + self.h - 15, 8, 8, false, 3, 4)
-            draw_recipe_widget(cursor.x + 5, cursor.y + 5, v.id)
+            if key(64) then draw_recipe_widget(cursor.x + 5, cursor.y + 5, v.id) end
           end
         end
       end,
@@ -208,29 +194,56 @@ function Refinery:open()
         for k, v in ipairs(ent.input) do
           if hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
             -- ui.highlight(self.x + 13 + (i - 1)*13, self.y + 49, 10, 10, false, 3, 4)
-            if cursor.l and not cursor.ll then
-              trace('refinery slot # ' .. k .. ' clicked')
-              trace('item slot is ' .. ITEMS[v.id].fancy_name)
-              trace('k = ' .. tostring(k))
-              local stack_size = ITEMS[ent.output.id].recipe.ingredients[k].count * 5
-              --item interaction
-              if cursor.type == 'pointer' then
-                if key(64) then
-                  local old_count = v.count
+            
+            trace('refinery slot # ' .. k .. ' clicked')
+            trace('item slot is ' .. ITEMS[v.id].fancy_name)
+            trace('k = ' .. tostring(k))
+            local stack_size = ITEMS[ent.output.id].recipe.ingredients[k].count * 5
+            --item interaction
+            if cursor.type == 'pointer' then
+              if key(64) then
+                local old_count = v.count
+                local result, stack = inv:add_item({id = v.id, count = v.count})
+                if result then
+                  v.count = stack.count
+                  sound('deposit')
+                  ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 6)
+                  return true
+                end
+              elseif v.count > 0 then
+                if cursor.r and v.count > 1 then
+                  set_cursor_item({id = v.id, count = math.ceil(v.count/2)}, false)
+                  v.count = floor(v.count/2)
+                  return true
+                else
+                  set_cursor_item({id = v.id, count = v.count}, false)
+                  v.count = 0
+                  return true
+                end
+              end
+            elseif cursor.type == 'item' and cursor.item_stack.id == v.id then
+              --try to combine stacks, leaving extra on cursor
+              if key(64) then
+                if v.count > 0 then
                   local result, stack = inv:add_item({id = v.id, count = v.count})
                   if result then
                     v.count = stack.count
                     sound('deposit')
                     ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 6)
-                    return true
                   end
-                elseif v.count > 0 then
-                  set_cursor_item({id = v.id, count = v.count}, false)
-                  v.count = 0
+                end
+                return true
+              end
+              if cursor.r then
+                if v.count + 1 < stack_size then
+                  v.count = v.count + 1
+                  cursor.item_stack.count = cursor.item_stack.count - 1
+                  if cursor.item_stack.count < 1 then
+                    set_cursor_item()
+                  end
                   return true
                 end
-              elseif cursor.type == 'item' and cursor.item_stack.id == v.id then
-                --try to combine stacks, leaving extra on cursor
+              else
                 if cursor.item_stack.count + v.count > stack_size then
                   local old_count = v.count
                   v.count = stack_size
@@ -239,12 +252,14 @@ function Refinery:open()
                 else
                   v.count = v.count + cursor.item_stack.count
                   set_cursor_item()
+                  return true
                 end
               end
             end
+            
           end
         end
-        if ent.output.count > 0 and cursor.type == 'pointer' and hovered({x = sx, y = sy}, {x = self.x + self.w/2 - 6, y = self.y + 27, w = 10, h = 10}) and cursor.l and not cursor.ll then
+        if ent.output.count > 0 and cursor.type == 'pointer' and hovered({x = sx, y = sy}, {x = self.x + self.w/2 - 6, y = self.y + 27, w = 10, h = 10}) then
           if key(64) then
             local old_count = ent.output.count
             local result, stack = inv:add_item({id = ent.output.id, count = ent.output.count})
@@ -255,9 +270,15 @@ function Refinery:open()
               return true
             end
           else
-            set_cursor_item({id = ent.output.id, count = ent.output.count})
-            ent.output.count = 0
-            return true
+            if cursor.r and v.count > 1 then
+              set_cursor_item({id = v.id, count = math.ceil(v.count/2)}, false)
+              v.count = floor(v.count/2)
+              return true
+            else
+              set_cursor_item({id = ent.output.id, count = ent.output.count})
+              ent.output.count = 0
+              return true
+            end
           end
         end
         return false
@@ -310,35 +331,18 @@ function Refinery:open()
         return x >= self.x and x < self.x + self.width and y >= self.y and y < self.y + self.height and true or false
       end,
       draw = function(self)
-        if not self.recipe then
-          local ent = ENTS[self.ent_key]
-          if not ent then self = nil return end
-          local input, output, fuel = ent.input_buffer, ent.output_buffer, ent.fuel_buffer
-          local x, y, w, h, bg, fg = self.x, self.y, self.width, self.height, self.bg, self.fg
-          local width = print('Select a recipe', 0, -10, 0, false, 1, true)
-          local c = cursor
-          local btn = {x = x + w/2 - width/2 - 2, y = y + 32, w = width + 4, h = 9}
-          btn.color = c.x >= btn.x and c.x < btn.x + btn.w and c.y >= btn.y and c.y < btn.y + btn.h and 9 or 8
-          --background window and border
-          --trace('ent id: ' .. ent.id)
-          ui.draw_panel(x, y, w, h, bg, fg, ITEMS[ent.item_id].fancy_name)
-          --box(x, y, w, h, 8, 9)
-          --rect(x + 1, y + 1, w - 2, 8, 9)
-          --input input icon, and item count------------------------------------------
-
-          --input slot
-          --box(x + 3, y + 40, 10, 10, 0, 9)
-          box(btn.x, btn.y, btn.w, btn.h, btn.color, 9)
-          prints('Select a recipe', btn.x + 2, btn.y + 2, 0, 4)
-          --assembly machine graphic-and terrain background-------------------------
-          --line(x + 1, y + 35, x + w - 2, y + 35, 9)
-          sspr(482, x + w/2 - 8, y + 14, 6, 2, 0, 0, 1, 1)
-          sspr(CLOSE_ID, x + w - 7, y + 2, 15)
-          --local width = print('Assembly Machine', 0, -10, 0, false, 1, true)
-          --prints('Assembly Machine', x + w/2 - width/2 + 1, y + 2, 0, 4)
-        else
-
-        end
+        local ent = ENTS[self.ent_key]
+        if not ent then self = nil return end
+        local x, y, w, h, bg, fg = self.x, self.y, self.width, self.height, self.bg, self.fg
+        local width = print('Select a recipe', 0, -10, 0, false, 1, true)
+        local c = cursor
+        local btn = {x = x + w/2 - width/2 - 2, y = y + 32, w = width + 4, h = 9}
+        btn.color = c.x >= btn.x and c.x < btn.x + btn.w and c.y >= btn.y and c.y < btn.y + btn.h and 9 or 8
+        ui.draw_panel(x, y, w, h, bg, fg, ITEMS[ent.item_id].fancy_name)
+        box(btn.x, btn.y, btn.w, btn.h, btn.color, 9)
+        prints('Select a recipe', btn.x + 2, btn.y + 2, 0, 4)
+        sspr(482, x + w/2 - 8, y + 14, 6, 2, 0, 0, 1, 1)
+        sspr(CLOSE_ID, x + w - 7, y + 2, 15)
       end
     }
   end
@@ -350,7 +354,7 @@ function Refinery:update_requests()
     if self.input[i].count < self.recipe.ingredients[i].count*2 then
       self.requests[i][1] = true
     end
-    self.requests[i][2] = false 
+    --self.requests[i][2] = false 
   end
 end
 
@@ -367,11 +371,11 @@ end
 
 function Refinery:deposit(id)
   if not self.recipe then return false end
-  for k, v in ipairs(self.input) do
+  for k, v in ipairs(self.recipe.ingredients) do
     if id == v.id then
-      v.count = v.count + 1
+      self.input[k].count = self.input[k].count + 1
       self.requests[k][2] = false
-      if v.count >= self.recipe.ingredients[k].count then
+      if self.input[k].count >= self.recipe.ingredients[k].count*2 then
         self.requests[k][1] = false
       end
       return true
@@ -392,11 +396,38 @@ function Refinery:request_deposit()
   -- return false
 end
 
+function Refinery:item_request(id)
+  if (self.output.id == id or id == 'any') and self.output.count > 0 then
+    self.output.count = self.output.count - 1
+    return self.output.id
+  end
+end
+
 function Refinery:assign_delivery(id)
   for k, v in ipairs(self.recipe.ingredients) do
     if v.id == id then
       self.requests[k][2] = true
       return
+    end
+  end
+end
+
+function Refinery:return_all()
+  if not self.recipe then return end
+  for k, v in ipairs(self.input) do
+    if v.count > 0 then
+      local _, stack = inv:add_item({id = v.id, count = v.count})
+      if stack.count ~= v.count then
+        ui.new_alert(cursor.x, cursor.y, '+ ' .. v.count - stack.count .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 6)
+        v.count = stack.count
+      end
+    end
+  end
+  if self.output.count > 0 then
+    local _, stack = inv:add_item({id = self.output.id, count = self.output.count})
+    if stack.count ~= self.output.count then
+      ui.new_alert(cursor.x, cursor.y, '+ ' .. self.output.count - stack.count .. ' ' .. ITEMS[self.output.id].fancy_name, 1000, 0, 6)
+      self.output.count = stack.count
     end
   end
 end

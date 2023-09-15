@@ -161,6 +161,88 @@ function ui.draw_text_window(data, x, y, label, bg, fg, text_bg, text_fg, wrap)
   end
 end
 
+-- function ui.item_slot(x, y, w, h, bg, fg, stack, id_lock, deposit_lock)
+--   local slot = {
+--     x = x,
+--     y = y,
+--     w = w or 10,
+--     h = h or 10,
+--     bg = bg or 8,
+--     fg = fg or 9,
+--     stack = stack or {id = 0, count = 0},
+--     id_lock = id_lock or false,
+--     deposit_lock = deposit_lock or false,
+--   }
+--   function slot:click()
+--     local x, y = cursor.x, cursor.y
+--     local left, right = cursor.l, cursor.r
+--     local shift = key(64)
+--     if x >= self.x and x < self.x + self.w and y >= self.y and y < self.y + self.h then
+--       local stack_size = ITEMS[self.id].stack_size
+--       --item interaction
+--       if cursor.type == 'pointer' then
+--         if key(64) then
+--           local old_count = v.count
+--           local result, stack = inv:add_item({id = v.id, count = v.count})
+--           if result then
+--             v.count = stack.count
+--             sound('deposit')
+--             ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 6)
+--             return true
+--           end
+--         elseif v.count > 0 then
+--           if cursor.r and v.count > 1 then
+--             set_cursor_item({id = v.id, count = math.ceil(v.count/2)}, false)
+--             v.count = floor(v.count/2)
+--             return true
+--           else
+--             set_cursor_item({id = v.id, count = v.count}, false)
+--             v.count = 0
+--             return true
+--           end
+--         end
+--       elseif cursor.type == 'item' and cursor.item_stack.id == v.id then
+--         --try to combine stacks, leaving extra on cursor
+--         if key(64) then
+--           if v.count > 0 then
+--             local result, stack = inv:add_item({id = v.id, count = v.count})
+--             if result then
+--               v.count = stack.count
+--               sound('deposit')
+--               ui.new_alert(cursor.x, cursor.y, '+ ' .. (stack.count == 0 and old_count or old_count - stack.count) .. ' ' .. ITEMS[v.id].fancy_name, 1000, 0, 6)
+--               return true
+--             end
+--           end
+--           return true
+--         end
+--         if cursor.r then
+--           if v.count + 1 < stack_size then
+--             v.count = v.count + 1
+--             cursor.item_stack.count = cursor.item_stack.count - 1
+--             if cursor.item_stack.count < 1 then
+--               set_cursor_item()
+--             end
+--             return true
+--           end
+--         else
+--           if cursor.item_stack.count + v.count > stack_size then
+--             local old_count = v.count
+--             v.count = stack_size
+--             cursor.item_stack.count = cursor.item_stack.count - (stack_size - old_count)
+--             return true
+--           else
+--             v.count = v.count + cursor.item_stack.count
+--             set_cursor_item()
+--             return true
+--           end
+--         end
+--       end
+--       return true
+--     end
+--     return false
+--   end
+-- end
+
 function ui.item_box(x, y, w, h, bg, fg)
   local new_box = {
     x = x,
@@ -169,7 +251,6 @@ function ui.item_box(x, y, w, h, bg, fg)
     h = h,
     bg = bg or UI_BG,
     fg = fg or UI_FG,
-    --stack = {id = 0, count = 0},
     update = function (self, parent)
       --self.
     end,
@@ -183,7 +264,6 @@ function ui.item_box(x, y, w, h, bg, fg)
       local sx, sy = self.x + parent.x, self.y + parent.y
       --have we clicked box?
       if x >= sx and x < sx + self.w and y >= sy and y < sy + self.h then
-        -- trace('clicked box')
         if key(64) and stack.id ~= 0 then
           local result, stack2 = inv:add_item(stack)
           if result then
@@ -196,50 +276,21 @@ function ui.item_box(x, y, w, h, bg, fg)
           end
         end
         --is player holding an item stack?
-        if cursor.item_stack and cursor.item_stack.id ~= 0 then
+        if cursor.type == 'item' then
+          if cursor.item_stack.id == stack.id then
 
-          --does box already contain an item stack?
-          if stack.id ~= 0 then
-            --try to add cursor items to box stack
-            if stack.id == cursor.item_stack.id then
-              local max = ITEMS[stack.id].stack_size
-
-              --if box has enough room to hold the full cursor stack
-              if stack.count + cursor.item_stack.count <= max then
-
-              else
-              --deposit partial stack from cursor, maxing out box stack size
-                local old_count = stack.count
-                stack.count = max
-                cursor.item_stack.count = max - old_count
-                return stack
-              end
-            else
-              --swap stacks
-              local temp_stack = stack
-              stack = {id = cursor.item_stack.id, count = cursor.item_stack.count}
-              cursor.item_stack.id = temp_stack.id
-              cursor.item_stack.count = temp_stack.count
-              return stack
-            end
-
-          else
-          --deposit held stack to box
-            stack = {id = cursor.item_stack.id, count = cursor.item_stack.count}
-            cursor.type = 'pointer'
-            cursor.item = false
-            cursor.item_stack.id = 0
-            cursor.item_stack.count = 0
-            return stack
           end
-        elseif stack.id ~= 0 then
-          --give item stack to cursor
-          cursor.item = ITEMS[stack.id].name
-          cursor.type = 'item'
-          cursor.item_stack.id = stack.id
-          cursor.item_stack.count = stack.count
-          stack = {id = 0, count = 0}
-          return stack
+        elseif cursor.type == 'pointer' then
+          if stack.count > 0 then
+            if cursor.r then
+              set_cursor_item({id = stack.id, count = math.ceil(stack.count/2)})
+              return {id = stack.id, count = floor(stack.count/2)}
+            else
+              set_cursor_item(stack)
+              return {id = 0, count = 0}
+            end
+          end
+          
         end
       end
       return false
@@ -302,6 +353,7 @@ CraftPanel.tab['intermediate'] = CraftPanel.tab[2]
 --CraftPanel.tab['combat'] = CraftPanel.tab[3]
 
 function ui.draw_panel(x, y, w, h, bg, fg, label, shadow)
+  x, y = clamp(x, 0, (240 - w)), clamp(y, 0, (136 - h))
   bg, fg = bg or UI_BG, fg or UI_FG
   local width = text_width(type(label) == 'table' and label.text or label)
   if width > w + 7 then w = width + 7 end
@@ -464,9 +516,7 @@ function CraftPanel:click(x, y, side)
     if result and self.current_output ~= 'player' then
       local row = math.ceil(index / 10)
       local col = ((index - 1) % 10) + 1
-      --spr(CURSOR_HIGHLIGHT, sl_x - 1, sl_y - 1, 0, 1, 0, 0, 2, 2)
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
-        --if self.current_output ~= 'player' then
         --assembly machine crafting
         if ENTS[self.current_output] then
           trace('clicked ' .. ENTS[self.current_output].type)
@@ -488,18 +538,13 @@ function CraftPanel:click(x, y, side)
           sound('deny')
           return false
         end
-        --else
-
-        --end
       end
-      --print(slot_index, mouse_x + 8, mouse_y - 3, 12, false, 1, true)
     elseif result and self.current_output == 'player' then
       local row = math.ceil(index / 10)
       local col = ((index - 1) % 10) + 1
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
         --player crafting
         local item = ITEMS[recipes[self.active_tab][row][col]]
-        --trace('found item: ' .. item.fancy_name)
         if item and item.craftable then
           local can_craft = true
           for k, v in ipairs(item.recipe.ingredients) do
@@ -589,57 +634,43 @@ function CraftPanel:get_hovered_slot_dyn(x, y)
   end
 end
 
-function ui.assembly_recipe_widget(crafter)
-  
-end
-
-function ui:furnace_widget(ent)
-  
-end
-
 function text_width(txt)
   return print(txt, 0, -10, 0, false, 1, true)
 end
 
 function text_wrap(text, width, break_word)
   local wrapped_lines = {}
-
   local function add_line(line)
-      table.insert(wrapped_lines, line)
+    table.insert(wrapped_lines, line)
   end
-
   local function measure(str)
       return text_width(str)
   end
-
   local function add_word(word, line)
-      if measure(line .. " " .. word) > width then
-          add_line(line)
-          return word
-      else
-          if line ~= "" then line = line .. " " end
-          return line .. word
-      end
+    if measure(line .. " " .. word) > width then
+      add_line(line)
+      return word
+    else
+      if line ~= "" then line = line .. " " end
+      return line .. word
+    end
   end
-
   local line = ""
   for word in text:gmatch("%S+") do
-      if not break_word and measure(word) > width then
-          for c in word:gmatch(".") do
-              if measure(line .. c) > width then
-                  add_line(line)
-                  line = c
-              else
-                  line = line .. c
-              end
-          end
-      else
-          line = add_word(word, line)
+    if not break_word and measure(word) > width then
+      for c in word:gmatch(".") do
+        if measure(line .. c) > width then
+          add_line(line)
+          line = c
+        else
+          line = line .. c
+        end
       end
+    else
+      line = add_word(word, line)
+    end
   end
-
   if line ~= "" then add_line(line) end
-
   return wrapped_lines
 end
 
@@ -687,68 +718,116 @@ function ui.NewCraftPanel(x, y)
   return new_panel
 end
 
-function draw_recipe_widget(x, y, id)
-  local w, h
+function show_recipe_widget()
+  local x, y, id = current_recipe.x, current_recipe.y, current_recipe.id
   local item = ITEMS[id]
-  local recipe = item.recipe
-  local name = item.fancy_name
-  w = math.max(text_width(name) + 6, 75)
-  h = 13
-  
-  if recipe then
-    h = h + (#recipe.ingredients * 11) + 5
-    for k, v in ipairs(recipe.ingredients) do
-      local width = text_width(ITEMS[v.id].fancy_name) + 17
+  local w, h = math.max(75, text_width(item.fancy_name) + 20), 13
+  local start_y = 11
+  if item.craftable == false then
+    h = h + 8
+  end
+  if item.recipe then
+    h = h + #item.recipe.ingredients*10 + 9
+    for k, v in ipairs(item.recipe.ingredients) do
+      local width = text_width(ITEMS[v.id].fancy_name) + 18
       if width > w then w = width end
     end
-  else
-    h = h + 11
   end
-  
-  local info = item.info and text_wrap(item.info, w - 6) or false
-  if info then
-    h = h + (#info * 7)
+  local lines = false
+  if item.info then
+    lines = text_wrap(item.info, w - 8, false)
+    h = h + #lines*8
   end
-
-  local x, y = clamp(x, 1, 240 - w - 2), clamp(y, 1, 136 - h - 2)
-  ui.draw_panel(x, y, w, h, UI_BG, UI_FG, name, UI_SHADOW)
-
-  if recipe then
-    for k, v in ipairs(recipe.ingredients) do
-      prints(ITEMS[v.id].fancy_name, x + 3, y + 10 + ((k-1)*11), 0, 4)
-      draw_item_stack(x + w - 13, y + 10 + ((k-1)*9), v, true)
+  x, y = clamp(x, 1, (240 - w) - 1), clamp(y, 1, (136 - h) - 1)
+  ui.draw_panel(x, y, w, h, 8, 9, item.fancy_name, 0)
+  if not item.craftable then
+    prints('Uncraftable', x + 5, y + start_y, 0, 2)
+    start_y = start_y + 8
+  end
+  if item.recipe then
+    for k, v in ipairs(item.recipe.ingredients) do
+      prints(ITEMS[v.id].fancy_name, x + 5, y + start_y + 1)
+      draw_item_stack(x + w - 11, y + start_y - 1, v, true)
+      start_y = start_y + 10
     end
-    local craft_time = item.recipe.crafting_time/60 .. 's'
-    local sw = text_width('x ' .. item.recipe.count .. ' -')
-    local cw = text_width(craft_time)
-    prints('x ' .. item.recipe.count .. ' -', x + 3, y + 7 + (#recipe.ingredients*11) + 2, 0, 4)
-    sspr(CRAFTER_TIME_ID, x + w - 2 - cw - 10, y + 7 + (#recipe.ingredients*11) + 2, 1)
-    prints(craft_time, x + w - 3 - cw, y + 7 + (#recipe.ingredients*11) + 2, 0, 5)
-  else
-    prints('Uncraftable', x + 3, y + 10, 0, 2)
+    sspr(CRAFTER_TIME_ID, x + 5, y + start_y, 1)
+    prints((item.recipe.crafting_time/60) .. 's', x + 12, y + start_y, 0, 5)
+    start_y = start_y + 8
   end
-
-  if info then
-    if recipe then
-      y = y + 15 + (#recipe.ingredients * 10) + 1
-    else
-      y = y + 18
+  if item.info then
+    for k, v in ipairs(lines) do
+      prints(v, x + 5, y + start_y, 0, 11)
+      start_y = start_y + 8
     end
-    for k, v in ipairs(info) do
-      prints(v, x + 3, y + ((k-1)*7), 0, 11)
-    end
+    --draw_lines
   end
-
 end
+
+function draw_recipe_widget(x, y, id)
+  current_recipe = {x = x, y = y, id = id}
+end
+
+-- function draw_recipe_widget(x, y, id)
+--   local w, h
+--   local item = ITEMS[id]
+--   local recipe = item.recipe
+--   local name = item.fancy_name
+--   w = math.max(text_width(name) + 6, 75)
+--   h = 13
+  
+--   if recipe then
+--     h = h + (#recipe.ingredients * 11) + 5
+--     for k, v in ipairs(recipe.ingredients) do
+--       local width = text_width(ITEMS[v.id].fancy_name) + 17
+--       if width > w then w = width end
+--     end
+--   else
+--     h = h + 11
+--   end
+  
+--   local info = item.info and text_wrap(item.info, w - 6) or false
+--   if info then
+--     h = h + (#info * 7)
+--   end
+
+--   local x, y = clamp(x, 1, 240 - w - 2), clamp(y, 1, 136 - h - 2)
+--   ui.draw_panel(x, y, w, h, UI_BG, UI_FG, name, UI_SHADOW)
+
+--   if recipe then
+--     for k, v in ipairs(recipe.ingredients) do
+--       prints(ITEMS[v.id].fancy_name, x + 3, y + 10 + ((k-1)*11), 0, 4)
+--       draw_item_stack(x + w - 13, y + 10 + ((k-1)*9), v, true)
+--     end
+--     local craft_time = item.recipe.crafting_time/60 .. 's'
+--     local sw = text_width('x ' .. item.recipe.count .. ' -')
+--     local cw = text_width(craft_time)
+--     prints('x ' .. item.recipe.count .. ' -', x + 3, y + 7 + (#recipe.ingredients*11) + 2, 0, 4)
+--     sspr(CRAFTER_TIME_ID, x + w - 2 - cw - 10, y + 7 + (#recipe.ingredients*11) + 2, 1)
+--     prints(craft_time, x + w - 3 - cw, y + 7 + (#recipe.ingredients*11) + 2, 0, 5)
+--   else
+--     prints('Uncraftable', x + 3, y + 10, 0, 2)
+--   end
+
+--   if info then
+--     if recipe then
+--       y = y + 15 + (#recipe.ingredients * 10) + 1
+--     else
+--       y = y + 18
+--     end
+--     for k, v in ipairs(info) do
+--       prints(v, x + 3, y + ((k-1)*7), 0, 11)
+--     end
+--   end
+
+-- end
 
 function draw_item_stack(x, y, stack, show_cnt)
   show_cnt = show_cnt or show_count
-  --trace('stack count: ' .. stack.count .. ' Stack ID: ' .. stack.id)
-  x, y = clamp(x, 1, 232), clamp(y, 1, 127)
+  --x, y = clamp(x, 1, 232), clamp(y, 1, 127)
   sspr(ITEMS[stack.id].sprite_id, x, y, ITEMS[stack.id].color_key)
   if show_cnt then
-    local sx, sy = x + 2, y + 4
     local count = stack.count < 100 and stack.count or floor(stack.count/100) .. 'H'
+    local sx, sy = x + 9 - text_width(count), y + 4
     prints(count, sx, sy)
   end
 end
@@ -775,13 +854,8 @@ function draw_recipe_widgetOLD(x, y, id)
     local str_w2 = text_width(item.name)
     if str_w2 > w then w = str_w2 + 8 end
     if cw > w then w = cw + 8 end
-    --local sx, sy = x - w/2, y + 8
     local sx, sy = clamp(x, 1, 240 - (w + 2)), clamp(y, 1, 136 - (h+2))
     ui.draw_panel(sx, sy, w, h + 1, 8, 9, item.fancy_name, 0)
-    --box(sx, sy, w, h, 8, 9)
-    --rect(sx + 1, sy + 1, w - 2, 8, 9)
-    --prints(item.fancy_name, sx + 3, sy + 2, 0, 4)
-    --line(sx + 1, sy + 8, sx + w - 2, sy + 8, 9)
     local i = 0
     if item.recipe.ingredients then
       for k, v in ipairs(item.recipe.ingredients) do
@@ -800,12 +874,6 @@ function draw_recipe_widgetOLD(x, y, id)
       for k, v in ipairs(text) do
         prints(v, sx + 3, sy + 17 + ((k-1) * 7), 0, 11)
       end
-      --trace('found item info')
-      -- for i = 1, #item.info do
-      --   --local str_w = text_width(item.info[i])
-        
-      --   prints(item.info[i], sx + 3, sy + 10 + ((i-1) * 7))
-      -- end
     end
   else
     --w = print(item.fancy_name, 0, -10, 1, false, 1, true) + 6
@@ -931,58 +999,6 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
     ck
   )
 end
-
--- function rspr(id, x, y, rot, tw, th, w, h, ck, page)
---   -- Convert rotation angle from degrees to radians
---   local rotationRadians = -math.rad(rot) -- negating the angle to make the rotation clockwise
-
---   -- Center of the sprite
---   local cx, cy = x + w / 2, y + h / 2
-
---   -- Size of the sprite in the sprite data
---   local sw, sh = tw * 8, th * 8
-
---   -- Iterate through the screen positions where we want to draw the sprite
---   for sy = y, y + h - 1 do
---       for sx = x, x + w - 1 do
---           -- Translate screen coordinates to origin
---           local ox, oy = sx - cx, sy - cy
-
---           -- Rotate the screen coordinate
---           local rx = ox * math.cos(rotationRadians) - oy * math.sin(rotationRadians)
---           local ry = ox * math.sin(rotationRadians) + oy * math.cos(rotationRadians)
-
---           -- Translate back
---           local finalX, finalY = rx + cx, ry + cy
-
---           -- Map to sprite UV
---           local su = math.floor((finalX - x) / w * sw)
---           local sv = math.floor((finalY - y) / h * sh)
-
---           -- Check if the UV is within sprite range
---           if su >= 0 and su < sw and sv >= 0 and sv < sh then
---               -- Get the pixel from the sprite data
---               local pixelIndex = sv * sw + su + 1
---               local pixel = sprites[page][id][pixelIndex]
-
---               -- Skip if it's a color key
---               if pixel and (type(ck) == "table" and not ck[pixel] or pixel ~= ck) then
---                   -- Calculate VRAM address
---                   local addr = 0x0000 + math.floor(sy * 240 + sx) // 2
-
---                   -- Write pixel to VRAM
---                   local cur = peek(addr) or 0
---                   if sx % 2 == 0 then
---                       cur = (cur & 0x0F) | (pixel << 4)
---                   else
---                       cur = (cur & 0xF0) | pixel
---                   end
---                   poke(addr, cur)
---               end
---           end
---       end
---   end
--- end
 
 function rspr(id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot)
   colorkey = colorkey or -1
@@ -1110,18 +1126,10 @@ function ui.draw_text_button(x, y, id, width, height, main_color, shadow_color, 
     p = {BTN_SHADOW, hover_color, BTN_MAIN, hover_color, BTN_PRESS, hover_color}
     ck = {1, BTN_PRESS}
   end
-
-  if not main_color == BTN_MAIN and not shadow == BTN_SHADOW and not hover_color == BTN_HOVER then
-  else
-  end
-
-
   local lines = {
     [1] = {x1 =  x, y1 = y + height, x2 =  x + width, y2 = y + height},
     [2] = {x1 =  x, y1 = y, x2 =  x + width, y2 = y}
   }
-  --trace('filling mesh')
-  --mesh_fill(lines, id, ck)
   if label and width > 8 then
     if hov and not cursor.l then
       rect(x + 4, y, width - 8, height - 1, hover_color)
@@ -1138,11 +1146,9 @@ function ui.draw_text_button(x, y, id, width, height, main_color, shadow_color, 
   spr(id, x, y, ck, 1, 0)
   spr(id, x + width - 8, y, ck, 1, 1)
   pal()
-
   if label then
     prints(label.text, x + label.x, y + label.y, label.bg, label.fg, label.shadow)
   end
-
   if hov and cursor.l and not cursor.ll then return true end
   return false
 end
@@ -1189,11 +1195,11 @@ end
 
 function draw_tile_widget()
   local x, y = cursor.x, cursor.y
-  local sx, sy = get_screen_cell(x, y)
-  local tile, wx, wy = get_world_cell(x, y)
-  if inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) or (ui.active_window and ui.active_window:is_hovered(x,y)) then
+  if show_tech or inv:is_hovered(x, y) or craft_menu:is_hovered(x, y) or (ui.active_window and ui.active_window:is_hovered(x,y)) then
     return
   end
+  local sx, sy = get_screen_cell(x, y)
+  local tile, wx, wy = get_world_cell(x, y)
   local k = get_key(x, y)
   local tile_type = tile.ore and ores[tile.ore].name .. ' Ore' or tile.is_land and 'Land' or 'Water'
   local biome = tile.is_land and biomes[tile.biome].name or 'Ocean'
@@ -1248,9 +1254,6 @@ function draw_research_screen()
   for k, v in ipairs(FINISHED_TECH) do
     if v then table.insert(F_TECH, k) end
   end
-  -- for k, v in ipairs(TECH) do
-  --   if AVAILABLE_TECH[k] then table.insert(AVAILABLE_TECH, v) end
-  -- end
   local sw = print('Technology Tree',0,-10,0,false,1,true)
   local name = (current_tab and TECH[AVAILABLE_TECH[selected_research]] and TECH[AVAILABLE_TECH[selected_research]].name) or (not current_tab and TECH[F_TECH[selected_research]] and TECH[F_TECH[selected_research]].name or 'Select-a-Tech')
   local rw = print(name,0,-10,0,false,1,true)
@@ -1284,9 +1287,6 @@ function draw_research_screen()
   --research queue grid
   ui.draw_grid(lpw + 6, 8, 1, 7, UI_BG, UI_FG, 17, false)
   --queue item icons
-  -- for i = 1, 7 do
-  --   tspr(392, 3, 3, lpw + 7 + ((i-1)*17), 8, 0, 16, 16)
-  -- end
 
   --------------TECH TREE------------------------------
   rectr(lpw + 2, 36, 135, 98, UI_BG, UI_FG, false)
@@ -1295,12 +1295,11 @@ function draw_research_screen()
   if current_tab and selected_research then
     --research progress bar
     if not TECH[AVAILABLE_TECH[selected_research]].completed then
-      local progress = TECH[AVAILABLE_TECH[selected_research]].progress --TECH[AVAILABLE_TECH[selected_research]].science_packs[1].count
+      local progress = TECH[AVAILABLE_TECH[selected_research]].progress
       ui.progress_bar(progress, 29, 10, 69, 5, 0, UI_FG, 6, 2)
     else
       prints('Finished', 29, 10)
-    end
-    
+    end    
     --start/pause research button
     if current_research == selected_research then
       if ui.draw_button(lpw - 11, lph - 15, 0, UI_PAUSE, 12, 0, 4) then
@@ -1335,11 +1334,7 @@ function draw_research_screen()
   for y = 0, 2 do
     for x = 0, 3 do
       local index = i + ((current_page - 1) * 12)
-      --rect(2 + x*25, lph + 3 + y*25, 24, 24, 2)
       local final_index = current_tab and AVAILABLE_TECH[index] or not current_tab and F_TECH[index]
-      -- if F_TECH[i] then
-      --   trace('found FINISHED_TECH - ' .. tostring(F_TECH[i]))
-      -- end
       if final_index then
         draw_research_icon(final_index, 2+x*25, lph+3+y*25)
         if current_tab and AVAILABLE_TECH[final_index] and final_index == current_research then
@@ -1396,9 +1391,6 @@ function draw_research_screen()
     --draw tech tree
     prints('tech tree', 120, 50, 0, 4)
   end
-  -- if current_research then
-  --   prints('tech tree', 120, 50, 0, 4)
-  -- end
 end
 
 function update_research_progress()
@@ -1437,17 +1429,14 @@ function update_research_progress()
               sound('tech_add')
               local txt = '+ ' .. TECH[k].name .. ' research unlocked!'
               ui.new_alert(120 - text_width(txt)/2, 76, txt, 2500, 0, 5)
-              --trace('tech requirements met! adding : ' .. TECH[k].name)
               table.insert(AVAILABLE_TECH, k)
               break
             end
           end
         end
       end
-      --current_research = false
-      --selected_research = false
+      return true
     end
-    return true
   end
   return false
 end
@@ -1469,7 +1458,7 @@ function draw_image(x, y, width, height, pixel_data, color_key)
 end
 
 function draw_logo()
-  draw_image(2, 48, 235, 41, logo, 1)
+  draw_image(0, 48, 240, 46, logo, 1)
 end
 
 function ui.draw_menu()
@@ -1495,10 +1484,12 @@ function ui.draw_menu()
     
     ui.draw_panel(0, 0, 240, 136, 8, 9, {text = 'Settings', bg = 15, fg = 4})
     if ui.draw_text_button(239 - ((text_width(' < ') + 4)), 1, UI_BUTTON2, _, 8, 2, 15, 3, {text = ' < ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
-      cls()
+      cls(0)
       STATE = 'start'
     end
   elseif STATE == 'help' then
+    --vbank(0)
+    --cls(0)
     local info = {
       {'W A S D', 'Move player'},
       {'ESC', 'Exit game'},
@@ -1517,11 +1508,17 @@ function ui.draw_menu()
       prints(info[i][2], 3, 10 + ((i-1) * 7), 15, 4)
       prints(info[i][1], 150, 10 + ((i-1) * 7), 15, 11, _, true)
     end
-    if ui.draw_text_button(239 - ((text_width(' < ') + 4)), 1, UI_BUTTON2, _, 8, 2, 15, 3, {text = ' < ', x = 1, y = 1, bg = 0, fg = 4, shadow = {x = 1, y = 0}}) then
+    --ui.draw_button(x, y, flip, id, color, shadow_color, hover_color)
+    if ui.draw_button(240 - 12, 1, 1, UI_BUTTON, 2, 8, 3) then
       cls()
       STATE = 'start'
       return
     end
+    -- if ui.draw_text_button(239 - ((text_width(' < ') + 4)), 1, UI_BUTTON2, _, 8, 2, 15, 3, {text = ' < ', x = 1, y = 1, bg = 0, fg = 4, shadow = {x = 1, y = 0}}) then
+    --   cls()
+    --   STATE = 'start'
+    --   return
+    -- end
     --ui.draw_panel(0, 0, 240, 136, 8, 9)
     
   end

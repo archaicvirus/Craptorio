@@ -67,7 +67,7 @@ callbacks = {
       if not ENTS[k] then return end
       if ENTS[k] and ENTS[k].type == 'transport_belt' then
         sound('delete')
-        ENTS[k]:return_all()
+        --ENTS[k]:return_all()
         ENTS[k] = nil
       end
       local tiles = {
@@ -149,15 +149,21 @@ callbacks = {
       local tile, wx, wy = get_world_cell(x, y)
       wx, wy = wx + loc.x, wy + loc.y
       local tile2, cell_x, cell_y = get_world_cell(x, y)
+      local sx, sy = get_screen_cell(x, y)
       local key1 = get_key(x, y)
       local key2 = wx .. '-' .. wy
-      local x, y, w, h, col1, col2 = cursor.tx-2, cursor.ty-1, 16, 8, 5, 7
+      local x, y, w, h, col1, col2 = sx-1, sy-1, 16, 8, 5, 7
+      local ox, oy = 0, 8
       if cursor.rot == 0 or cursor.rot == 2 then
         w, h = h, w
+      else
+        ox, oy = 8, 0
       end
       if ENTS[key1] or ENTS[key2] then col1, col2 = 2, 2 end
       ui.highlight(x, y, w, h, false, col1, col2)
-      sspr(SPLITTER_ID, cursor.tx, cursor.ty, 0, 1, 0, cursor.rot, 1, 2)
+      sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, -1, 1, 0, cursor.rot)
+      sspr(BELT_ID_STRAIGHT + BELT_TICK, sx + ox, sy + oy, -1, 1, 0, cursor.rot)
+      sspr(SPLITTER_ID, sx, sy, 0, 1, 0, cursor.rot, 1, 2)
     end
   },
   ['inserter'] = {
@@ -187,6 +193,12 @@ callbacks = {
       local k = get_key(x, y)
       if not ENTS[k] then return end
       if ENTS[k] and ENTS[k].type == 'inserter' then
+        if ENTS[k].held_item_id > 0 then
+          if inv:add_item({id = ENTS[k].held_item_id, count = 1}) == true then
+            sound('deposit')
+            ui.new_alert(cursor.x, cursor.y, '+ ' .. 1 .. ' ' .. ITEMS[ENTS[k].held_item_id].fancy_name, 1000, 0, 6)
+          end
+        end
         ENTS[k] = nil
         sound('delete')
       end
@@ -280,7 +292,7 @@ callbacks = {
       end
     
       if not ENTS[k] then
-        local tile, wx, wy = get_world_cell(x, y)
+        --local tile, wx, wy = get_world_cell(x, y)
         sound('place_belt')
         --trace('creating drill @ ' .. key)
         ENTS[k] = new_drill({x = wx, y = wy}, cursor.rot, field_keys)
@@ -304,6 +316,7 @@ callbacks = {
         k = ENTS[k].other_key
       end
       if ENTS[k] then
+        --ENTS[k]:return_all()
         local wx, wy = ENTS[k].pos.x, ENTS[k].pos.y
         ENTS[k] = nil
         ENTS[wx + 1 .. '-' .. wy] = nil
@@ -325,12 +338,12 @@ callbacks = {
         end
       end
       
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx - 1, cursor.ty - 1, color_keys[1], 1, 0, 0, 1, 1)
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx + 9, cursor.ty - 1, color_keys[2], 1, 0, 1, 1, 1)
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx + 9, cursor.ty + 9, color_keys[3], 1, 0, 2, 1, 1)
-      sspr(CURSOR_HIGHLIGHT_CORNER, cursor.tx - 1, cursor.ty + 9, color_keys[4], 1, 0, 3, 1, 1)
       local sx, sy = get_screen_cell(x, y)
       local belt_pos = DRILL_MINI_BELT_MAP[cursor.rot]
+      sspr(CURSOR_HIGHLIGHT_CORNER, sx - 1, sy - 1, color_keys[1], 1, 0, 0, 1, 1)
+      sspr(CURSOR_HIGHLIGHT_CORNER, sx + 9, sy - 1, color_keys[2], 1, 0, 1, 1, 1)
+      sspr(CURSOR_HIGHLIGHT_CORNER, sx + 9, sy + 9, color_keys[3], 1, 0, 2, 1, 1)
+      sspr(CURSOR_HIGHLIGHT_CORNER, sx - 1, sy + 9, color_keys[4], 1, 0, 3, 1, 1)
       sspr(DRILL_BIT_ID, sx + 0 + (DRILL_BIT_TICK), sy + 5, 0, 1, 0, 0, 1, 1)
       sspr(DRILL_BURNER_SPRITE_ID, sx, sy, 0, 1, 0, 0, 2, 2)
       sspr(DRILL_MINI_BELT_ID + DRILL_ANIM_TICK, sx + belt_pos.x, sy + belt_pos.y, 0, 1, 0, cursor.rot, 1, 1)
@@ -338,6 +351,7 @@ callbacks = {
   },
   ['stone_furnace'] = {
     place_item = function(x, y)
+      local k = get_key(x, y)
       local tile, wx, wy = get_world_cell(x, y)
       if not tile.is_land then
         sound('deny')
@@ -348,7 +362,7 @@ callbacks = {
       local key3 = get_key(x + 8, y + 8)
       local key4 = get_key(x, y + 8)
       if not ENTS[key1] and not ENTS[key2] and not ENTS[key3] and not ENTS[key4] then
-        local wx, wy = screen_to_world(x, y)
+        --local wx, wy = screen_to_world(x, y)
         ENTS[key1] = new_furnace(wx, wy, {key2, key3, key4})
         ENTS[key2] = {type = 'dummy_furnace', other_key = key1}
         ENTS[key3] = {type = 'dummy_furnace', other_key = key1}
@@ -361,11 +375,9 @@ callbacks = {
       --add_furnace(x, y)
     end,
     remove_item = function(x, y)
-      local k = get_key(x, y)
+      local k = get_ent(x, y)
       if ENTS[k] then
-        if ENTS[k].type == 'dummy_furnace' then
-          k = ENTS[k].other_key
-        end
+        --ENTS[k]:return_all()
         for k, v in ipairs(ENTS[k].dummy_keys) do
           ENTS[v] = nil
         end
@@ -391,11 +403,30 @@ callbacks = {
         --found suitable connection
         --don't create a new ENT, use the found ubelt as the 'host', and update it with US as it's output
         if result then
-          ENTS[k] = {type = 'underground_belt_exit', flip = UBELT_ROT_MAP[cursor.rot].out_flip, rot = cursor.rot, x = wx, y = wy, other_key = other_key}
+          ENTS[k] = {
+            type = 'underground_belt_exit',
+            flip = UBELT_ROT_MAP[cursor.rot].out_flip,
+            rot = cursor.rot,
+            x = wx, y = wy,
+            other_key = other_key,
+            is_exit = true,
+            item_request = function(self, desired_item, inserter)
+              return ENTS[self.other_key]:item_request(desired_item, inserter, true)
+            end,
+            request_deposit = function(self)
+              return ENTS[self.other_key]:request_deposit()
+            end,
+            deposit = function(self, id, other_rot)
+              return ENTS[self.other_key]:deposit(id, other_rot, true)
+            end,
+          }
+          trace(#cells - 1)
           ENTS[other_key]:connect(wx, wy, #cells - 1)
+          ENTS[other_key]:update_neighbors_exit()
           sound('place_belt')
         else
           ENTS[k] = new_underground_belt(wx, wy, cursor.rot)
+          ENTS[k]:update_neighbors()
         end
         sound('place_belt')
         return true
@@ -406,17 +437,43 @@ callbacks = {
     end,
     remove_item = function(x, y)
       local k = get_ent(x, y)
-      if ENTS[k] then
-        --return underground items if any
+      if ENTS[k] and ENTS[k].type == 'underground_belt' then
+        --return underground items if any and
         --remove hidden belts, since we removed the head
-        --if ENTS[ENTS[k].other_key] then ENTS[ENTS[k].other_key] = nil end
-        if ENTS[k].type == 'underground_belt_exit' then
-          ENTS[ENTS[k].other_key] = nil
-          ENTS[k] = nil
-        else
-          ENTS[ENTS[k].exit_key] = nil
-          ENTS[k] = nil
+        ENTS[k]:return_all()
+
+        local exit = false
+        local start = {x = ENTS[k].x, y = ENTS[k].y}
+
+        if ENTS[ENTS[k].exit_key] then
+          --if we have an exit ubelt
+          exit = {x = ENTS[ENTS[k].exit_key].x, y = ENTS[ENTS[k].exit_key].y}
         end
+        ENTS[ENTS[k].exit_key] = nil
+        ENTS[k] = nil
+        
+        local function update(x, y)
+          local cell_x, cell_y = x, y
+          local tiles = {
+            [1] = {x = cell_x, y = cell_y - 1},
+            [2] = {x = cell_x + 1, y = cell_y},
+            [3] = {x = cell_x, y = cell_y + 1},
+            [4] = {x = cell_x - 1, y = cell_y}}
+          for i = 1, 4 do
+            local k = tiles[i].x .. '-' .. tiles[i].y
+            if ENTS[k] then
+              if ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
+              if ENTS[k].type == 'splitter' then ENTS[k]:set_output() end
+              if ENTS[k].type == 'dummy_splitter' then ENTS[ENTS[k].other_key]:set_output() end
+              if ENTS[k].type == 'underground_belt_exit' then ENTS[ENTS[k].other_key]:set_output() end
+              if ENTS[k].type == 'underground_belt' then ENTS[k]:set_output() end
+            end
+          end
+        end
+
+        if exit then update(exit.x, exit.y) end
+        update(start.x, start.y)
+
         sound('delete')
       end
     end,
@@ -427,16 +484,33 @@ callbacks = {
       -- trace('other_key: ' .. tostring(other_key))
       -- trace('cells: ' .. tostring(cells))
       if result then
-        local sx, sy = world_to_screen(ENTS[other_key].x, ENTS[other_key].y)
+        local sx, sy = cursor.tx, cursor.ty
         ui.highlight(sx - 2, sy - 1, 7, 7, false, 3, 4)
-        sspr(UBELT_OUT, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, UBELT_ROT_MAP[cursor.rot].out_flip, cursor.rot)
+        local c = UBELT_CLIP_OUT[cursor.rot]
+        --rect(sx+c.x,sy+c.y,c.w,c.h,2)
+        clip(sx+c.x,sy+c.y,c.w,c.h)
+        sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, 0, 1, 0, cursor.rot)
+        clip()
+        sspr(UBELT_OUT, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, UBELT_ROT_MAP[ENTS[other_key].rot].out_flip, cursor.rot)
+          --sspr(UBELT_OUT + UBELT_TICK, sx, sy, 0, 1, ent.flip, ent.rot)
+        
         --sspr(CURSOR_HIGHLIGHT, sx - 1, sy - 1, 0, 1, 0, 0, 2, 2)
         for i, cell in ipairs(cells) do
           ui.highlight(cell.x - 2, cell.y - 1, 7, 7, false, 3, 4)
           --sspr(CURSOR_HIGHLIGHT, cell.x - 1, cell.y - 1, 0, 1, 0, 0, 2, 2)
         end
       else
+
+
+        local c = UBELT_CLIP_IN[cursor.rot]
+        local sx, sy = cursor.tx, cursor.ty
+        rect(sx+c.x,sy+c.y,c.w,c.h,2)
+        clip(sx+c.x,sy+c.y,c.w,c.h)
+        sspr(BELT_ID_STRAIGHT + BELT_TICK, sx, sy, 0, 1, 0, cursor.rot)
+        clip()
         sspr(UBELT_IN, cursor.tx, cursor.ty, ITEMS[18].color_key, 1, flip, cursor.rot)
+
+
       end
       ui.highlight(cursor.tx - 2, cursor.ty - 1, 7, 7, false, 3, 4)
       --sspr(CURSOR_HIGHLIGHT, cursor.tx - 1, cursor.ty - 1, 0, 1, 0, 0, 2, 2)
@@ -482,6 +556,7 @@ callbacks = {
         wx, wy = ENTS[k].x, ENTS[k].y
       end
       if ENTS[k] and ENTS[k].type == 'assembly_machine' then
+        --ENTS[k]:return_all()
         for i = 0, 2 do
           for j = 0, 2 do
             ENTS[wx + j .. '-' .. i + wy] = nil
@@ -568,7 +643,7 @@ callbacks = {
       local tile, wx, wy = get_world_cell(x, y)
       local k = wx .. '-' .. wy
       if ENTS[k] then
-        ENTS[k]:return_all()
+        --ENTS[k]:return_all()
         ENTS[k] = nil
         sound('delete')
         return true
@@ -599,12 +674,18 @@ callbacks = {
           end
         end
         --else place dummy ents to reserve 3x3 tile area, and create the crafter
+        local dummy_keys = {}
         for i = 0, 2 do
           for j = 0, 2 do
-            ENTS[wx + j .. '-' .. i + wy] = {type = 'dummy_refinery', other_key = k}
+            if not (i == 0 and j == 0) then
+              local dk = wx + j .. '-' .. i + wy
+              table.insert(dummy_keys, dk)
+              ENTS[dk] = {type = 'dummy_refinery', other_key = k}
+            end
           end
         end
         ENTS[k] = new_refinery(wx, wy)
+        ENTS[k].dummy_keys = dummy_keys
         sound('place_belt')
         return true
       else
@@ -620,10 +701,8 @@ callbacks = {
         wx, wy = ENTS[k].x, ENTS[k].y
       end
       if ENTS[k] and ENTS[k].type == 'bio_refinery' then
-        for i = 0, 2 do
-          for j = 0, 2 do
-            ENTS[wx + j .. '-' .. i + wy] = nil
-          end
+        for k, v in ipairs(ENTS[k].dummy_keys) do
+          ENTS[v] = nil
         end
         ENTS[k] = nil
         sound('delete')
@@ -631,6 +710,72 @@ callbacks = {
     end,
     draw_item = function(x, y)
       sspr(REFINERY_ID, cursor.tx, cursor.ty, ITEMS[30].color_key, 1, 0, 0, 3, 3)
+    end
+  },
+  ['rocket_silo'] = {
+    place_item = function(x, y)
+      local tile, wx, wy = get_world_cell(x, y)
+      if not tile.is_land or tile.is_tree then
+        sound('deny')
+        return false
+      end
+      local k = wx .. '-' .. wy
+      if not ENTS[k] then
+        --check 4x4 area for ents
+        for i = 0, 3 do
+          for j = 0, 3 do
+            if ENTS[wx + j .. '-' .. i + wy] then 
+              sound('deny')
+              return false
+            end
+          end
+        end
+        --else place dummy ents to reserve 4x4 tile area, and create the silo
+        local dummy_keys = {}
+        for i = 0, 3 do
+          for j = 0, 3 do
+            if not (i == 0 and j == 0) then
+              local dk = wx + j .. '-' .. i + wy
+              table.insert(dummy_keys, dk)
+              ENTS[dk] = {type = 'dummy_silo', other_key = k}
+            end
+          end
+        end
+        ENTS[k] = new_silo(wx, wy)
+        ENTS[k].dummy_keys = dummy_keys
+        sound('place_belt')
+        return true
+      else
+        sound('deny')
+      end
+      return false
+    end,
+    remove_item = function(x, y)
+      local tile, wx, wy = get_world_cell(x, y)
+      local k = wx .. '-' .. wy
+      if ENTS[k].other_key then
+        k = ENTS[k].other_key
+        wx, wy = ENTS[k].x, ENTS[k].y
+      end
+      if ENTS[k] and ENTS[k].type == 'rocket_silo' then
+        for k, v in ipairs(ENTS[k].dummy_keys) do
+          ENTS[v] = nil
+        end
+        ENTS[k] = nil
+        sound('delete')
+      end
+    end,
+    draw_item = function()
+      local sx, sy = cursor.tx, cursor.ty
+      spr(ROCKET_SILO_ID, sx, sy, 1, 1, 0, 0, 2, 2)
+      spr(ROCKET_SILO_ID, sx + 16, sy, 1, 1, 1, 0, 2, 2)
+      spr(ROCKET_SILO_ID, sx + 16, sy + 16, 1, 1, 3, 0, 2, 2)
+      spr(ROCKET_SILO_ID, sx, sy + 16, 1, 1, 2, 0, 2, 2)
+      for y = 0, 1 do
+        for x = 0, 1 do
+          spr(370, sx + 8 + x*8, sy + 8 + y*8)
+        end
+      end
     end
   },
 }

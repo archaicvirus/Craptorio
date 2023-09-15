@@ -231,7 +231,7 @@ function Belt:draw_hover_widget()
   local x, y = clamp(sx + offset.x, 0, 240 - w - offset.x), clamp(sy + offset.y, 0, 136 - h - offset.y)
   ui.draw_panel(x, y, w, h, UI_BG, UI_FG, 'Transport Belt', 0)
   local b = {x = x + w/2 - 20, y = y + 13}
-  sspr(self.id + BELT_TICK, b.x, b.y, 1, 5, self.flip, self.sprite_rot)
+  sspr(self.id + BELT_TICK, b.x, b.y, 0, 5, self.flip, self.sprite_rot)
   local item_locations = BELT_CURVED_ITEM_MAP[self.output_item_key]
   local offsets = {
     [0] = {x = 0, y = 5},
@@ -252,7 +252,7 @@ function Belt:draw_hover_widget()
   end
 end
 
-function Belt.get_info(self)
+function Belt:get_info()
   local info = {
     [1] = 'ROT: ' .. self.rot,
     [2] = 'SID: ' .. self.id,
@@ -281,7 +281,7 @@ function Belt.get_info(self)
   return info
 end
 
-function Belt.rotate(self, rotation)
+function Belt:rotate(rotation)
   --self.exit = BELT_ROTATION_MAP[rotation]
   if rotation > 3 then rotation = 0 end
   self.rot = rotation
@@ -291,7 +291,7 @@ function Belt.rotate(self, rotation)
   --self:update_neighbors()
 end
 
-function Belt.is_facing(self, other)
+function Belt:is_facing(other)
   if ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' and ENTS[self.output_key] == other then return true end
   local exit = BELT_ROTATION_MAP[other.rot]
   local k = get_world_key(other.pos.x + exit.x, other.pos.y + exit.y)
@@ -299,23 +299,27 @@ function Belt.is_facing(self, other)
   return false
 end
 
-function Belt.set_output(self)
+function Belt:set_output()
   self.exit = BELT_ROTATION_MAP[self.rot]
   local k = self.pos.x + self.exit.x .. '-' .. self.pos.y + self.exit.y
   self.output_key = k
   local ent = ENTS[self.output_key]
   if ent then
 
-    if ent.type == 'dummy_splitter' or ent.type == 'underground_belt_exit' then
+    if ent.type == 'dummy_splitter' then
       self.output_key = ent.other_key
       ent = ENTS[self.output_key]
     end
 
     if ent.type == 'transport_belt'
     or ent.type == 'splitter' and ENTS[k].rot == self.rot
-    or ent.type == 'underground_belt' then
-
-      self.output = ((ent.type == 'transport_belt' and ent.id == BELT_ID_CURVED) and BELT_OUTPUT_MAP[self.rot .. self.rot]) or BELT_OUTPUT_MAP[self.rot .. ent.rot]
+    or ent.type == 'underground_belt'
+    or ent.type == 'underground_belt_exit' then
+      if (ent.type == 'transport_belt' and ent.id == BELT_ID_CURVED) then
+        self.output = BELT_OUTPUT_MAP[self.rot .. self.rot]
+      else
+        self.output = BELT_OUTPUT_MAP[self.rot .. ent.rot]
+      end
 
     else
       self.output = nil
@@ -388,7 +392,7 @@ function Belt:request_item_inserter(needs)
   return false
 end
 
-function Belt.update_neighbors(self, k)
+function Belt:update_neighbors(k)
   local cell_x, cell_y = self.pos.x, self.pos.y
   local tiles = {
     [1] = {x = cell_x, y = cell_y - 1},
@@ -397,7 +401,7 @@ function Belt.update_neighbors(self, k)
     [4] = {x = cell_x - 1, y = cell_y}}
   for i = 1, 4 do
     local k = tiles[i].x .. '-' .. tiles[i].y
-    if ENTS[k] or (ENTS[k] and ENTS[k] ~= self) then
+    if ENTS[k] then
       if ENTS[k].type == 'transport_belt' then ENTS[k]:set_curved() end
       if ENTS[k].type == 'splitter' then ENTS[k]:set_output() end
       if ENTS[k].type == 'dummy_splitter' then ENTS[ENTS[k].other_key]:set_output() end
@@ -411,10 +415,14 @@ end
 function Belt:item_request(id)
   for i = 1, 2 do
     for j = 8, 1, -1 do
-      if self.lanes[i][j] == id or (self.lanes[i][j] ~= 0 and id == 'any') then
-        local item = self.lanes[i][j]
-        self.lanes[i][j] = 0
-        return item
+      if self.lanes[i][j] ~= 0 then
+        if self.lanes[i][j] == id or id == 'any' or
+        (id == 'ore' and ITEMS[self.lanes[i][j]].type == 'ore') or
+        (id == 'fuel' and ITEMS[self.lanes[i][j]].type == 'fuel') then
+          local id = self.lanes[i][j]
+          self.lanes[i][j] = 0
+          return id
+        end
       end
     end
   end
@@ -439,6 +447,7 @@ end
 function Belt.set_curved(self)
   local ents = {['underground_belt_exit'] = true, ['transport_belt'] = true, ['splitter'] = true, ['dummy_splitter'] = true}
   if not self.curve_checked then
+    --trace('setting curved')
     self.curve_checked = true
     --checks left, right, and rear tiles (relative to ENTS rotation) for other ENTS
     --ENTS only curve if loc2 (rear input) is not facing me, loc1 XOR loc3, else belt is straight
@@ -455,7 +464,7 @@ function Belt.set_curved(self)
     --curve left if no belt/splitter to the right facing me AND  >
     --splitter/belt on left facing me
     ------------------------------------------------------------------------------------------
-      if not ENTS[rear] or (not ents[ENTS[rear].type] or ENTS[rear].rot ~= self.rot) then
+      if not ENTS[rear] or ENTS[rear].rot ~= self.rot then
         --can curve left or right now, since no REAR connection preventing snapping
         --------------------------------------------------------------------------------------
         if ENTS[left]
@@ -619,7 +628,11 @@ function Belt.draw_items(self)
     for i = 1, 2 do
       local lane = self.lanes[i]
       for j = 1, 8 do
-        if lane[j] > 0 then sspr(ITEMS[lane[j]].belt_id, item_locations[j][i].x + self.screen_pos.x, item_locations[j][i].y + self.screen_pos.y, ITEMS[lane[j]].color_key) end
+        local item = ITEMS[self.lanes[i][j]]
+        local sx, sy = world_to_screen(self.pos.x, self.pos.y)
+        if item then
+          sspr(item.belt_id, item_locations[j][i].x + sx, item_locations[j][i].y + sy, item.color_key)
+        end
       end
     end
   end
@@ -633,7 +646,7 @@ function Belt:return_all()
   local item_stacks = {}
   for i = 1, 2 do
     for j = 1, 8 do
-      if self.lanes[i][j] ~= 0 then
+      if self.lanes[i][j] > 0 then
         local id = self.lanes[i][j]
         if not item_stacks[id] then item_stacks[id] = 0 end
         item_stacks[id] = item_stacks[id] + 1

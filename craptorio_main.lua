@@ -31,6 +31,7 @@ require('classes/research_definitions')
 require('classes/solar_panel')
 require('classes/storage_chest')
 require('classes/refinery')
+require('classes/rocket_silo')
 
 local seed = tstamp() * time()
 --seed = math.random(-1000000000, 1000000000)
@@ -47,6 +48,7 @@ biome = 1
 db_time = 0.0
 last_frame_time = time()
 STATE = 'start'
+current_recipe = {x = 0, y = 0, id = 0}
 --image = require('\\assets\\fullscreen_images')
 --------------------COUNTERS--------------------------
 TICK = 0
@@ -126,6 +128,7 @@ dummies = {
   ['dummy_lab'] = true,
   ['dummy_splitter'] = true,
   ['dummy_refinery'] = true,
+  ['dummy_silo'] = true,
 }
 
 opensies = {
@@ -135,26 +138,41 @@ opensies = {
   ['chest'] = true,
   ['mining_drill'] = true,
   ['bio_refinery'] = true,
+  ['rocket_silo'] = true,
 }
 
 inv = make_inventory()
-inv.slots[1].id  = 33 inv.slots[1].count  = ITEMS[33].stack_size
-inv.slots[2].id  = 18 inv.slots[2].count  = ITEMS[18].stack_size
-inv.slots[3].id  = 23 inv.slots[3].count  = ITEMS[23].stack_size
-inv.slots[4].id  = 24 inv.slots[4].count  = ITEMS[24].stack_size
-inv.slots[5].id  = 25 inv.slots[5].count  = ITEMS[25].stack_size
-inv.slots[6].id  = 26 inv.slots[6].count  = ITEMS[26].stack_size
-inv.slots[7].id  =  6 inv.slots[7].count  = ITEMS[6].stack_size
-inv.slots[8].id  =  8 inv.slots[8].count  = ITEMS[8].stack_size
-inv.slots[9].id  = 32 inv.slots[9].count  = ITEMS[32].stack_size
-inv.slots[57].id = 9  inv.slots[57].count = ITEMS[9].stack_size
-inv.slots[58].id = 10 inv.slots[58].count = ITEMS[10].stack_size
-inv.slots[59].id = 11 inv.slots[59].count = ITEMS[11].stack_size
-inv.slots[60].id = 13 inv.slots[60].count = ITEMS[12].stack_size
-inv.slots[61].id = 14 inv.slots[61].count = ITEMS[13].stack_size
-inv.slots[62].id = 22 inv.slots[62].count = ITEMS[22].stack_size
-inv.slots[63].id = 19 inv.slots[63].count = ITEMS[19].stack_size
-inv.slots[64].id = 30 inv.slots[64].count = ITEMS[30].stack_size
+local starting_items = {
+  {id = 33, slot =  1},
+  {id = 10, slot =  2},
+  {id = 23, slot =  3},
+  {id = 24, slot =  4},
+  {id = 25, slot =  5},
+  {id = 26, slot =  6},
+  {id =  6, slot =  7},
+  {id =  8, slot =  8},
+  {id = 32, slot =  9},
+  {id = 20, slot = 10},
+  {id = 15, slot = 11},
+  {id = 14, slot = 12},
+  {id = 40, slot = 13},
+  {id = 41, slot = 14},
+  {id = 42, slot = 15},
+  {id = 43, slot = 16},
+  {id =  9, slot = 57},
+  {id = 18, slot = 58},
+  {id = 11, slot = 59},
+  {id = 13, slot = 60},
+  {id = 14, slot = 61},
+  {id = 22, slot = 62},
+  {id = 19, slot = 63},
+  {id = 30, slot = 64},
+}
+for k,v in ipairs(starting_items) do
+  inv.slots[v.slot].id = v.id
+  inv.slots[v.slot].count = ITEMS[v.id].stack_size
+end
+
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
 show_mini_map = false
@@ -230,9 +248,9 @@ function BOOT()
   -- local tile, _, _ = get_world_cell(player.x, player.y)
   -- biome = tile.biome
   cls(0)
-  poke(0x3FF8, 0)
-  draw_image(0,0,240,136,cover,-1)
-  vbank(1)
+  --poke(0x3FF8, 0)
+  --draw_image(0,0,240,136,cover,-1)
+  --vbank(1)
   --poke(0x3FF8, 1)
   --cls(0)
    --poke(0x03FF8, 0)
@@ -406,6 +424,7 @@ function get_visible_ents()
     ['research_lab'] = {},
     ['chest'] = {},
     ['bio_refinery'] = {},
+    ['rocket_silo'] = {},
   }
   for x = 1, 31 do
     for y = 1, 18 do
@@ -747,7 +766,9 @@ function draw_cursor()
     if callbacks[cursor.item] then
       callbacks[cursor.item].draw_item(x, y)
     else
-      draw_item_stack(cursor.x + 5, cursor.y + 5, cursor.item_stack)
+      local y = 5
+      if ent and key(64) then y = -8 end
+      draw_item_stack(cursor.x + 5, cursor.y + y, cursor.item_stack)
     end
   end
 
@@ -839,9 +860,10 @@ function remove_tile(x, y)
     if ENTS[k].type == 'underground_belt' and ENTS[k].exit_key then
       stack.count = 2
     end
+    if ENTS[k].return_all then ENTS[k]:return_all() end
     callbacks[ENTS[k].type].remove_item(x, y)
     --trace('adding item_id: ' .. tostring(stack.id) .. ' to inventory')
-    ui.new_alert(cursor.x, cursor.y, '+ ' .. stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1000, 0, 6)
+    ui.new_alert(cursor.x, cursor.y, '+ ' .. stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1500, 0, 4)
     inv:add_item(stack)
     return
   end
@@ -1080,6 +1102,7 @@ function dispatch_input()
 
   local tile, wx, wy = get_world_cell(cursor.x, cursor.y)
   local k = get_ent(cursor.x, cursor.y)
+  if ENTS[k] then ENTS[k].is_hovered = true end
   if cursor.sy ~= 0 then cycle_hotbar(cursor.sy*-1) end
   if not cursor.l then
     cursor.panel_drag = false
@@ -1088,7 +1111,7 @@ function dispatch_input()
   
   --begin mouse-over priority dispatch
   if ui.active_window and ui.active_window:is_hovered(cursor.x, cursor.y) then
-    if cursor.l and not cursor.ll then
+    if (cursor.l and not cursor.ll) or (cursor.r and not cursor.lr) then
       if ui.active_window:click(cursor.x, cursor.y) then
         --trace('clicked active window')
       end
@@ -1133,21 +1156,31 @@ function dispatch_input()
     local item = ITEMS[cursor.item_stack.id]
     local count = cursor.item_stack.count
     --check for ents to deposit item stack
-    if key(63) and ENTS[k] and ENTS[k].type == 'chest' then --TODO
-      if cursor.l then
-        local result, stack = ENTS[k]:deposit_stack(cursor.item_stack)
-        if not result then
-          cursor.item_stack.count = stack.count
-        else
-          cursor.item_stack.count = 0
-          cursor.item_stack.id = 0
-          cursor.item_stack.slot = false
-          cursor.type = 'pointer'
+    if key(63) and ENTS[k] and ENTS[k].deposit_stack then --TODO
+      if cursor.r and not cursor.lr then
+        local result, stack = ENTS[k]:deposit_stack({id = cursor.item_stack.id, count = 1})
+        if result then
+          cursor.item_stack.count = cursor.item_stack.count - 1
+          ui.new_alert(cursor.x, cursor.y, '-1 ' .. ITEMS[cursor.item_stack.id].fancy_name, 1000, 0, 6)
+          sound('deposit')
+          if cursor.item_stack.count < 1 then
+            set_cursor_item()
+          end
         end
-      elseif cursor.r then
-        --remove_tile(cursor.x, cursor.y)
-        --return
+      elseif cursor.l and not cursor.ll then
+        local result, stack = ENTS[k]:deposit_stack(cursor.item_stack)
+        local old_stack = {id = cursor.item_stack.id, count = cursor.item_stack.count}
+        if stack.count == 0 then
+          ui.new_alert(cursor.x, cursor.y, -old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 6)
+          sound('deposit')
+          set_cursor_item()
+        else
+          ui.new_alert(cursor.x, cursor.y, '- ' .. (old_stack.count - stack.count) .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 6)
+          sound('deposit')
+          cursor.item_stack.count = stack.count
+        end
       end
+      return
       --if item is placeable, run callback for item type
       --checking transport_belt's first (for drag-placement), then other items
     else
@@ -1169,7 +1202,7 @@ function dispatch_input()
           inv.slots[slot].count = 0
           set_cursor_item()
         end
-        --return
+        return
       elseif cursor.l and not cursor.ll and ITEMS[cursor.item_stack.id].type == 'placeable' then
         if callbacks[cursor.item] then
           local item_consumed = callbacks[cursor.item].place_item(cursor.x, cursor.y)
@@ -1191,11 +1224,11 @@ function dispatch_input()
         return
       elseif cursor.r then
         --remove_tile(cursor.x, cursor.y)
-        --return
+        return
       end
     end
   elseif cursor.type == 'pointer' then
-    if cursor.l and key(63) and ENTS[k] and ENTS[k].type == 'chest' then
+    if cursor.l and not cursor.ll and key(63) and ENTS[k] and ENTS[k].return_all then
       --try to take all items
       ENTS[k]:return_all()
       return
@@ -1254,7 +1287,7 @@ function dispatch_input()
   end
 
     --check for held item placement/deposit to other ents
-  if ENTS[k] then ENTS[k].is_hovered = true end
+--  if ENTS[k] then ENTS[k].is_hovered = true end
   if cursor.l and not cursor.ll and not craft_menu:is_hovered(cursor.x, cursor.y) and inv:is_hovered(cursor.x, cursor.y) then
     local slot = inv:get_hovered_slot(cursor.x, cursor.y)
     if slot then
@@ -1327,9 +1360,10 @@ end
 function update_ents()
   if TICK % 5 == 0 then
     for k, v in pairs(ENTS) do
-      if vis_ents[v.type] then
-        v:update()
-      end
+      if v.update then v:update() end
+      -- if vis_ents[v.type] then
+      --   v:update()
+      -- end
     end
   end
 end
@@ -1367,6 +1401,9 @@ function draw_ents()
   for i, k in pairs(vis_ents['chest']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
+  for i, k in pairs(vis_ents['rocket_silo']) do
+    if ENTS[k] then ENTS[k]:draw() end
+  end
   for i, k in pairs(vis_ents['bio_refinery']) do
     if ENTS[k] then ENTS[k]:draw() end
   end
@@ -1393,6 +1430,7 @@ function TIC()
     load_sprites()
     return
   end
+  current_recipe = {x = 0, y = 0, id = 0}
   --change mouse cursor
   poke(0x3FFB, 286)
 
@@ -1545,6 +1583,9 @@ function TIC()
   if show_tech then draw_research_screen() end
   -- if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
   if show_tile_widget and not ENTS[k] then draw_tile_widget() end
+  if current_recipe.id > 0 then
+    show_recipe_widget()
+  end
   render_cursor_progress()
   ui.update_alerts()
   last_frame_time = time()
@@ -1584,43 +1625,44 @@ end
 -- 013:0000000000000055000005550000550500005555005555550505555505555555
 -- 014:0000000000000000000000000000000000000000005555000555555055555555
 -- 015:0505555005555550005555055055550000505500055555500055550505555550
--- 016:ddddddddddddddcdddcddddddddddddddddddddddddddddddddcdddddddddddd
--- 017:ddddd5dddddd6ddd5dd57dddd6d67dd7d6d67d7dd6d67d7ddddddddddddddddd
--- 018:ddddddddddbddddddb2bddcdddbddc2cdd7dddcddd7ddd7ddddddddddddddddd
--- 019:dddddddddddddddddd5ddddddd67dddddd67dd7ddd67d7ddddddd7dddddddddd
--- 020:dd7dddddd75ddddd7d5ddddd7dd4dddd7dddd7ddddddd57dddddd5d7dddd3dd7
--- 021:dddddddddddddddddddddddddddddbddddddbabddddddbddddddd7dddddddddd
--- 022:ddd9dddddd949dddddd8ddddddd7ddddddd7ddddddd7dddddddddddddddddddd
--- 023:dd2222ddd22b222dd222222ddd2222dddddbcdddddebcedddddeeddddddbcddd
--- 024:ddddddddddddddddddbcdddddbcdcddddeccedddddeedddddddddddddddddddd
--- 025:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
--- 026:ddddddddddddddddddbcbddddbcbccdddcbcccdddecccfddddeefddddddddddd
--- 027:55555555555dd55555dddd555dddddd55dddddd555dddd55555dd55555555555
--- 028:55555555dd555d5d5ddddddddddd5ddddddddddddddddddddddddddddddddddd
--- 029:55555555555555d555555ddd5555dd5d555ddddd55d5dddd55dddddd5ddddddd
--- 030:555555555555555555555555555555555555555555dddd555dddddd5dddddddd
--- 031:5d5dddd55dddddd555dddd5dd5dddd5555d5dd555dddddd555dddd5d5dddddd5
+-- 016:ccccccccccccccccccdccccccccccccccccccccccccccdcccdcccccccccccccc
+-- 017:ccccc5cccccc6ccc5cc57cccc6c67cc7c6c67c7cc6c67c7ccccccccccccccccc
+-- 018:ccccccccccbccccccb2bccdcccbccd2dcc7cccdccc7ccc7ccccccccccccccccc
+-- 019:cccccccccccccccccc5ccccccc67cccccc67cc7ccc67c7ccccccc7cccccccccc
+-- 020:cc7cccccc75ccccc7c5ccccc7cc4cccc7cccc7ccccccc57cccccc5c7cccc3cc7
+-- 021:cccccccccccccccccccccccccccccbccccccbabccccccbccccccc7cccccccccc
+-- 022:ccc9cccccc949cccccc8ccccccc7ccccccc7ccccccc7cccccccccccccccccccc
+-- 023:cc2222ccc22b222cc222222ccc2222cccccbccccccebceccccceeccccccbcccc
+-- 024:ccccccccccccccccccbddccccbdcddcccfcddfccccfffccccccccccccccccccc
+-- 025:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+-- 026:ccccccccccccccccccbdbccccbdcdccccdcdcdcccedccfcccceefccccccccccc
+-- 027:55555555555cc55555cccc555cccccc55cccccc555cccc55555cc55555555555
+-- 028:55555555cc555c5c5ccccccccccc5ccccccccccccccccccccccccccccccccccc
+-- 029:55555555555555c555555ccc5555cc5c555ccccc55c5cccc55cccccc5ccccccc
+-- 030:555555555555555555555555555555555555555555cccc555cccccc5cccccccc
+-- 031:5c5cccc55cccccc555cccc5cc5cccc5555c5cc555cccccc555cccc5c5cccccc5
 -- 032:eeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeee8eeeeeeeeeeeeee
--- 033:eeeeeeeeeeeeeeeee6eeeeeeee6eee6ee66ee66ee66ee66eee6ee6eeeeeeeeee
--- 034:eeeeeeeeeee6eeeee6ee6eeeee6e6ee6ee6e6e6eee6e6e6eee6e6e6eeeeeeeee
--- 035:eeeeeeeee6eeeeeeee6eeeeeee56eee66e56ee6ee666e56eee56566eee66566e
--- 036:ee2deeeee232eeeeee264eeeeee454eeeee64eeeee56eeeeeee6eeeeeeeeeeee
--- 037:eeeeeeeeee6eeeeee626eeeeee6eeeeeeeeeeeeeeeeee6eeeeee636eeeeee6ee
+-- 033:eeeeeeeeeeeeeeeee67eeeeeee67ee67e667e667e667e667ee67e67eeeeeeeee
+-- 034:eeeeeeeeeee67eeee67e67e7ee676776ee67676eee67676eee67676eeeeeeeee
+-- 035:eeeeeeeee67eeee6ee67ee67eee67e6767e67e67e6767e67ee76767eee76767e
+-- 036:ee2ceeeee232eeeeee264eeeeee454eeeee64eeeee56eeeeeee6eeeeeeeeeeee
+-- 037:eee57eeeee5257eeeee57eeee47e6eee4a476e5ee47e6595ee6e675eee6e67ee
 -- 038:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 -- 039:eeeeeeeeeeeeeeeeeeeeee6eee6ee6e6e6e6e6eeeee6e6eeeee6e6eeeeeeeeee
--- 040:eeeeeeeeeeeeeeeeeedcdceeedcdcdfeecdcdffeefcdfffeeeffffeeeeeeeeee
+-- 040:eeeeeeeeeeecdeeeeedccdeeedcccceeeccccfeeefcdfeeeeeffeeeeeeeeeeee
 -- 041:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 -- 042:eeeeeeeeeecdcdeeecdcdcdfcdcdcddfdcddddcffddddcffeffffffeeeeeeeee
--- 043:dddddddddddeedddddeeeedddeeeeeeddeeeeeedddeeeedddddeeddddddddddd
--- 044:ddddddddeedddededeeeeeeeeeeedeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
--- 045:ddddddddddddddeddddddeeeddddeededddeeeeeddedeeeeddeeeeeedeeeeeee
--- 046:ddddddddddddddddddddddddddddddddddddddddddeeeedddeeeeeedeeeeeeee
--- 047:deeeededdeeeeeededeeeeddddeeeededdeededddeeeeeededeeeedddeeeeeed
+-- 043:ccccccccccceeccccceeeeccceeeeeecceeeeeeccceeeeccccceeccccccccccc
+-- 044:cccccccceecccececeeeeeeeeeeeceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 045:ccccccccccccccecccccceeecccceececcceeeeecceceeeecceeeeeeceeeeeee
+-- 046:cccccccccccccccccccccccccccccccccccccccccceeeeccceeeeeeceeeeeeee
+-- 047:ceeeececceeeeeececeeeecccceeeececceececcceeeeeececeeeeccceeeeeec
 -- 096:0011110001111100111888001188880011888800118888000000000000000000
 -- 097:b0000000bb000000bbc00000bde0000000000000000000000000000000000000
 -- 112:1111111111141111111c4111111cc411111cc211111c21111112111111111111
 -- 113:144411114ccc1111cccc1111cccc1111cccc1111cccc11112ccc111112221111
 -- 128:0111000011000000100000001000000011000000011100000000000000000000
+-- 129:1ccccc11ccc40cc1cc40ccc1ccc40cc12ccccc21122222111111111111111111
 -- 135:1111111111111111111111111157575615656565575756566676676767677676
 -- 136:1111111511111156111115755611176765611177565611176767111176756561
 -- 137:7571111156561111757571116767611177771111775757711565656657575757
@@ -1708,6 +1750,9 @@ end
 -- 003:edde1111d00d1111edde11111ee111111dd111111dd1111b1dd111be1dd111b0
 -- 004:eddedddedddedddedd111111ee111111dd111111bbb1111100eb1111b00bdbbd
 -- 005:dde11111ddd111111dd111111ee111111dd111111dd111111dd111111dd11111
+-- 006:ccffffffcdf00000ff000000f0000000f0000000f0000000f0000000f0000000
+-- 007:fcccccff00cdc000000e0000000c0000000e0000000c0000000e0000000c0000
+-- 008:ffffffcc00000fdc000000ff0000000f0000000f0000000f0000000f0000000f
 -- 010:cdeeeeeed000dddde00c32eee00d232de00c323cd00d23eee000eccce000c000
 -- 011:eeeeeedcdddd000deeeee00ecdcdc00edcdcd00eeeeee00dccce000e000c000e
 -- 012:11111111111111111111111111111f441111143f111114f31111114411ff1144
@@ -1718,25 +1763,56 @@ end
 -- 019:1dd111b01dd111be1dd1111b1dd111111dd111ce1dd11cbb1dd1cbbb1dd1cbeb
 -- 020:000bdbbb00eb11bbbbb111bbdd1111bbddeccebbeebbbbeebbbbbbbbdddddddd
 -- 021:1dd111111dd111111ee111111dd11111ebbc1111bbbbc111bbbbbc11ddbebc11
+-- 022:f0000000f0000000f00000d0f0000de0f000defdf0000ff0f00000e0f0000000
+-- 023:000e0000000c0000000e0000000c0000ddcedddd000c0000000e0000000c0000
+-- 024:0000000f0000000fe000000fff00000ffed0000fed00000fd000000f0000000f
 -- 026:fddddddde0000000ddd00000ff4c0000f4feceecff4c0000ddd00000cdeeeeee
 -- 027:ddddddde0000000e0000000d0000000eceecceed0000000e0000000deeeeeedc
 -- 028:1f44f1441f444f4411f44433111f4f44111f4f44111f44ff1111f44411111f4d
 -- 029:1f44f1dff444fdee444fdeeef4fdffe4f4dffffe4deeffffdeeeefffffe4440f
 -- 030:fdf11111ffdf1111effdf111440fdf11e40ffdf1e40efdf1feeedf11ffedf111
+-- 032:11111111111111111111bb11111b9b1111b89b111b9a9b1bb8989bc8baaaabca
+-- 033:111111111111111111bb11111b9b111bb89b11b89a9b1b9a989bc898aaabcaaa
+-- 034:1111111111111111bb1111bb9b111b9b9b11b89b9b1b9a9b9bc8989babcaaaab
 -- 035:1ee1cbbd1dd1cbbd1ddecbbd1dddcbbd1eddcbeb11111bbb111111bb11111111
 -- 036:d000000000b0000000000000d0000000ddddddddbbbbbbbbbbbbbbbb11111111
 -- 037:0ddbbc1100dbbc1100dbbc110ddbbc11ddbebc11bbbbb111bbbb111111111111
+-- 038:f0000000f0000000f0000000f0000000f0000000ff000000cdf00000ccffffff
+-- 039:000e0000000c0000000e000000ccc00000d4d0000dfffd000d4f4d00fdf4fdff
+-- 040:0000000f0000000f0000000f0000000f0000000f000000ff00000fdcffffffcc
 -- 044:11111f4d11111144111111ff1111111111111111111111111111111111111111
 -- 045:fffee40fdfffe40efdfffeee1fdfffed11fdffdf111fddf11111ff1111111111
 -- 046:ffdf1111fdf11111d1111111f111111111111111111111111111111111111111
+-- 048:b8989bc8baaaabcab898bbc8baababcab8b89bc8bbaaabcbb8989bc8baaaabca
+-- 049:989bc898aaabcaaa98bbc898ababcaabb89bc8b8aaabcbaa989bc898aaabcaaa
+-- 050:9bc8989babcaaaabbbc898bbabcaabab9bc8b89babcbaaab9bc8989babcaaaab
+-- 051:bab1111198911111bab111111111111111111111111111111111111111111111
+-- 052:0e0e0e0000dcd0000001000000010000000100000001000000010000000e0000
+-- 053:e00cd00e0eedcee0000cd000000dc000000cd000000dc000000cd000000dc000
+-- 055:00000000d00cd00decccccce000dd000000ee000000320000003300000023000
+-- 059:0ccccccd344444ccccccc4cc3444c444ccc4cccc00c4444400cccccc00000000
+-- 060:000cc000000ff0000002200000d32d000d3222d00c2232c00d2222d000dd3d00
+-- 061:000cc000000ff0000006700000d56d000d5666d00c6656c00d6666d000d77d00
+-- 062:000cc000000ff000000ee00000dffc000cf4ffc00dffefc00dffffe000ceec00
+-- 064:b8989bc8baaaabcab8989bc8baaabfbab89b1eb8babfeebabb1111bb11111111
+-- 065:989bc898aaabcaaa989bc898aabfbaaa9b1eb89bbfeebabf1111bb1111111111
+-- 066:9bc8989babcaaaab9bc8989bbfbaaabf1eb89b1eeebabfee11bb111111111111
+-- 067:1bbbbbb1baaaaaabb898989bbaaaaaabb898989bbaaaaaabb898989b1bbbbbb1
+-- 071:0003200000023000000330000002300000033000000230000002300000033000
+-- 072:000000000000000000000000000cccc000cfefed00cfefbc00eddbff00eeebff
+-- 073:000000000000000000ee00000effe0000feef0000ffff000ceffeeb4ceeeebb3
+-- 074:000000000000000000000000000000000000000000000000dddd0000dddded00
+-- 078:0e0e0e0000dcd0000001000000010000000100000001000000010000000e0000
 -- 080:00000000000a999900a99fff0a99f9990a9f9fff0a9f9fef0a9f9fff0a9f9999
 -- 081:0000000099999999ffffffff9999999999fff99f99fef99f99fff99f99999999
 -- 082:0000000099999000fff99900999f9990ff99f990ef99f990ff99f9909999f990
 -- 084:00000000000bbbbb00beeccc0bceccee0bccce990bcdce9d0bcccede0bcccedf
 -- 085:00000000bbbbbbbbdccdcdcceeeeeeeedddddd99ffffffd9eeeeeeedfffffffd
 -- 086:00000000bbbbb000cdcccb00eeeeccb09bb9ecb09cc9ecb09cc9ecb09dd9edb0
--- 088:d000000d0700007000700700000cd000000dc0000070070007000070d000000d
--- 089:0000000000000000000000000040000000b0000000b000000ebe00000fef0000
+-- 087:0002300000032000000cd000000dc000000ce000000cd0000000000000000000
+-- 088:00feeccc00fffcdd00999cac09889aac09cccc9909ddd99909ceeeee08ceeeee
+-- 089:eddeebd2edddeee2aeddeeeeaeeeebbc9eeeebcc9fffffffedddddddeddddddd
+-- 090:dedeeed0eeeefee0eeedfee04ddefe003eeeedd0fffdffd0ddddfe00dffdfe00
 -- 096:0a9f9fff0aafffee0aafafff0aafaaae0aafaaae0aafaaae0aafaaae0aafaaae
 -- 097:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 098:fff9f990eefffa90fffafa90eaaafa90eaaafa90eaaafa90eaaafa90eaaafa90
@@ -1744,7 +1820,9 @@ end
 -- 100:0bccdede0bcdcedf0bcccede0bcdcedf0bccde9d0bcdce990bccde990bcdcebc
 -- 101:eeeeeeedfffffffdeeeeeeedfffffffdeeeeeed9dddddd9999999999dcdccdcd
 -- 102:9cc9ecb09dd9ecb09cc9edb09dd9ecb09cc9edb09dd9ecb09ff9edb0f45fecb0
--- 103:0aaaaaa0ae9e9e9aa9ffff9aafeeeefaaaffffaaaaaeeaaa9aaeeaa909999990
+-- 104:08d888df00d88dff00de8dff0cee0dff0eccdfff00eedfff0000dfff00000000
+-- 105:efffffffffccccccec343343fc344443ec222222ffccccccefffffff00000000
+-- 106:effdff00ffffdf00cfffdf00cfffdf00cffffd00fffffd00effffd0000000000
 -- 112:0aafaaae0aafaaae0aafaaae0aaafaae0aaaaffe009aaaaa0009999900000000
 -- 113:ffffffffffffffffffffffffffffffffeeeeeeeeaaaaaaaa9999999900000000
 -- 114:eaaafa90eaaafa90eaaafa90eaafaa90effaaa90aaaaa9009999900000000000
@@ -1778,9 +1856,6 @@ end
 -- 160:033f333e033f333e033f333e0333f33e03333ffe004333330004444400000000
 -- 161:ffffffffffffffffffffffffffffffffeeeeeeee333333334444444400000000
 -- 162:e333f340e333f340e333f340e33f3340eff33340333334004444400000000000
--- 164:000000000000000000000000000cccc000cfefed00cfefbc00eddbff00eeebff
--- 165:000000000000000000ee00000effe0000feef0000ffff000ceffeeb4ceeeebb3
--- 166:000000000000000000000000000000000000000000000000dddd0000dddded00
 -- 168:0bccdebf0bcdce990bcedcee0bceeccd0becccdc00bccccc000bbbbb00000000
 -- 169:feffcdcd99999999eeeeeeeecdcdcdcddcdcdcdccccdcccdbbbbbbbb00000000
 -- 170:f55fedb09ff9ecb0eeeeceb0cdcdeeb0dcdcdcb0cdcdcb00bbbbb00000000000
@@ -1790,9 +1865,8 @@ end
 -- 176:00000000000bcccc00bccfff0bccfccc0bcfcfff0bcfcfef0bcfcfff0bcfcccc
 -- 177:00000000ccccccccffffffffccccccccccfffccfccfefccfccfffccfcccccccc
 -- 178:00000000ccccc000fffccc00cccfccc0ffccfcc0efccfcc0ffccfcc0ccccfcc0
--- 180:00feeccc00fffcdd00999cac09889aac09cccc9909ddd99909ceeeee08ceeeee
--- 181:eddeebd2edddeee2aeddeeeeaeeeebbc9eeeebcc9fffffffedddddddeddddddd
--- 182:dedeeed0eeeefee0eeedfee04ddefe003eeeedd0fffdffd0ddddfe00dffdfe00
+-- 184:d000000d0700007000700700000cd000000dc0000070070007000070d000000d
+-- 187:0000000000000000000000000040000000b0000000b000000ebe00000fef0000
 -- 192:0bcfcfff0bbfffee0bbfbfff0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe0bbfbbbe
 -- 193:ffffffffeeeeeeeeffffffffeeeeeeeeffffffffffffffffffffffffffffffff
 -- 194:fffcfcc0eefffbc0fffbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0ebbbfbc0
@@ -1800,10 +1874,6 @@ end
 -- 208:0bbfbbbe0bbfbbbe0bbfbbbe0bbbfbbe0bbbbffe00cbbbbb000ccccc00000000
 -- 209:ffffffffffffffffffffffffffffffffeeeeeeeebbbbbbbbcccccccc00000000
 -- 210:ebbbfbc0ebbbfbc0ebbbfbc0ebbfbbc0effbbbc0bbbbbc00ccccc00000000000
--- 226:00fddf0d0fc77cfc0c7657c00ce77ec00decced002ceec20200dd00200300300
--- 227:00fddf000fcee7f00dee76500deee7700cdccec0003ee2d0030d200d00020000
--- 242:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
--- 243:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
 -- </TILES1>
 
 -- <TILES2>
@@ -2049,6 +2119,7 @@ end
 -- 025:0300000034300000030000000000000000000000000000000000000000000000
 -- 026:cd111111dcd111111dc111111111111111111111111111111111111111111111
 -- 027:44444444444ef04444f000444400f0044f000004400f00f444f00f4444444444
+-- 028:dff44444ffe44444eff444444444444444444444444444444444444444444444
 -- 030:b0000000bb000000bbc00000bde0000000000000000000000000000000000000
 -- 031:0000000000300000034000003433333344444444040000000040000000000000
 -- 032:3030303000000003300000000000000330000000000000033000000003030303
@@ -2122,46 +2193,48 @@ end
 -- 108:000fff0002febef020cb75ef0cbcc7bf0cceccefceccbcf00cecc02000c00200
 -- 109:00feef000febbef00cbeebc0ebccccbe0c2cc2c002ceec202003300200300300
 -- 110:00300300200330022bceecb202bddb20ebdccdb00cb77bc00f7557f000feef00
--- 112:ccffffffcdf00000ff000000f0000000f0000000f0000000f0000000f0000000
--- 113:fcccccff00cdc000000e0000000c0000000e0000000c0000000e0000000c0000
--- 114:ffffffcc00000fdc000000ff0000000f0000000f0000000f0000000f0000000f
--- 115:111111bb11111bbd1111bbbb1fe1bbcb1dddbc0c1fe1bc0c1fe1bbcb1fe1bbbb
--- 116:bbbbbbb1bdbdbdbbbbbbbbbbbbcbbbcbbc0cbc0cbc0cbc0cbbcbbbcbbbbbbbbb
--- 117:111111111111bb11b11cccc1b1bbccbbbdbe000bb1c0000cbdb0000bb1bbccbb
--- 118:f11111b1f0dedb0bf1bbb1befbc00b1feb000b1eeb000bef11bbb1111deded11
+-- 112:1111111111bcddf11bcedddf1cedddcc1ddddcbb1dddcbcc1fdcbcdd11fcbcdd
+-- 113:111111111111111111bbbbbbbbcccdddccbcdddddddbccddddddbbbbcccccccc
+-- 114:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+-- 115:edde1111d00d1111edde11111ee111111dd111111dd1111b1dd111be1dd111b0
+-- 116:eddedddedddedddedd111111ee111111dd111111bbb1111100eb1111b00bdbbd
+-- 117:dde11111ddd111111dd111111ee111111dd111111dd111111dd111111dd11111
+-- 118:e1bb1111dbd0bed1eb00b1e1d1cc11d1ebbbbbb1bd00000bb000000b1bbbbbb1
+-- 119:00000000bbbbbbbbbcccdeebbccdcddbb67c2eebb56d34cbbbbbbbbb00000000
+-- 120:bde00000d2d000005d3000000000000000000000000000000000000000000000
+-- 121:d3d00000e4e00000dcd000000000000000000000000000000000000000000000
 -- 122:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
 -- 123:00000000000000000000000000ffff000ffffff00ffffff000ffff0000000000
 -- 124:000000000000000000000000000ff00000ffff0000ffff00000ff00000000000
 -- 125:00000000000000000000000000000000000ff00000ffff00000ff00000000000
 -- 126:0000000000000000000000000000000000000000000ff0000000000000000000
--- 128:f0000000f0000000f00000d0f0000de0f000defdf0000ff0f00000e0f0000000
--- 129:000e0000000c0000000e0000000c0000ddcedddd000c0000000e0000000c0000
--- 130:0000000f0000000fe000000fff00000ffed0000fed00000fd000000f0000000f
--- 131:1fe11bbd1fe1bb001fe1b00c1fe1b0001dddb0001fe1b0001feebb001fffbbbd
--- 132:bdbdbdbb0000000b000000000000000000000000000000000000000bbdbdbdbb
--- 133:111cccc1b111bb11b111ef11b111ef11b1eeef11bdefff11b1ef1111bdef1111
+-- 128:111bcdcc111bc40411bcd40411bcd04011bcd04011bcd40411bcd40411bcd040
+-- 129:1111111111111111111111111111111111111111111111111111111111111111
+-- 130:ccbbbbcccecdcdecb40dc04bb04dc40bb40dc04bb04dc40bcecdcdecccbbbbcc
+-- 131:1dd111b01dd111be1dd1111b1dd111111dd111ce1dd11cbb1dd1cbbb1dd1cbeb
+-- 132:000bdbbb00eb11bbbbb111bbdd1111bbddeccebbeebbbbeebbbbbbbbdddddddd
+-- 133:1dd111111dd111111ee111111dd11111ebbc1111bbbbc111bbbbbc11ddbebc11
 -- 134:bcb11111c0c11111bcb111111111111111111111111111111111111111111111
--- 136:000000000000000000000000000cccc000cfefed00cfefbc00eddbff00eeebff
--- 137:000000000000000000ee00000effe0000feef0000ffff000ceffeeb4ceeeebb3
--- 138:000000000000000000000000000000000000000000000000dddd0000dddded00
+-- 135:00ceec000ce33ec00de34ed00de44ed00de33ed00ddeedd00ccddcc000cccc00
+-- 138:111111dd1111ddcc111dcccc11dccccc11dccccc1dcccccc1bddcccc1bbbdddd
+-- 139:dd111111ccdd1111ccccd111cccccd11cccccd11ccccccd1ccccddb1ddddbbb1
 -- 140:0000000d00000dbb000ecbbb00eccbb900cbbab90cccaabc0cc9acbb0ddcbbbb
 -- 141:cbbbbbcdbbbcbbbbbbbbb9cb9abbbccc9bbccaaabb9cc989a98abc8bbbcaacbb
--- 142:d0000000ddd00000b9cdd000bb8ddd00cbcdcd00bbdddcd0b9d8ddd099d88de0
+-- 142:d0000000ddd00000b9cd0000bb8dc000cbcddd00bbddcdc0b9d8dcd099d88ede
 -- 143:00bbbd000bbbbbc0ccbbccdcc9acb9dfd9caccdfdcaad9efe9dc9d8f0e9ee8f0
--- 144:f0000000f0000000f0000000f0000000f0000000ff000000cdf00000ccffffff
--- 145:000e0000000c0000000e000000ccc00000d4d0000dfffd000d4f4d00fdf4fdff
--- 146:0000000f0000000f0000000f0000000f0000000f000000ff00000fdcffffffcc
--- 147:11111bbb111111bb111111bd11eccccc1ecccced11eccccc111eeeee11111111
--- 148:bbbbbbbbbbbbbbb1ddddddb1ccccccccededdeddcccccccceeeeeeee11111111
--- 149:11ee111111dd11111eeee111ccccce11eecccce1ccccce11eeeee11111111111
+-- 144:00bbbb000bccccb0bcdd22cbbc9d66cbbc99ddcb0bccccb00dbbbbd00edccde0
+-- 145:cd2000009b600000d9d000000000000000000000000000000000000000000000
+-- 146:bdb000004c400000bdb000000000000000000000000000000000000000000000
+-- 147:1ee1cbbd1dd1cbbd1ddecbbd1dddcbbd1eddcbeb11111bbb111111bb11111111
+-- 148:d000000000b0000000000000d0000000ddddddddbbbbbbbbbbbbbbbb11111111
+-- 149:0ddbbc1100dbbc1100dbbc110ddbbc11ddbebc11bbbbb111bbbb111111111111
 -- 150:0000000000c423320c43cdcc0ccccdcd0dc432330d4221220c31cccc0c21deee
 -- 151:00000d003000d0d03323edf0feedeef02332eff01221eef0eddceffddddceefd
--- 152:00feeccc00fffcdd00999cac09889aac09cccc9909ddd99909ceeeee08ceeeee
--- 153:eddeebd2edddeee2aeddeeeeaeeeebbc9eeeebcc9fffffffedddddddeddddddd
--- 154:dedeeed0eeeefee0eeedfee04ddefe003eeeedd0fffdffd0ddddfe00dffdfe00
+-- 154:1bbbbbbb1bbbbbbb1bbbbbbb1bbbbddd1bbbdcee1bbbdeee1bbbbddd1bbbbbbb
+-- 155:bbbbbbb1bbbbbbb1bbbbbbb1dddbbbb1eeedbbb1eeedbbb1dddbbbb1bbbbbbb1
 -- 156:ddd9cbcadd89ccccdd8cc99cdecca9acedee9a9cdeefccbce8fc89cef88c999e
 -- 157:ccbbbbc9aaaacdcdaaabbccd99bbaadacbbaaac9dbaaaadaecaaaacdffccdcdd
--- 158:888d88df989d8deedd8dceef98dddffe99ddffff9cdeeeffcd8e88ffa89e88ff
+-- 158:888d88d8989d8d8edd8dceef98dddffe99ddffff9cdeeeffcd8e88ffa89e88ff
 -- 160:cec00000efe00000cec000000000000000000000000000000000000000000000
 -- 161:4310000000400000431000000000000000000000000000000000000000000000
 -- 163:000ff00000cffe0000cdde0004deed200433232044222222432ff212432ff212
@@ -2169,9 +2242,8 @@ end
 -- 165:0ccc00000dddedd099bbeb4c99daec3d89a9edde88eecce0c8ec33ce0cefccfe
 -- 166:0ecdefee0deefffc0edeefc30deeffc20deedfcc00dd0ddd0000000000000000
 -- 167:eeeeccdfcccfeeff232ceefd342ceefdcccceed0dddddd000000000000000000
--- 168:08d888df00d88dff00de8dff0cee0dff0eccdfff00eedfff0000dfff00000000
--- 169:efffffffffccccccec343343fc344443ec222222ffccccccefffffff00000000
--- 170:effdff00ffffdf00cfffdf00cfffdf00cffffd00fffffd00effffd0000000000
+-- 170:1dbbbbbb1cddbbbb1cccdddd1ccccccc1cca9a921cc9a9ab1cca9a921cc9a9ab
+-- 171:bbbbbbd1bbbbddc1ddddccc1ccccccc122222cc1bbbbbcc122222cc1bbbbbcc1
 -- 172:0e8d89d90fefedd800ffff980000ffe8000000ff000000000000000000000000
 -- 173:faaaa8dd9d8998ed98d88e8a88fee888ffeddeff000000000000000000000000
 -- 174:da8e8ff0eeffeff08effff00efff0000ff000000000000000000000000000000
@@ -2182,6 +2254,8 @@ end
 -- 180:fbffffffbdbfffffdfbfffffbbbfffffbbbfffffffffffffffffffffffffffff
 -- 181:22222fff20202fff22022fff20202fff22222fffffffffffffffffffffffffff
 -- 182:1111111111141111111241111444c4111222c211111421111112111111111111
+-- 186:1cc222221ccbbbbb1cc222221dcccccc1bddcccc1bbbdddd1bbbbbbb1bbbbbbb
+-- 187:22222cc1bbbbbcc122222cc1ccccccd1ccccddb1ddddbbb1bbbbbbb1bbbbbbb1
 -- 188:0200000032200000212000000000000000000000000000000000000000000000
 -- 189:0700000057700000767000000000000000000000000000000000000000000000
 -- 190:0f0000004ff00000f6e000000000000000000000000000000000000000000000
@@ -2196,12 +2270,12 @@ end
 -- 199:000000000bd00000bbbd00000bbbd00000bbbd00000bbbd00000bd0000000000
 -- 200:0666666734444466666664663444644466646666006444440066666600000000
 -- 201:0222222134444422222224223444244422242222002444440022222200000000
--- 202:0999999834444499999994993444944499949999009444440099999900000000
--- 203:0ccccccd344444ccccccc4cc3444c444ccc4cccc00c4444400cccccc00000000
--- 204:000dd000000ee000000cc00000d32d000d3222d00c2232c00d2222d000dd3d00
--- 205:000dd000000ee000000cc00000d56d000d5666d00c6656c00d6666d000d77d00
--- 206:000dd000000ee000000dd00000dffc000cf4ffc00dffffc00dffffe000cddc00
--- 207:000dd000000ee000000cc00000da9d000d8998d00c9999c00d99a9d000d89d00
+-- 202:1bbbbbbb1bbbbbbb1bbbbbbb1ebbbbbb1febbbbb11feebbb111ffeee11111fff
+-- 203:bbbbbbb1bbbbbbb1bbbbbbb1bbbbbbe1bbbbbef1bbbeef11eeeff111fff11111
+-- 204:000cc000000ff0000002200000d32d000d3222d00c2232c00d2222d000dd3d00
+-- 205:000cc000000ff0000006700000d56d000d5666d00c6656c00d6666d000d77d00
+-- 206:000cc000000ff000000ee00000dffc000cf4ffc00dffefc00dffffe000ceec00
+-- 207:000cc000000ff0000009a00000d99d000d8998d00c9a99c00d9999d000d89d00
 -- 208:3334444331222223323333433222334332332223131111211322222111111111
 -- 209:cccccccccf88888cc823ccdcc83ccc4cc8ccc34cf0ffff82f08888811fffff11
 -- 210:ccccccccc8f8f8fcfa8a8a8fca8a8a8ccccccccc8f0f0f088f0f0f0888888888
@@ -2210,29 +2284,20 @@ end
 -- 213:bbb11111dcd11111bbb111111111111111111111111111111111111111111111
 -- 214:4430000032200000133000000000000000000000000000000000000000000000
 -- 215:bb000000bbb000000bd000000000000000000000000000000000000000000000
--- 219:11111111111111111111bb11111b9b1111b89b111b9a9b1bb8989bc8baaaabca
--- 220:111111111111111111bb11111b9b111bb89b11b89a9b1b9a989bc898aaabcaaa
--- 221:1111111111111111bb1111bb9b111b9b9b11b89b9b1b9a9b9bc8989babcaaaab
--- 222:0e0e0e0000dcd0000001000000010000000100000001000000010000000e0000
--- 223:e00cd00e0eedcee0000cd000000dc000000cd000000dc000000cd000000dc000
+-- 216:0999999834444499999994993444944499949999009444440099999900000000
+-- 217:0ccccccd344444ccccccc4cc3444c444ccc4cccc00c4444400cccccc00000000
+-- 218:111111ef1111110011111eee11111fff11110000111fff0f11fe0000111feeee
+-- 219:fe11111100111111eee11111fff11111000011110f0f01110000ef11eeeef111
 -- 225:6066666600066666f0f666666666666666666666666666666666666666666666
 -- 226:6660666666000666660f066660e0006660000066600000666600066666666666
 -- 227:111111111bb11bb1ddddddddcccccccccedededccedededcceeeeeeccccccccc
 -- 228:dbe11111dee11111ccc111111111111111111111111111111111111111111111
 -- 232:66666cff66666cf06666fcf06666fcff666cfcee666cfeee664cffff664ce000
 -- 233:ff0666660ff666660f006666fff06666ee0fe666eee0e666ffffe266000fe266
--- 235:b8989bc8baaaabcab898bbc8baababcab8b89bc8bbaaabcbb8989bc8baaaabca
--- 236:989bc898aaabcaaa98bbc898ababcaabb89bc8b8aaabcbaa989bc898aaabcaaa
--- 237:9bc8989babcaaaabbbc898bbabcaabab9bc8b89babcbaaab9bc8989babcaaaab
--- 238:bab1111198911111bab111111111111111111111111111111111111111111111
 -- 246:6e666666431666664f2666666666666666666666666666666666666666666666
 -- 247:666ff66666cffe6666cdde6664deed266433232644222222432ff212432ff212
 -- 248:644cedde644eddde444e1122443233ee443233e043222ee043233ec066233ec0
 -- 249:eddfe226edddf2262211f222ee3321220e3321220ee221120ce332120ce33266
--- 251:b8989bc8baaaabcab8989bc8baaabfbab89b1eb8babfeebabb1111bb11111111
--- 252:989bc898aaabcaaa989bc898aabfbaaa9b1eb89bbfeebabf1111bb1111111111
--- 253:9bc8989babcaaaab9bc8989bbfbaaabf1eb89b1eeebabfee11bb111111111111
--- 254:1bbbbbb1baaaaaabb898989bbaaaaaabb898989bbaaaaaabb898989b1bbbbbb1
 -- </SPRITES>
 
 -- <SPRITES1>
@@ -2292,6 +2357,134 @@ end
 -- 135:00300300200330022cdeedc202cddc20ecdccdc00dc77cd00f7557f000feef00
 -- </SPRITES1>
 
+-- <SPRITES2>
+-- 000:1111111111bcddf11bcedddf1cedddcc1ddddcbb1dddcbcc1fdcbcdd11fcbcdd
+-- 001:111111111111111111bbbbbbbbcccdddccbcdddddddbccddddddbbbbcccccccc
+-- 002:1111111111111111bbbbbb11dddcccbbddddcbccddccbdddbbbbddddcccccccc
+-- 003:111111111fddcb11fdddecb1ccdddec1bbcdddd1ccbcddd1ddcbcdf1ddcbcf11
+-- 004:1111111111bcddf11bcedddf1cedddcc1ddddcbb1dddcbcc1fdcbc4411fcbc40
+-- 005:111111111111111111bbbbbbbbcccccccc000000404444440400000040444444
+-- 006:1111111111111111bbbbbb11ccccccbb000000cc444444040000004044444404
+-- 007:111111111fddcb11fdddecb1ccdddec1bbcdddd1ccbcddd144cbcdf104cbcf11
+-- 016:111bcdcc111bc40411bcd40411bcd04011bcd04011bcd40411bcd40411bcd040
+-- 017:1111111111111111111111111111111111111111111111111111111111111111
+-- 018:1111111111111111111111111111111111111111111111111111111111111111
+-- 019:ccdcb111404cb111404dcb11040dcb11040dcb11404dcb11404dcb11040dcb11
+-- 020:111bc404111bc04011bc040411bc040411bc040411bc040411bc040411bc0404
+-- 021:0400000040444444044400000440444404044000040404440404044404040444
+-- 022:0000004044444404000044404444044000044040444040404440404044404040
+-- 023:404cb111040cb1114040cb114040cb114040cb114040cb114040cb114040cb11
+-- 026:1111111111111111111111111111111111111111111111111111111111111111
+-- 027:111111bb1111bbbb111bbbbc11bbbbcc11bbbccc1bbbbccc1bbbbccc1bbbbccc
+-- 028:bb111111bbbb1111cccbb111ccccbb11cccccb11cccccbb1ccccccb1ccccccb1
+-- 029:1111111111111111111111111111111111111111111111111111111111111111
+-- 032:11bcd04011bcd40411bcd40411bcd04011bcd04011bcd404111bc404111bcdcc
+-- 033:1111111111111111111111111111111111111111111111111111111111111111
+-- 034:1111111111111111111111111111111111111111111111111111111111111111
+-- 035:040dcb11404dcb11404dcb11040dcb11040dcb11404dcb11404cb111ccdcb111
+-- 036:11bc040411bc040411bc040411bc040411bc040411bc0404111bc040111bc404
+-- 037:0404044404040444040404440404400004404444044400004044444404000000
+-- 038:4440404044404040444040400004404044440440000044404444440400000040
+-- 039:4040cb114040cb114040cb114040cb114040cb114040cb11040cb111404cb111
+-- 042:1111111111111111111111111111111111111111111111111111111111111111
+-- 043:1bbbbccd1bbbbcdd1bbbbddd1bbbbddd1bbbbddd1bbbbddd1bbbbddd1bbbbddd
+-- 044:ddddccb1dddddcb1ddddddb1ddddddb1ddddddb1ddddddb1ddddddb1ddddddb1
+-- 045:1111111111111111111111111111111111111111111111111111111111111111
+-- 048:11fcbcdd1fdcbcdd1dddcbcc1ddddcbb1cedddcc1bcedddf11bcddf111111111
+-- 049:ccccccccddddbbbbdddbccddccbcddddbbcccddd11bbbbbb1111111111111111
+-- 050:ccccccccbbbbddddddccbdddddddcbccdddcccbbbbbbbb111111111111111111
+-- 051:ddcbcf11ddcbcdf1ccbcddd1bbcdddd1ccdddec1fdddecb11fddcb1111111111
+-- 052:11fcbc401fdcbc441dddcbcc1ddddcbb1cedddcc1bcedddf11bcddf111111111
+-- 053:404444440400000040444444cc000000bbcccccc11bbbbbb1111111111111111
+-- 054:444444040000004044444404000000ccccccccbbbbbbbb111111111111111111
+-- 055:04cbcf1144cbcdf1ccbcddd1bbcdddd1ccdddec1fdddecb11fddcb1111111111
+-- 058:1111111111111111111111111111111111111111111111111111111111111111
+-- 059:1bbbbdcc1bbbbcdd1bbbbdcc1bbbbcdd1bbbbdcc1bbbbcdd1bbbbdcc1bbbbcdd
+-- 060:cccccdb1dddddcb1cccccdb1dddddcb1cccccdb1dddddcb1cccccdb1dddddcb1
+-- 061:1111111111111111111111111111111111111111111111111111111111111111
+-- 074:1111111111111111111111111111111111111111111111111111111111111111
+-- 075:1bbbbdcc1bbbbcdd1bbbbecc1bbbbeec1bbbbfee11bbbbfe111bbbbf11111bbb
+-- 076:cccccdb1dddddcb1ccccceb1cccceeb1eeeeefb1eeeffb11fffbb111bbb11111
+-- 077:1111111111111111111111111111111111111111111111111111111111111111
+-- 080:1111111111bcddf11bcedddf1cedddcc1ddddcbb1dddcbcc1fdcbcdd11fcbcdd
+-- 081:111111111111111111bbbbbbbbcccdddccbcdddddddbccddddddbbbbcccccccc
+-- 082:1111111111111111bbbbbb11dddcccbbddddcbccddccbdddbbbbddddcccccccc
+-- 083:111111111fddcb11fdddecb1ccdddec1bbcdddd1ccbcddd1ddcbcdf1ddcbcf11
+-- 090:1111111111111111111111111111111111111111111111111111111111111111
+-- 091:111111cd11111100111110ef1111100011110fff111fefef11fe0000111feeee
+-- 092:dc11111100111111fe01111100011111fff01111efeff1110000ef11eeeef111
+-- 093:1111111111111111111111111111111111111111111111111111111111111111
+-- 096:111bcdcc111bc40411bcd40411bcd04011bcd04011bcd40411bcd40411bcd040
+-- 097:111111dd1111ddcc111dcccc11dccccc11dccccc1dcccccc1bddcccc1bbbdddd
+-- 098:dd111111ccdd1111ccccd111cccccd11cccccd11ccccccd1ccccddb1ddddbbb1
+-- 099:ccdcb111404cb111404dcb11040dcb11040dcb11404dcb11404dcb11040dcb11
+-- 106:1111111111111111111111111111111111111111111111111111111111111111
+-- 107:1111111111111111111111111111111111111111111111111111111111111111
+-- 108:1111111111111111111111111111111111111111111111111111111111111111
+-- 109:1111111111111111111111111111111111111111111111111111111111111111
+-- 112:11bcd04011bcd40411bcd40411bcd04011bcd04011bcd404111bc404111bcdcc
+-- 113:1bbbbbbb1bbbbbbb1bbbbbbb1bbbbddd1bbbdcee1bbbdeee1bbbbddd1bbbbbbb
+-- 114:bbbbbbb1bbbbbbb1bbbbbbb1dddbbbb1eeedbbb1eeedbbb1dddbbbb1bbbbbbb1
+-- 115:040dcb11404dcb11404dcb11040dcb11040dcb11404dcb11404cb111ccdcb111
+-- 128:11fcbcdd1fdcbcdd1dddcbcc1ddddcbb1cedddcc1bcedddf11bcddf111111111
+-- 129:ccccccccddddbbbbdddbccddccbcddddbbcccddd11bbbbbb1111111111111111
+-- 130:ccccccccbbbbddddddccbdddddddcbccdddcccbbbbbbbb111111111111111111
+-- 131:ddcbcf11ddcbcdf1ccbcddd1bbcdddd1ccdddec1fdddecb11fddcb1111111111
+-- 154:1111111111111111111111111111111111111111111111111111111111111111
+-- 155:111111dd1111ddcc111dcccc11dccccc11dccccc1dcccccc1bddcccc1bbbdddd
+-- 156:dd111111ccdd1111ccccd111cccccd11cccccd11ccccccd1ccccddb1ddddbbb1
+-- 157:1111111111111111111111111111111111111111111111111111111111111111
+-- 170:1111111111111111111111111111111111111111111111111111111111111111
+-- 171:1bbbbbbb1bbbbbbb1bbbbbbb1bbbbddd1bbbdcee1bbbdeee1bbbbddd1bbbbbbb
+-- 172:bbbbbbb1bbbbbbb1bbbbbbb1dddbbbb1eeedbbb1eeedbbb1dddbbbb1bbbbbbb1
+-- 173:1111111111111111111111111111111111111111111111111111111111111111
+-- 181:1111111111bcddd11bcedddd1cedddcc1ddddcbb1dddcbcc1ddcbc0011dcbc44
+-- 182:111111111111111111bbbbbbbbcccccccc000000444444440000000044444444
+-- 183:11111111bbbbbbbbccccccccfffeefffdddeedddfffeefffdddeeddddddeeddd
+-- 184:1111111111111111bbbbbb11ccccccbb000000cc444444440000000044444444
+-- 185:111111111dddcb11ddddecb1ccdddec1bbcdddd1ccbcddd100cbcdd144cbcd11
+-- 186:1111111111111111111111111111111111111111111111111111111111111111
+-- 187:1dbbbbbb1cddbbbb1cccdddd1ccccccc1cca9a921cc9a9ab1cca9a921cc9a9ab
+-- 188:bbbbbbd1bbbbddc1ddddccc1ccccccc122222cc1bbbbbcc122222cc1bbbbbcc1
+-- 189:1111111111111111111111111111111111111111111111111111111111111111
+-- 197:111bc000111bc44411bc000011bc444411bc000011bc444411bc000011bc4444
+-- 198:0000000044444444000000004444444400000000444444440000000044444443
+-- 199:dddeeddddddeeddddddeeddddddeeddddddeeddddddeeddddddeedddfffeefff
+-- 200:0000000044444444000000004444444400000000444444440000000034444444
+-- 201:000cb111444cb1110000cb114444cb110000cb114444cb110000cb114444cb11
+-- 202:1111111111111111111111111111111111111111111111111111111111111111
+-- 203:1cc222221ccbbbbb1cc222221dcccccc1bddcccc1bbbdddd1bbbbbbb1bbbbbbb
+-- 204:22222cc1bbbbbcc122222cc1ccccccd1ccccddb1ddddbbb1bbbbbbb1bbbbbbb1
+-- 205:1111111111111111111111111111111111111111111111111111111111111111
+-- 213:1bcddddd1bcddddd1bcddddd1bceeeee1bceeeee1bcddddd1bcddddd1bcddddd
+-- 214:dddddddfdddddddfdddddddfeeeeeeeeeeeeeeeedddddddfdddddddfdddddddf
+-- 215:8ddeedd8dddeeddddddeedddeeeeeeeeeeeeeeeedddeeddddddeeddd8ddeedd8
+-- 216:fdddddddfdddddddfdddddddeeeeeeeeeeeeeeeefdddddddfdddddddfddddddd
+-- 217:dddddcb1dddddcb1dddddcb1eeeeecb1eeeeecb1dddddcb1dddddcb1dddddcb1
+-- 218:1111111111111111111111111111111111111111111111111111111111111111
+-- 219:1bbbbbbb1bbbbbbb1bbbbbbb1ebbbbbb1debbbbb11deebbb111ddeee11111ddd
+-- 220:bbbbbbb1bbbbbbb1bbbbbbb1bbbbbbe1bbbbbed1bbbeed11eeedd111ddd11111
+-- 221:1111111111111111111111111111111111111111111111111111111111111111
+-- 229:11bc444411bc000011bc444411bc000011bc444411bc0000111bc444111bc000
+-- 230:4444444300000000444444440000000044444444000000004444444400000000
+-- 231:fffeefffdddeeddddddeeddddddeeddddddeeddddddeeddddddeeddddddeeddd
+-- 232:3444444400000000444444440000000044444444000000004444444400000000
+-- 233:4444cb110000cb114444cb110000cb114444cb110000cb11444cb111000cb111
+-- 234:1111111111111111111111111111111111111111111111111111111111111111
+-- 235:111111cd11111100111110ef1111100011110fff111fefef11fe0000111feeee
+-- 236:dc11111100111111fe01111100011111fff01111efeff1110000ef11eeeef111
+-- 237:1111111111111111111111111111111111111111111111111111111111111111
+-- 245:11dcbc441ddcbc001dddcbcc1ddddcbb1cedddcc1bcedddd11bcddd111111111
+-- 246:444444440000000044444444cc000000bbcccccc11bbbbbb1111111111111111
+-- 247:dddeeddddddeeddddddeeddddddeeddddddeedddccccccccbbbbbbbb11111111
+-- 248:444444440000000044444444000000ccccccccbbbbbbbb111111111111111111
+-- 249:44cbcd1100cbcdd1ccbcddd1bbcdddd1ccdddec1ddddecb11dddcb1111111111
+-- 250:1111111111111111111111111111111111111111111111111111111111111111
+-- 251:1111111111111111111111111111111111111111111111111111111111111111
+-- 252:1111111111111111111111111111111111111111111111111111111111111111
+-- 253:1111111111111111111111111111111111111111111111111111111111111111
+-- </SPRITES2>
+
 -- <WAVES>
 -- 000:eeeeeeedcb9687777777778888888888
 -- 001:0123456789abcdeffedcba9876543210
@@ -2344,51 +2537,147 @@ end
 -- </FLAGS>
 
 -- <SCREEN>
--- 049:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000422000000000000000000000
--- 050:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003222300000000000000000000
--- 051:000000022333333333330000000002333333333333330000000333333333333333333300000000000233333333333333333300003333333333333333333330000000333333333333333333300000000023333333333333300000000333333330000000000000000000000042222220000000000000000000
--- 052:000000223222222222232000000023222222222222223000003222222222222222223230000000022322222222222222333230003222222222222222222223000003202222232322222222233000000232222222222222230000003022222223000000000004400000000422222240000000000000000000
--- 053:0000002333322222222320000000322222222222222200000032222222222222222333230000000233332222222222222332330023333222222222222222230000032222222222222222222203000f0322222222222222200000032222222223000000000022242000222222222224200000000000000000
--- 054:000002333333322222232000000022222222222222222000000222222222222222233332300000023333332222222222222233002333322222222222222220000002222222222222222222222300003222222222222222220000032222222223000000000002222222222222222222220004422000000000
--- 055:000002333333222322222000000202222222222222222000002222333333333222222233200000023333333300002322222233002333333333333333322220000002222222333333222222222200003022222222222222220000022322223320000000000000022222222222222222222222220200000000
--- 056:000002333333000000000000000022222222000200000000002222222222222222222223200000223333333300000222222233000220222222222222222220000002222222222222222222222200000222222220002000000000022222222220000000000000222222200000000222222222000000000000
--- 057:000002333333200000000000000022222220000000000000000000000000000022222223200000223333333300000322222233000000000000000000000000000000000000000000332222222200000222222200000000000000000000000000000000000042222222200000000034322222200000000000
--- 058:000002333333200000000000000023322230000000000000000000000000000002222223200000223333333300000322222233000000000000000000000000000000000000000000032222222200000233222300000000000000000000000000000000000422222220000000000002233222220000000000
--- 059:000002333333200000000000000023332330000000000000000000000000000002332233200000223333333300003322233333000000000000000000000000000000000000000000032233222200000233323300000000000000000000000000000000444232222200000000000000044222222f00000000
--- 060:00000233333320000000000000002333333000000000000000000000000000000233333320000022333333333333223333333300000000000000000000000000000000000000000003222233220000023333330000000000000000000000000000000422223222220000000000000003c223222444000000
--- 061:00000233333320000000000000003333333000000000000000222222222222222233333320000023333333333333333333333200000f323223333330000000000002222222200000033333332200000333333300000000000000000000000000000022222232222200000000000000024223322222400000
--- 062:00000233333320000000000000003333333000000000000000233333333333333333333320000023433333333333333333332000000f333333333330000000000004333332220000033333333200000333333300000000000000033333333322000020222232222200000000000000004223322222240000
--- 063:00000233333320000000000000023333333000000000000000033333333333333333333320000023433333333333333333330000000f333333333330000000000004333333220000033233332200002333333300000000000000033333333320000000000032223220000000000000023333322222200000
--- 064:000003333333200000000000000233333330000000000000000333333332222223333333200000234333333320000002000000000000333333333330000000000004333332200000032223332200002333333300000000000000333333333330000000000023223322000000000000322333220000000000
--- 065:000002333333333333332200000023333330000000000000002333333320000003333333200000224333333300000000000000000000333333333332000000000024333332222222222223332200000233333300000000000000323332233330000000000003332232222000000003223332000000000000
--- 066:000002333333333333332200000023333330000000000000002333333300000003333333200000023333333300000000000000000000333333333332000000000024333333222223222233322200000233333300000000000000323232222330000000000003433222222222223222333322000000000000
--- 067:000002333333333333332200000023333330000000000000000233333300000003333333200000023333333300000000000000000000333333333330000000000004333333322233333333222200000233333300000000000000323222222230000000000042333322222222222233333220400000000000
--- 068:000000023333333333332000000022233230000000000000000223333300000003333333200000023333333200000000000000000000333333333330000000000004333333333333333332222000000222332300000000000000322222222320000000000432234322222233322333332000040000000000
--- 069:000000002222222222220000000000222230000000000000000023333300000002333222000000002222222000000000000000000000322223333330000000000003333333322233333322220000000002222300000000000000032222222200000000000422200440222222222222000022240000000000
--- 070:000000000000000000000000000000222020000000000000000022222200000002222200000000000000000000000000000000000000233002222220000000000200333333222222222220000000000002220200000000000000003222222000000000000000000000002222220000000222200000000000
--- 071:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000422200000000000000000000000
--- 072:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000422200000000000000000000000
--- 073:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000042200000000000000000000000
--- 100:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099999999999999999999999999990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 101:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099999944f94f99999999994f999999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 102:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000999994f99444f44f94f4f444f99999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 103:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009999994f994f9944f44f994f999999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 104:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099999994f94f94f4f4f9994f999999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 105:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009999944f9994f444f4f99994f99999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 106:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f9999999999999999999999999999f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 107:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 110:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099999999999999999999999999999999999999990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 111:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099999944f9999999994f99999999944f9999999999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 112:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000999994f9994f944f9444f4f4f94f994f9944f99999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 113:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000999994f994f4f4f4f94f944f94f4f94f944f999999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 114:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000999994f994f4f4f4f94f94f994f4f94f9994f99999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 115:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099999944f94f94f4f994f4f9994f9444f44f999999000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 116:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f9999999999999999999999999999999999999999f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 117:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 000:eeeeeeeee8e2effe22e434e2342342f33ee342f33ee434e23422effe22e342f33ee2effe22ef23e323f434e2342342f33eeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eee8eeeeeee8eeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeeeeee8eeeeeeee8eeeeee8eeeeeeeeeeee8ee8eee
+-- 001:8eeeeeeeeeee342e43f223e4f2e33fe44fe33fe44fe223e4f2ee342e43f33fe44fee342e43ff24ee34e223e4f2e33fe44feeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeee
+-- 002:eeeee8eeeeee344eeeef3eeeefee24e42fee24e42fef3eeeefee344eeeee24e42fee344eeeeeeeeeeeef3eeeefee24e42feeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeee
+-- 003:eeeeeeeeeeeefeeee3feeee443eeeeeeeeeeeeeeeeeeeee443eefeeee3feeeeeeeeefeeee3fef24e42eeeee443eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee
+-- 004:eeeeeeeeeeee2f4e322f34e243ee43ee42fe43ee42ff34e243ee2f4e322e43ee42fe2f4e322ef44ef33f34e243ee43ee42fe8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8e
+-- 005:ee8eeeee8ee2432e434e22effe2f323e32ff323e32fe22effe22432e434f323e32f2432e434ee33f243e22effe2f323e32feeeeee8eeeeee8eeeeeee8eeeeeee8eee8eeeeeee8eeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeee8eee8eeeeeeeeeeee8eeeeeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeee
+-- 006:eeeeefef24eeefef24eeeeeeffeeeeeeffe42eeee2e42eeee2eeefef24eeefef24eefeee33442eeee2e42eeee2eeeeeeffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 007:eeef23e323ff23e323f2effe22e2effe22e342f33ee342f33eef23e323ff23e323f434e2342342f33ee342f33ee2effe22eee8eeeeeeeeeee8ee8eeeeeeee8eeeeee8eeeeeeeeeeee8eee8eeeeeeeeeee8eee8eeeeeee8eeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8ee
+-- 008:8eef24ee34ef24ee34ee342e43fe342e43f33fe44fe33fe44fef24ee34ef24ee34e223e4f2e33fe44fe33fe44fee342e43feeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 009:eeeeeeeeeeeeeeeeeeee344eeeee344eeeee24e42fee24e42feeeeeeeeeeeeeeeeef3eeeefee24e42fee24e42fee344eeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee76ee7
+-- 010:eeeef24e42eef24e42eefeeee3fefeeee3feeeeeeeeeeeeeeeeef24e42eef24e42eeeee443eeeeeeeeeeeeeeeeeefeeee3feeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8ee766e7
+-- 011:eeeef44ef33ef44ef33e2f4e322e2f4e322e43ee42fe43ee42fef44ef33ef44ef33f34e243ee43ee42fe43ee42fe2f4e322eeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeee766e7
+-- 012:ee8ee33f243ee33f2432432e4342432e434f323e32ff323e32fee33f243ee33f243e22effe2f323e32ff323e32f2432e434e8eeeeeeeeeee8eeeeeeeeeee8eeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeee8eee8eeeeeee8eeeeeeeeeeee8eeeeee8eee8eeeeeeeeeeee8ee8eeeeeee8eeeeeee8eeeeeee76e7
+-- 013:eeee2eeee24e2eeee24433eeefe433eeefee42fefeee42fefeee2eeee24e2eeee24effeeeeee42fefeee42fefee433eeefeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 014:eeeeefef24eefeee334efeee33442eeee2eeefef24eeefef24eeefef24e42eeee2e42eeee2e42eeee2eefeee334eefef24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 015:eeef23e323f434e2342434e2342342f33eef23e323ff23e323ff23e323f342f33ee342f33ee342f33ee434e2342f23e323feeeeeeeeee8eeeeeeeeeee8eeeeeeeeee8eeeeeee8eeeeeeee8eeeeeee8eeeeee8eeeeeeee8eeeeeee8eeeeeee8dceeeee8eeeeeee8eeeeee8eeeeeeeeeeee8ee8eeeeeee8eee
+-- 016:8eef24ee34e223e4f2e223e4f2e33fe44fef24ee34ef24ee34ef24ee34e33fe44fe33fe44fe33fe44fe223e4f2ef24ee34eeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeedccdeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeee
+-- 017:eeeeeeeeeeef3eeeefef3eeeefee24e42feeeeeeeeeeeeeeeeeeeeeeeeee24e42fee24e42fee24e42fef3eeeefeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeccccdeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeee
+-- 018:eeeef24e42eeeee443eeeee443eeeeeeeeeef24e42eef24e42eef24e42eeeeeeeeeeeeeeeeeeeeeeeeeeeee443eef24e42eeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeefcccceeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 019:eeeef44ef33f34e243ef34e243ee43ee42fef44ef33ef44ef33ef44ef33e43ee42fe43ee42fe43ee42ff34e243eef44ef33e8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeefdcfeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8e
+-- 020:ee8ee33f243e22effe2e22effe2f323e32fee33f243ee33f243ee33f243f323e32ff323e32ff323e32fe22effe2ee33f243eeeeee8ee8eeeeeeeeeee8eeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeffeee8eeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee
+-- 021:eeee2eeee24effeeeeeeffeeeeee42fefeee2eeee24e2eeee24e2eeee24e42fefeee42fefeee42fefeeeffeeeeee2eeee24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 022:eee42eeee2eeeeeeffeefeee334efeee33442eeee2e42eeee2eefeee334eeeeeffeeefef24eeeeeeffeeeeeeffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 023:eee342f33ee2effe22e434e2342434e2342342f33ee342f33ee434e23422effe22ef23e323f2effe22e2effe22ee8eeeeeeee8eeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eeeeeee8ee8eeeeeeeeeeee8eee8eeeeeeeeeeeeeeeeeeeeeee8eeeeee8eeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeee
+-- 024:eee33fe44fee342e43f223e4f2e223e4f2e33fe44fe33fe44fe223e4f2ee342e43ff24ee34ee342e43fe342e43feeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeee
+-- 025:eeee24e42fee344eeeef3eeeefef3eeeefee24e42fee24e42fef3eeeefee344eeeeeeeeeeeee344eeeee344eeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8ee
+-- 026:e8eeeeeeeeeefeeee3feeee443eeeee443eeeeeeeeeeeeeeeeeeeee443eefeeee3fef24e42eefeeee3fefeeee3feeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee
+-- 027:eeee43ee42fe2f4e322f34e243ef34e243ee43ee42fe43ee42ff34e243ee2f4e322ef44ef33e2f4e322e2f4e322eee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeee
+-- 028:eeef323e32f2432e434e22effe2e22effe2f323e32ff323e32fe22effe22432e434ee33f2432432e4342432e434eeeeeeeee8eeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeee8eee8eeeeeeeeeeee8eeeeeee8ee8eeeeeeeeeeeeeee8eeeeeeeeeeee8eeeeeee8ee8eeeeeeeeeee
+-- 029:eeee42fefee433eeefeeffeeeeeeffeeeeee42fefeee42fefeeeffeeeee433eeefee2eeee24433eeefe433eeefeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 030:eeeeeeeeeeeefeee33442eeee2eeeeeeffeefeee334efeee334efeee334efeee33442eeee2eeefef24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 031:eeeeeeeee8e434e2342342f33ee2effe22e434e2342434e2342434e2342434e2342342f33eef23e323fee8eeeeeee8eeeeeeeeeee8eee8eeeeee8eeeeeeeeeeee8eeecdcdeeee8eeeeee8eeeeeeee8eeeeee8eeeeeeee8eeeeeee8eeeeee8eeeeeeeeeeee8eeeeeeeeeeeeeee8eee8eeeeee8eeeeeeeeeee
+-- 032:8eeeeeeeeee223e4f2e33fe44fee342e43f223e4f2e223e4f2e223e4f2e223e4f2e33fe44fef24ee34eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeecdcdcdfeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeee8eeeee8
+-- 033:eeeee8eeeeef3eeeefee24e42fee344eeeef3eeeefef3eeeefef3eeeefef3eeeefee24e42feeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeecdcdcddfeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeee
+-- 034:eeeeeeeeeeeeeee443eeeeeeeeeefeeee3feeee443eeeee443eeeee443eeeee443eeeeeeeeeef24e42eeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeedcddddcfeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee
+-- 035:eeeeeeeeeeef34e243ee43ee42fe2f4e322f34e243ef34e243ef34e243ef34e243ee43ee42fef44ef33eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeefddddcffeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeee8eeeee8eee
+-- 036:ee8eeeee8eee22effe2f323e32f2432e434e22effe2e22effe2e22effe2e22effe2f323e32fee33f243e8eeeeeee8eeeeeeeeeee8eee8eeeeeeeeeeeeeeeeeee8eeeffffffee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeeee8eeeeee8eee8eeeeeeeeeeeeeeeeeee
+-- 037:eeeeeeeeeeeeffeeeeee42fefee433eeefeeffeeeeeeffeeeeeeffeeeeeeffeeeeee42fefeee2eeee24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 038:eeeeeeeeeee42eeee2eefeee334eeeeeffeeeeeeffeefeee334efeee33442eeee2eeefef24eeefef24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 039:eeeeeeeeeee342f33ee434e23422effe22e2effe22e434e2342434e2342342f33eef23e323ff23e323feeeeeeeeee8eeeeee8eeeeeeeeeeee8eee8eeeeeeeeeeeeeeeeeee8ee8eeeeeeee8eeeeeeeeeee8ee8eeeeeee8eeeeeee8eeeeeeeecdcdeee8eeeeeeeeeeee8eeeeeee8eeeeeee8ee8eeeeeeeeeee
+-- 040:eeeeeee8eee33fe44fe223e4f2ee342e43fe342e43f223e4f2e223e4f2e33fe44fef24ee34ef24ee34eeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eecdcdcdfeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeee
+-- 041:eeeeeeeeeeee24e42fef3eeeefee344eeeee344eeeef3eeeefef3eeeefee24e42feeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeecdcdcddfeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeee8ee
+-- 042:e8eeeeeeeeeeeeeeeeeeeee443eefeeee3fefeeee3feeee443eeeee443eeeeeeeeeef24e42eef24e42eeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeedcddddcfeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 043:eeee8eeeeeee43ee42ff34e243ee2f4e322e2f4e322f34e243ef34e243ee43ee42fef44ef33ef44ef33e8eeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeefddddcffeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee
+-- 044:eeeeeeeee8ef323e32fe22effe22432e4342432e434e22effe2e22effe2f323e32fee33f243ee33f243eeeeee8ee8eeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeeee8eeeeee8eeeeeeeeeee8eeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeffffffeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeee
+-- 045:eeeeeeeeeeee42fefeeeffeeeee433eeefe433eeefeeffeeeeeeffeeeeee42fefeee2eeee24e2eeee24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 046:eeeeeeeeeeeeeeeeeeeeefef24eefeee33442eeee2eeeeeeffeeeeeeffe42eeee2eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 047:eeeeeeeeeeeee8eeeeef23e323f434e2342342f33ee2effe22e2effe22e342f33eeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeecdcdeeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeee8eeeeeee8eeeeeee8ee8eeeeeeeeeee
+-- 048:8eeeeee8eeeeeeeeeeef24ee34e223e4f2e33fe44fee342e43fe342e43f33fe44feeeee8eeeeeeeee8eeeee8eeeeeeeee8eecdcdcdfeeeeeeeeeeee8eeeeeee8eeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeee
+-- 049:eeeeeeeeeeeeeeeeeeeeeeeeeeef3eeeefee24e42fee344eeeee344eeeee24e42feeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeecdcdcddfee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeee8ee
+-- 050:eeeeeeeeeeeeeeee8eeef24e42eeeee443eeeeeeeeeefeeee3fefeeee3feeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeedcddddcfeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 051:eeee8eeeeeeeeeeeeeeef44ef33f34e243ee43ee42fe2f4e322e2f4e322e43ee42fe8eeeeeeeee8eeeee8eeeeeeeee8eeeefddddcffeeeeeeeee8eeeeeee8eeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee
+-- 052:ee8eeeeee8ee8eeeeeeee33f243e22effe2f323e32f2432e4342432e434f323e32feeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeffffffeeeeee8eeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeee8ee8eeeeeeeeeeee8eeeeee8eee8eeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeee
+-- 053:eeeeeeeeeeeeeeeeeeee2eeee24effeeeeee42fefee433eeefe433eeefee42fefeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 054:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffe42eeee2eeefef24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 055:eeee8eeeeeeee8cdeeeeeeeee8e2effe22e342f33eef23e323fee8eeeeee8eeeeeeeeeeee8eee8eeeeeeeeeee8eee8eeeeee8eeeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeeeeeee8eeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeee8eeeeeeeeeee8ee8eeeeeee8eeeeeeee8eeeeeee8eeeeee8eeeeeeeeeee
+-- 056:ee8eeeeee8eeedccdeeeeeeeeeee342e43f33fe44fef24ee34eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeee8eeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeee
+-- 057:eeeeeeeeeeeedcccceeee8eeeeee344eeeee24e42feeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8ee
+-- 058:eeeeeeeeeeeeccccfeeeeeeeeeeefeeee3feeeeeeeeef24e42eeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee
+-- 059:eeeeee8eeeeefcdfeeeeeeeeeeee2f4e322e43ee42fef44ef33eeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeee8eeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee
+-- 060:eeeeeeeeeeee8ffeeeeeeeee8ee2432e434f323e32fee33f243e8eeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeee8eee8eeeeeeeeeeeeeee8eeeeeeeeeeee8eeeeee8eeeeeeee8ee8eeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8ee8eeeeeeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeee
+-- 061:eeeeeeeeeeeeeeeeeeeeeeeeeee433eeefee42fefeee2eeee24eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 062:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 063:ee8ee8eeeeeee8eeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeee8eeeeeeee8eeeeeeeeeee8eee8eeeeee8eeeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeee8ee8eeeeeeeeeeee8eeeeeee8ee8eeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 064:eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeee8eeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeee8ee6eeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeeeeeeeeeee8eeee67e8eeeeeee8eeeeeee8
+-- 065:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6e6ee6eeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee67ee67eeeeeeeeeeeee
+-- 066:eeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeee6e686eeeeeeeeeeeefbbfeceeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeee667e667eeeeeeeeeeeee
+-- 067:eeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeee8eeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeee8eeeeee6e6eeeeeeeeeeeeefb77bfbee8eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeeeeeeeeeee8eeeeeee667e667e8eeeeeee8eee
+-- 068:e8ee8eeeeeee8eeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeee8eeeeeee8eeeeeeeeee86e6eeeeeeee8eee8b7657beeeeeeeee8eeeeeeeeeeee8eeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeee8ee8eeeeeeeeeeee8eee67e67eeeeeee8eeeeee
+-- 069:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeebe77ebeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 070:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeececceceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee75
+-- 071:eeeee8eeeeeeeeeee8ee8eeeeeeeeeeeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeee8ee8eeeeeeeeeeee8eeeeeeeeeee8eeeeeee876eeeeeeeeeeeee2beeb2ee8eeeeeeeeeee8eee8eeeeee8eeeeeeeeeeeeeeee8eeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeee8ee8eeeeeeee8eeeeeee8eeeeeee752
+-- 072:8eeeeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeee7e76e76eeeee8eeee2eeccee2eeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeeeeeeeeeeeee8eeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeee75
+-- 073:eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeee677676eeeeeeeeeeee83ee3eeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6e
+-- 074:eeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eee67676eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eee5e67
+-- 075:eeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeee67676eee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeeeeeeeeeeeee8eeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeee5956e
+-- 076:ee8e8eeeeeeeeeee8eeeeeeeeeeeeeeee8eeeeeee8eeeeee8eee8eeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeee8ee8eeeeeee67676eeeeeeee8eeeeee8eee8eeeeeeeeeee8eee8eeeeeeeeeeeeeeeeeeee8ee8eeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeee8eeeeeee8eeeeeee576e
+-- 077:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee76e
+-- 078:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 079:eeee8eeeeeee8eeeeeeeeeeee8ee8eeeeeee8eeeeeee8eeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeee8eeeeeeeeee8eeeeeeeeeeeeeeeeeeffeeeeeeee8ee8eeeeeeee8eeeeeeeeeee8eeeeeee8ee8eeeeeeeeeeee8eeeeeee8eee8eeeeeee8eeeeeeeeeee8eee8eeeeeee8eeeeeee8eeeeeeeeee
+-- 080:eeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeee8eeeeeeffffeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8
+-- 081:eeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 082:e8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee
+-- 083:eeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeee8eeeeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eee
+-- 084:eeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeee8ee8eeeeeeeeeee8eeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeee8eeeeeeeeeee8eeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eee8eeeeeee8eeeeeeeeeee8eee8eeeeeee8eeeeeee8eeeeeeeeeee
+-- 085:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 086:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 087:eeeeeeeeeeeeeeeee8ee8eeeeeeeeeeeeeee8eeeeeeeeeeee8eee8eeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeee8eee8eeeeeee8eeeeeeeeeeeeeee8eeeeee8eeeeeeeeeeeeeeee8eeeeeee8eeeeee8eeeeeeeeeeee8ee8eeeeeeeedcdceeeeeeee8eeeeeee8ee8eeeeeeeeeeee8eeeeeee8eee8eeeeeeeeee
+-- 088:ee8eeee8eeeeeeeeeeeeeeeee8eeeee8eeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeee8eeeee8eeeeeeeee6eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8efdcdcdceeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 089:eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6ee6e6eeeeeeeeeeeeeeeeee8eeeeeeeeeeeeefddcdcdcee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8ee
+-- 090:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeee6e6e6eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeefcddddcdeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee
+-- 091:eeee8eeeeeeeeeeeeeeeee8eeeee8eeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeee8eeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeee8eeeee8eeeeeeeee6e6eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeffcddddfeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 092:eeeeeeeee8eeeeee8eeeeeeeeeeeeeeee8eeeeeeeeeeeeee8eee8eeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeee8eee8eeeeeee8eeeeeeeeeeee8ee8eeeeeeeeeeeeeeeeeeee8ee8e6e6eee8eeeeeeeeeeeeeeeeeee8eeeeeeeeeeeffffffeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeee8eee8eeeeeeeeeee
+-- 093:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+-- 094:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee00eeeeeeeeee0feeeeee0feee00e00ee00eeeeee00eeeeeeeeeeeeeeeeeeeeeeeeee
+-- 095:eeeeeeeee8eee8eeeeeee8eeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeee8ee8eeeeeeeeeeee8eeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeeeeefe00e00eee0e0fe0ee0e0fe0e0fee0effe00e00efe00e00eee8eeeeeee8eeeeeeeeee
+-- 096:8eeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeee8eeeeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eee0f0e00f00f0ee0000f0ee000e00feef00f0e00f00f0e00f0eeeeeeeeeeeeeeeeeeeee
+-- 097:eeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeee0eeefe0f0eeee0ef0eeee0eee0eeeeee0eeefe0e0eeefe0eeeeeeeeeeeeeeeeee8ee
+-- 098:eeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0eeeeeee0eee0eeee0feeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee
+-- 099:eeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeee8eeeeeee8eeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee00eee000feef00e0feef00e000ee0f0e00eee00e00eee00eeeeeeeeeeeeeeeeeeeee
+-- 100:ee8eeeee8eee8eeeeeee8eeeeeeeeeeee8eeeeee8eee8eeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeee8eeeeeeeeeeeeeee8eeeeeeee8ee8eeeeeee8eeeeeee8eeeeeeeeeeee8eeeeee8eeeeeeee8eeef0efe0fe0eef0efe0eef0e0ef0e0eeeef0efe0eef0efe0e8eeeeeee8eeeeeeeeeee
+-- 101:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0fe0fee00e00eee00e00eeef0eeeeeee0fe0feee0fe0feeeeeeeeeeeeeeeeeeeeee
+-- 102:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeceeeeee0fee00eeeeeef0ef0eeeeeee0fee00eeeeeef0ef0eeeeeee0feee00e00ee00eeeeeeeeee
+-- 103:eeeee8eeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eee8eeeeee8eeeeeeeeeeee8eeeeeee8eee8eeeeeeeeeeeeee8eeeeeee8eeeeeeee8eeeeeeeeeeeeeeeeeee8eeeeeeeeee8eeeeeeecfeecdeee0e0fe0fe00e00e0efe0feeee0e0fe0fe00e00e0efe0feeee0e0fe0e0fee0effe00e00eeeeee
+-- 104:eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeee8eedcedece0f0ee0000f0e00f000eee00e0f0ee0000f0e00f000eee00e0f0ee000e00feef00f0e00f0eeeee
+-- 105:eeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeceeeeeeef0eeee0ee0eeefe0eeeeeeeef0eeee0ee0eeefe0eeeeeeeef0eeee0eee0eeeeee0eeefe0ee8ee
+-- 106:e8eeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeedeeeeeeee0eeeeeeeeee0efeee0eeeeee0eeeeeeeeee0efeee0eeeeee0eee0eeee0feeeeeeeeeeeee
+-- 107:eeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeee8eeeeedcecfee0feef00ee00eee000f00e0f00feef00ee00eee000f00e0f00feef00e000ee0f0e00eee00eeeee
+-- 108:eeee8eeeeeeeeeeee8eeeeee8eeeeeee8eeeeeee8eeeeeee8eee8eeeeeeeeeeeeeeeeeee8eeeeeee8eee8eeeeeeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeeeeeeee8eeeeee8eeeeeeee8eeeeeeeeecdeeedeefe0eef0eeef0efe0e00e00effe0eef0eeef0efe0e00e00effe0eef0e0ef0e0eeeef0efe0eeeee
+-- 109:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeecdeeeeee00e00eeee0fe0feeeeee00ee00e00eeee0fe0feeeeee00ee00e00eeef0eeeeeee0fe0feeeeee
+-- 110:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeedcee00eeeeeef0ef0eee00eeeeee00eeeeeeeeee0fee00eeeeee00eeeeeef0ef0eeeeeee0feeeeee0fee00ee
+-- 111:eeeeeeeee8ee8eeeeeee8eeeeeeeeeeee8eee8eeeeeeeeeee8eee8eeeeee8eeeeeeeeeeee8eeeeeee8ee8eeeeeeee8eeeeeeeeeeeeee8eeeeeee8eeeeeeee8eeeeeee8eeeeeeeeeee8eeedeeedcfe00e00e0efe0feefe00e00efe00e00eee0e0fe0fe00e00efe00e00e0efe0feeee0e0fe0ee0e0fe0fe00e
+-- 112:8eeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeefcecde0f0e00f000eee00e0f0e00f00f0e00f00f0ee0000f0e00f00f0e00f000eee00e0f0ee0000f0ee0000f0e0
+-- 113:eeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeedeeeee0eeefe0eeeeeeeee0eeefe0e0eeefe0f0eeee0ee0eeefe0e0eeefe0eeeeeeeef0eeee0ef0eeee0ee0eee
+-- 114:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeceeeeeeee0efeee0eeeeeeeeeeeeeeeeeeeeee0eeeeeeeeeeeeeeeeee0efeee0eeeeee0eeeeeee0eeeeeee
+-- 115:eeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeee8eeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeecedecdee00eee000f00e0f0e00eee00e00eee000feef00ee00eee00e00eee000f00e0f00feef00e0feef00ee00ee
+-- 116:ee8eeeee8eeeeeeeeeeeeeeeeeeeeeee8eee8eeeeeeeeeee8eee8eeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeee8eeeeeeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeee8eeedceefceeef0efe0e00e00efeef0efe0eef0efe0fe0eef0eeef0efe0eef0efe0e00e00effe0eef0efe0eef0eeef0e
+-- 117:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeceeeeeeee0fe0feeeeee00eee0fe0feee0fe0fee00e00eeee0fe0feee0fe0feeeeee00ee00e00eee00e00eeee0fe
+-- 118:eeeeeeeeeeeee2ceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeceef0ef0eee00eeeeeee00e00eeeeee0feef0ef0eee00eeeeeeeeee0feef0ef0eeee00e00eef0ef0eee00eeeeeef0ef
+-- 119:eeee8eeeeeee232eeeeeeeeee8ee8eeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eee8eeeeeee8eeeeeeeeeee8eee8eeeeee8eeeeeeecfeecde0efe0feefe00e00ee0fee0efee0e0fe00efe0feefe00e00eee0e0fe00efe0feee0fee0ef0efe0feefe00e00e0efe0
+-- 120:ee8eeeeee8eee264eeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eedcedece00eee00e0f0e00f0e00feef00f0ee00000eee00e0f0e00f00f0ee00000eee00ee00feef000eee00e0f0e00f000eee
+-- 121:eeeeeeeeeeeeee454eeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeceeeeeeeeeeeeeeee0eeefe0ee0eeeeef0eeee0eeeeeeeeee0eeefe0f0eeee0eeeeeeeeeee0eeeeeeeeeeeeee0eeefe0eeeee
+-- 122:eeeeeeeeeeeeee648eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeedeee0efeee0eeeeeeeeee0eeee0feeeee0ee0efeee0eeeeeeeeeeeeee0ee0efeee0ee0eeee0f0efeee0eeeeeeeee0efee
+-- 123:eeeeee8eeeeee56eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeedcecfee0f00e0f0e00eee00000ee0f00feef00e0f00e0f0e00eee000feef00e0f00e0f0000ee0f00f00e0f0e00eee000f00e
+-- 124:eeeeeeeeeeee8e6eeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeeee8eeeeeee8eeeeee8eeeeeee8eeeeeee8eeeeeee8eee8eeeeeee8eeeeeeeeeee8eee8eeeeeeeeeeeeeecdeeedeee00e00efeef0efe00ef0e0eefe0eef0ee00e00efeef0efe0fe0eef0ee00e00ef0ef0e0eee00e00efeef0efe0e00e0
+-- 125:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeecdeeeeeeeeee00eee0fe0feef0eeeeee00e00eeeeeee00eee0fe0fee00e00eeeeeee00eef0eeeeeeeeee00eee0fe0feeeeee
+-- 126:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee00eeeeee00eeeeeee00e00ee00eeeeeef0ef0eeee00e00ee00eeeeee00eeeeee00eeeeeef0ef0eee00eeeeeef0ef
+-- 127:eeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeee8eeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeee8eee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeecdceeeeefe00e00efe00e00ee0fee0effe00e00e0efe0feee0fee0effe00e00efe00e00efe00e00e0efe0feefe00e00e0efe0
+-- 128:eeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeceeefde0f0e00f00f0e00f0e00feef00f0e00f000eee00ee00feef00f0e00f00f0e00f00f0e00f000eee00e0f0e00f000eee
+-- 129:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeededceee0eeefe0e0eeefe0ee0eeeeee0eeefe0eeeeeeeeee0eeeeee0eeefe0e0eeefe0e0eeefe0eeeeeeeee0eeefe0eeeee
+-- 130:e8eeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0eeee0feeeeeeee0efeee0ee0eeee0feeeeeeeeeeeeeeeeeeeeeeee0efeee0eeeeeeeee0efee
+-- 131:eeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeeeeeeeeeee8eeeeeeefceecede00eee00e00eee00000ee0f0e00eee000f00e0f0000ee0f0e00eee00e00eee00e00eee000f00e0f0e00eee000f00e
+-- 132:eeeeeeeee8ee8eeeeeeeeeeee8ee8eeeeeeeeeee8eeeeeeee8ee8eeeeeeeeeeee8ee8eeeeeeeeeee8eee8eeeeeee8eeeeeee8eeeeeeeeeeee8eeeeeee8ee8eeeeeeeeeeee8eecdeeddceef0efe0eef0efe00ef0e0eeeef0efe0e00e00ef0ef0e0eeeef0efe0eef0efe0eef0efe0e00e00efeef0efe0e00e0
+-- 133:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeceeceee0fe0feee0fe0feef0eeeeeee0fe0feeeeee00eef0eeeeeee0fe0feee0fe0feee0fe0feeeeee00eee0fe0feeeeee
+-- 134:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeedceeeeeedceee00e00eee00e00eee00e00ee00eeeeeef0ef0eeee00e00eeeeee0feee00e00eeeeee0feef0ef0eeee00e00ee00ee
+-- 135:eeee8eeeeeeeeeeee8eeeeeee8ee8eeeeeee8eeeeeeee8eeeeeeeeeeeeeeeeeeeeeeeeeee8eeeeeee8eeeeeee8eeeeeee8eee876eeeeeeeee8ee8eeeeeee8eeeeeeeedeeedceedeeedce0fee0efe0fee0efe0fee0effe00e00e0efe0feee0fee0efee0e0fe0e0fee0efee0e0fe00efe0feee0fee0effe00e
 -- </SCREEN>
 
 -- <PALETTE>
 -- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6eaeef2b6baba8d8d8d444455282030
+-- 001:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6eaeef2b6baba8d8d8d444455282030
 -- </PALETTE>
 
 -- <PALETTE1>
@@ -2400,7 +2689,7 @@ end
 -- </PALETTE2>
 
 -- <PALETTE3>
--- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6e6eaf2b6baba8d8d9d444460282038
+-- 000:1010105d245db13e50ef9157ffff6daee65061be3c047f5005344c185dc95999f6eaeef2b6baba8d8d8d444455282030
 -- </PALETTE3>
 
 -- <PALETTE4>

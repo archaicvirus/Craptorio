@@ -99,11 +99,11 @@ local Drill = {
   drawn = false,
   updated = false,
   idle = false,
-  id = 13,
+  item_id = 13,
 }
 
 function Drill:draw_hover_widget()
-  local sx, sy, w, h = cursor.x + 3, cursor.y + 3, 50, 50
+  local sx, sy, w, h = clamp(cursor.x + 3, 1, 240 - 51), clamp(cursor.y + 3, 1, 136 - 51), 50, 50
   ui.draw_panel(sx, sy, w, h, UI_BG, UI_FG, 'Mining Drill', 0)
   box(sx + w/2 - 4, sy + h/2 - 4, 10, 10, 0, UI_FG)
   if self.output and self.output.count > 0 then
@@ -118,8 +118,8 @@ function Drill:open()
   return {
     x = 240 - 83 - 2,
     y = 1,
-    w = 83,
-    h = 46,
+    w = 58,
+    h = 50,
     ent_key = self.pos.x .. '-' .. self.pos.y,
     close = function(self, sx, sy)
       local btn = {x = self.x + self.w - 9, y = self.y + 1, w = 5, h = 5}
@@ -129,13 +129,13 @@ function Drill:open()
       return false
     end,
     draw = function(self)
-      local txt = ITEMS[ENTS[self.ent_key].id].fancy_name
+      local txt = ITEMS[ENTS[self.ent_key].item_id].fancy_name
       local ent = ENTS[self.ent_key]
       ui.draw_panel(self.x, self.y, self.w, self.h, UI_BG, UI_FG, 'Mining Drill', UI_SH)
       --box(self.x, self.y, self.w, self.h, 8, 9)
       --rect(self.x + 1, self.y + 1, self.w - 2, 9, 9)
       --close button
-      sspr(CLOSE_ID, self.x + self.w - 9, self.y + 2, 15)
+      sspr(CLOSE_ID, self.x + self.w - 7, self.y + 2, 15)
       box(self.x + self.w/2 - 5, self.y + 20, 10, 10, 0, 9)
         if ent.output.count > 0 then
           draw_item_stack(self.x + self.w/2 - 4, self.y + 21, {id = ent.output.id, count = ent.output.count})
@@ -154,7 +154,6 @@ function Drill:open()
         return true
       end
       if hovered(cursor, {x = self.x + self.w/2 - 5, y = self.y + 20, w = 10, h = 10}) then
-          -- ui.highlight(self.x + 13 + (i - 1)*13, self.y + 49, 10, 10, false, 3, 4)
         if cursor.l and not cursor.ll then
           --item interaction
           if cursor.type == 'pointer' then
@@ -168,7 +167,6 @@ function Drill:open()
                 return true
               end
             else
-
               if ent.output.count > 0 then
                 cursor.type = 'item'
                 cursor.item_stack.id = ent.output.id
@@ -177,28 +175,6 @@ function Drill:open()
                 return true
               end
             end
-          -- elseif cursor.type == 'item' then
-          --   local stack_size = ITEMS[ent.output.id].stack_size
-          --   if cursor.item_stack.id == ent.output.id or ent.output.id == 0 then
-          --     if ent.output.id == 0 or ent.output.count == 0 then
-          --       ent.output.count = ent.output.count + cursor.item_stack.count
-          --       cursor.type = 'pointer'
-          --       cursor.item_stack.id = 0
-          --       cursor.item_stack.count = 0
-          --       return true
-          --     end
-          --     if ent.output.count + cursor.item_stack.count <= stack_size then
-          --       ent.output.count = ent.output.count + cursor.item_stack.count
-          --       cursor.type = 'pointer'
-          --       cursor.item_stack.id = 0
-          --       cursor.item_stack.count = 0
-          --       return true
-          --     elseif ent.output.count + cursor.item_stack.count > stack_size then
-          --       local old_count = ent.output.count
-          --       ent.output.count = stack_size
-          --       cursor.item_stack.count = cursor.item_stack.count - (stack_size - old_count)
-          --     end
-          --   end
           end
         end
       end
@@ -255,15 +231,26 @@ function Drill.update(self)
 
     --if TICK % 60 == 0 then trace(tostring(ENTS[self.output_key] and ENTS[self.output_key].type or 'nil')) end
     --check for other ents
-    if self.output.count > 0 and ENTS[self.output_key] and ENTS[self.output_key].type == 'transport_belt' then
-      local output = DRILL_BELT_OUTPUT_MAP[self.rot][ENTS[self.output_key].rot]
-      if output then
-        
-        if ENTS[self.output_key].lanes[output.lane][output.slot] == 0 then
-          --trace('drill @ ' .. self.pos.x .. ',' .. self.pos.y .. ' outputting to belt @ ' .. self.output_key)
-          ENTS[self.output_key].lanes[output.lane][output.slot] = self.ore_id
-          self.output.count = self.output.count - 1
-          if self.output.count < 1 then self.output.id = 0 end
+    if self.output.count > 0 and ENTS[self.output_key] then
+      if ENTS[self.output_key].type == 'transport_belt' or
+      ENTS[self.output_key].type == 'underground_belt' or
+      ENTS[self.output_key].type == 'underground_belt_exit' then
+        local output = DRILL_BELT_OUTPUT_MAP[self.rot][ENTS[self.output_key].rot]
+        if output then
+          if ENTS[self.output_key].type == 'underground_belt_exit' then
+            if ENTS[ENTS[self.output_key].other_key].exit_lanes[output.lane][output.slot] == 0 then
+              --trace('drill @ ' .. self.pos.x .. ',' .. self.pos.y .. ' outputting to belt @ ' .. self.output_key)
+              ENTS[ENTS[self.output_key].other_key].exit_lanes[output.lane][output.slot] = self.output.id
+              self.output.count = self.output.count - 1
+              if self.output.count < 1 then self.output.id = 0 end
+              return
+            end
+          elseif ENTS[self.output_key].lanes[output.lane][output.slot] == 0 then
+            --trace('drill @ ' .. self.pos.x .. ',' .. self.pos.y .. ' outputting to belt @ ' .. self.output_key)
+            ENTS[self.output_key].lanes[output.lane][output.slot] = self.output.id
+            self.output.count = self.output.count - 1
+            if self.output.count < 1 then self.output.id = 0 end
+          end
         end
       end
     end
@@ -314,6 +301,43 @@ function Drill.draw(self)
   -- --draw the output belt
   -- local pos3 = DRILL_BELT_MAP[self.rot]
   -- spr(DRILL_BELT_ID + DRILL_ANIM_TICK, self.pos.x + pos3.x - 4, self.pos.y + pos3.y - 4, 0, 1, 0, self.rot, 1, 1)
+end
+
+function Drill:return_all()
+  if self.output.count > 0 then
+    local result, stack = inv:add_item({id = self.output.id, count = self.output.count})
+    if stack.count < self.output.count then
+      sound('deposit')
+      ui.new_alert(cursor.x, cursor.y, '+ ' .. self.output.count - stack.count .. ' ' .. ITEMS[self.output.id].fancy_name, 1000, 0, 6)
+    end
+    self.output.count = stack.count
+  end
+end
+
+function Drill:deposit()
+  return false
+end
+
+function Drill:request_deposit()
+  return false
+end
+
+function Drill:item_request(id)
+  trace('DRILL: requested item id = ' .. tostring(id))
+  if self.output.count < 1 then return false end
+  if self.output.id == id or id == 'any' or
+  (id == 'ore' and ITEMS[self.output.id].type == 'ore') or
+  (id == 'fuel' and ITEMS[self.output.id].type == 'fuel') then
+    self.output.count = self.output.count - 1
+    return self.output.id
+  end
+  return false
+end
+
+function return_all()
+  if self.output.count > 0 then
+    return {id = self.output.id, count = self.output.count}
+  end
 end
 
 function new_drill(pos, rot, tiles)

@@ -22,7 +22,7 @@ TECH = {
     time = 3,
     tier = 1,
     science_packs = {
-      {id = 23, count = 1},
+      {id = 23, count = 6},
     },
     required_tech = {},
     item_unlocks = {18, 10, 11},

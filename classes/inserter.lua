@@ -95,6 +95,29 @@ function Inserter.can_deposit(self, other, item_id)
   return false
 end
 
+function Inserter:request_deposit()
+  if not self.state == 'wait' or self.held_item_id ~= 0 then return false end
+  return 'any'
+end
+
+function Inserter:deposit(id)
+  if self.state == 'wait' and self.held_item_id == 0 then
+    self.held_item_id = id
+    self.state = 'send'
+    return true
+  end
+  return false
+end
+
+function Inserter:item_request(id)
+  if not self.recipe then return false end
+  if self.output.count > 0 and (self.output.id == id or id == 'any') then
+    self.output.count = self.output.count - 1
+    return self.output.id
+  end
+  return false
+end
+
 function Inserter.set_output(self)
   local from, to = INSERTER_GRAB_OFFSETS[self.rot].from, INSERTER_GRAB_OFFSETS[self.rot].to
   self.from_key = self.pos.x + from.x .. '-' .. self.pos.y + from.y
@@ -118,7 +141,7 @@ function Inserter.update(self)
     self.to_key = ENTS[to].other_key
     to = self.to_key
   end
-  if not ENTS[from] or not ENTS[to] then return end
+  if not ENTS[from] and not ENTS[to] then return end
 
   if self.state == 'send' then
     self.anim_frame = self.anim_frame - 1
@@ -126,10 +149,15 @@ function Inserter.update(self)
       self.anim_frame = 1
       --try to deposit item
       --trace('looking for output')
-      if ENTS[to] then ENTS[to]:deposit(self.held_item_id, self.rot) end
-      self.state = 'return'
-      self.held_item_id = 0
-      return
+      if ENTS[to] then
+        if ENTS[to]:deposit(self.held_item_id, self.rot) then
+          self.state = 'return'
+          self.held_item_id = 0
+          return
+        end
+      else
+        return
+      end
 
       -- if ENTS[to].type == 'transport_belt' then
       --   ENTS[to].idle = false
@@ -210,10 +238,10 @@ function Inserter.update(self)
     end
   elseif self.state == 'wait' then
     if not ENTS[to] or not ENTS[from] then return end
-    local desired_item = ENTS[to]:request_deposit()
+    local desired_item = ENTS[to]:request_deposit(self)
     --if desired_item then trace('inserter: desired item = ' .. tostring(ITEMS[desired_item].fancy_name)) end
     if not desired_item then return end
-    local retrieved_item = ENTS[from]:item_request(desired_item)
+    local retrieved_item = ENTS[from]:item_request(desired_item, self)
     --if retrieved_item ~= false then trace('inserter: retrieved_item = ' .. tostring(ITEMS[retrieved_item].fancy_name or false)) end
     if not retrieved_item then return end
     if ENTS[to].assign_delivery then ENTS[to]:assign_delivery(retrieved_item) end
