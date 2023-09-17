@@ -31,6 +31,7 @@ Furnace = {
   smelt_timer = 0,
   ore_type = false,
   is_smelting = false,
+  tickrate = 5,
 }
 
 function Furnace:draw_hover_widget()

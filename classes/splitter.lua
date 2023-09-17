@@ -63,7 +63,8 @@ local Splitter = {
   updated = false,
   --other_key = 'nil',
   drawn = false,
-  item_id = 10
+  item_id = 10,
+  tickrate = 5,
 }
 
 function Splitter:draw_hover_widget()

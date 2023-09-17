@@ -100,6 +100,7 @@ local Drill = {
   updated = false,
   idle = false,
   item_id = 13,
+  tickrate = 5,
 }
 
 function Drill:draw_hover_widget()

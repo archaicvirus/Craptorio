@@ -16,7 +16,7 @@ ITEMS = {
       crafting_time = 60*6,
       count = 1,
       ingredients = {
-        [1] = {id = 21, count = 2}, --copper_cable
+        [1] = {id = 21, count = 4}, --copper_cable
         [2] = {id = 2, count = 2}, --green_circuit
         [3] = {id = 5, count = 2}, --plastic_bar
       },

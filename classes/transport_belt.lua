@@ -26,7 +26,8 @@ local Belt = {
   is_hovered = false,
   index = 0,
   curve_checked = false,
-  item_id = 9
+  item_id = 9,
+  tickrate = 5,
 }
 
 BELT_OUTPUT_MAP = {

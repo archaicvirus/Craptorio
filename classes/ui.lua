@@ -970,8 +970,9 @@ function rectr(x,y,w,h,bg,fg,b)
   end
 end
 
-function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
+function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height, skip)
   if not width then width, height = tile_w*8, tile_h*8 end
+  skip = skip or {false, false}
   -- Calculate the sprite's UV coordinates
   local spriteX = sprite_id % 16 * 8
   local spriteY = math.floor(sprite_id / 16) * 8
@@ -979,28 +980,32 @@ function tspr(sprite_id, tile_w, tile_h, sx, sy, ck, width, height)
   local spw = tile_w * 8
   local sph = tile_h * 8
   -- Draw the sprite using two textured triangles
-  ttri(
-    sx, sy, 
-    sx + width, sy, 
-    sx, sy + height, 
-    spriteX, spriteY, 
-    spriteX + spw, spriteY, 
-    spriteX, spriteY + sph,
-    ck
-  )
+  if not skip[1] then
+    ttri(
+      sx, sy, 
+      sx + width, sy, 
+      sx, sy + height, 
+      spriteX, spriteY, 
+      spriteX + spw, spriteY, 
+      spriteX, spriteY + sph, 0,
+      ck
+    )
+  end
   
-  ttri(
-    sx + width, sy, 
-    sx, sy + height, 
-    sx + width, sy + height, 
-    spriteX + spw, spriteY, 
-    spriteX, spriteY + sph, 
-    spriteX + spw, spriteY + sph,
-    ck
-  )
+  if not skip[2] then
+    ttri(
+      sx + width, sy, 
+      sx, sy + height, 
+      sx + width, sy + height, 
+      spriteX + spw, spriteY, 
+      spriteX, spriteY + sph, 
+      spriteX + spw, spriteY + sph, 0,
+      ck
+    )
+  end
 end
 
-function rspr(id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot)
+function rspr(id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot, skip)
   colorkey = colorkey or -1
   sx = sx or 1
   sy = sy or 1
@@ -1009,6 +1014,7 @@ function rspr(id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot)
   w = w or 1
   h = h or 1
   pivot = pivot or vec2(4, 4)
+  skip = skip or {false, false}
 
   -- Draw a sprite using two textured triangles.
   -- Apply affine transformations: scale, shear, rotate, flip
@@ -1060,9 +1066,12 @@ function rspr(id, x, y, colorkey, sx, sy, flip, rotate, w, h, pivot)
   v1 = math.floor(id / 16) * 8
   u2 = u1 + w * 8
   v2 = v1 + h * 8
-
-  ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v1, u1, v2, 0, colorkey)
-  ttri(x3, y3, x4, y4, x2, y2, u1, v2, u2, v2, u2, v1, 0, colorkey)
+  if not skip[1] then
+    ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v1, u1, v2, 0, colorkey)
+  end
+  if not skip[2] then
+    ttri(x3, y3, x4, y4, x2, y2, u1, v2, u2, v2, u2, v1, 0, colorkey)
+  end
 end
 
 function get_hovered_slot(x, y, grid_x, grid_y, grid_size, rows, cols)
@@ -1109,17 +1118,17 @@ function ui.draw_button(x, y, flip, id, color, shadow_color, hover_color)
   return false
 end
 
-function ui.draw_text_button(x, y, id, width, height, main_color, shadow_color, hover_color, label)
+function ui.draw_text_button(x, y, id, width, height, main_color, shadow_color, hover_color, label, locked)
   width, height = width or 8, height or 8
   main_color, shadow_color, hover_color = main_color or BTN_MAIN, shadow_color or UI_SHADOW, hover_color or BTN_HOVER
   if label then
     local w = text_width(label.text)
-    if w  + 2 > width then
+    if w + 2 > width then
       width = w + 2
     end
   end
   local _mouse, _box, ck, p = {x = cursor.x, y = cursor.y}, {x = x, y = y, w = width, h = height}, 1, {BTN_PRESS, main_color, BTN_SHADOW, shadow_color, BTN_MAIN, main_color}
-  local hov = hovered(_mouse, _box)
+  local hov = not locked and hovered(_mouse, _box)
   if hov and not cursor.l then
     p = {BTN_SHADOW, shadow_color, BTN_MAIN, hover_color, BTN_PRESS, hover_color}
   elseif hov and cursor.l then
@@ -1131,10 +1140,10 @@ function ui.draw_text_button(x, y, id, width, height, main_color, shadow_color, 
     [2] = {x1 =  x, y1 = y, x2 =  x + width, y2 = y}
   }
   if label and width > 8 then
-    if hov and not cursor.l then
+    if not locked and hov and not cursor.l then
       rect(x + 4, y, width - 8, height - 1, hover_color)
       line(x + 4, y + height - 1, x + width - 4, y + height - 1, shadow_color)
-    elseif hov and cursor.l then
+    elseif not locked and hov and cursor.l then
       rect(x + 4, y + 1, width - 8, height - 1, hover_color)
       label.y = label.y + 1
     else

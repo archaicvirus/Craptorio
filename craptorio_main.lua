@@ -33,7 +33,8 @@ require('classes/storage_chest')
 require('classes/refinery')
 require('classes/rocket_silo')
 
-local seed = tstamp() * time()
+--local seed = tstamp() * time()
+local seed = 172046262608.13
 --seed = math.random(-1000000000, 1000000000)
 --local seed = 902404786
 --local seed = 747070313
@@ -65,6 +66,8 @@ CURSOR_GRAB_ID = 321
 WATER_SPRITE = 224
 CURSOR_MINING_SPEED = 50
 technology = {}
+rockets = {}
+launched = false
 
 cursor = {
   x = 8,
@@ -102,7 +105,7 @@ cursor = {
 }
 
 player = {
-  x = 0, y = 0,
+  x = 100*8, y = 50*8,
   spr = 362,
   lx = 0, ly = 0,
   shadow = 382,
@@ -543,11 +546,11 @@ end
 --------------------------------------------------------------------------------------
 
 function spawn_player()
-  local tile = get_world_cell(116, 76)
+  local tile = get_world_cell(player.x, player.y)
   if not tile.is_land then
     while tile.is_land == false do
       player.x = player.x + 1
-      tile = get_world_cell(116, 76)
+      tile = get_world_cell(player.x, player.y)
     end
   end
 end
@@ -1358,14 +1361,30 @@ function toggle_crafting(force)
 end
 
 function update_ents()
-  if TICK % 5 == 0 then
-    for k, v in pairs(ENTS) do
-      if v.update then v:update() end
-      -- if vis_ents[v.type] then
-      --   v:update()
-      -- end
+  -- if TICK % 5 == 0 then
+  --   for k, v in pairs(ENTS) do
+  --     if v.update then v:update() end
+  --     -- if vis_ents[v.type] then
+  --     --   v:update()
+  --     -- end
+  --   end
+  -- end
+  for k, v in pairs(ENTS) do
+    if v.update and TICK % v.tickrate == 0 then
+      v:update()
     end
   end
+end
+
+function update_rockets()
+  for k, rocket in pairs(rockets) do
+    rocket:update()
+    rocket:draw()
+  end
+end
+
+function first_launch()
+  trace('You won!')
 end
 
 function draw_ents()
@@ -1581,7 +1600,7 @@ function TIC()
     if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
   end
   if show_tech then draw_research_screen() end
-  -- if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
+  if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
   if show_tile_widget and not ENTS[k] then draw_tile_widget() end
   if current_recipe.id > 0 then
     show_recipe_widget()
@@ -1604,7 +1623,10 @@ function TIC()
   -- end
   -- local tx, ty = get_screen_cell(cursor.x, cursor.y)
   -- rectb(tx, ty, 8, 8, 9)
-
+  --tspr(323, 1, 1, 120, 68, 0, 8, 8)
+  update_rockets()
+  --tspr(280, .6, .6, 120, 68, 0, 5, 5, {false, true})
+  --rspr(280, 10, 10, 0, 1, 1, 0, 0, 0.625, 0.625, vec2(1,1), {false, false})
   TICK = TICK + 1
 end
 
@@ -2115,7 +2137,7 @@ end
 -- 021:00fff00000fdcf0000fe43f000f43ddf00f43ccf00fc43df00efcdcf00fffff0
 -- 022:000fff0000fcdf000fe43f00fd43df00fc43cf00fdc43f00fcdcfe000fffff00
 -- 023:e4f000004df00000d4f000000000000000000000000000000000000000000000
--- 024:6560000034500000654000000000000000000000000000000000000000000000
+-- 024:6560099934500999654009990000000000000000222004442220044422200444
 -- 025:0300000034300000030000000000000000000000000000000000000000000000
 -- 026:cd111111dcd111111dc111111111111111111111111111111111111111111111
 -- 027:44444444444ef04444f000444400f0044f000004400f00f444f00f4444444444
@@ -2195,10 +2217,10 @@ end
 -- 110:00300300200330022bceecb202bddb20ebdccdb00cb77bc00f7557f000feef00
 -- 112:1111111111bcddf11bcedddf1cedddcc1ddddcbb1dddcbcc1fdcbcdd11fcbcdd
 -- 113:111111111111111111bbbbbbbbcccdddccbcdddddddbccddddddbbbbcccccccc
--- 114:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
--- 115:edde1111d00d1111edde11111ee111111dd111111dd1111b1dd111be1dd111b0
--- 116:eddedddedddedddedd111111ee111111dd111111bbb1111100eb1111b00bdbbd
--- 117:dde11111ddd111111dd111111ee111111dd111111dd111111dd111111dd11111
+-- 114:cdcdcdcdbbbdbbbdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdbbbdbbbdcdcdcdcd
+-- 115:edde1111d00d1111edde11111ef111111cd111111dd1111b1cd111bd1dd1efb0
+-- 116:1ccfcccfcddedddecd111111ef111111cdefefefbbbfefef00db1111b00bdbc1
+-- 117:cc111111ddc111111dd111111ef11111eddfe111ecdffe111cd1ff111dd1ee11
 -- 118:e1bb1111dbd0bed1eb00b1e1d1cc11d1ebbbbbb1bd00000bb000000b1bbbbbb1
 -- 119:00000000bbbbbbbbbcccdeebbccdcddbb67c2eebb56d34cbbbbbbbbb00000000
 -- 120:bde00000d2d000005d3000000000000000000000000000000000000000000000
@@ -2211,9 +2233,9 @@ end
 -- 128:111bcdcc111bc40411bcd40411bcd04011bcd04011bcd40411bcd40411bcd040
 -- 129:1111111111111111111111111111111111111111111111111111111111111111
 -- 130:ccbbbbcccecdcdecb40dc04bb04dc40bb40dc04bb04dc40bcecdcdecccbbbbcc
--- 131:1dd111b01dd111be1dd1111b1dd111111dd111ce1dd11cbb1dd1cbbb1dd1cbeb
--- 132:000bdbbb00eb11bbbbb111bbdd1111bbddeccebbeebbbbeebbbbbbbbdddddddd
--- 133:1dd111111dd111111ee111111dd11111ebbc1111bbbbc111bbbbbc11ddbebc11
+-- 131:1cdeffb01cdff1bd1cdee11b1ddff1111cdee1ce1ddffcbb1cdecbbb1ddfcbeb
+-- 132:000bdbbc00db11bbbbb111bbdd1111bbddecceddeebbbbeebbbbbbbbbddddddd
+-- 133:1cd1ff111dd1ee111ef1ff111dd1ee11ecccff11bbbbce11bbbbbc11dbbebc11
 -- 134:bcb11111c0c11111bcb111111111111111111111111111111111111111111111
 -- 135:00ceec000ce33ec00de34ed00de44ed00de33ed00ddeedd00ccddcc000cccc00
 -- 138:111111dd1111ddcc111dcccc11dccccc11dccccc1dcccccc1bddcccc1bbbdddd
@@ -2225,9 +2247,9 @@ end
 -- 144:00bbbb000bccccb0bcdd22cbbc9d66cbbc99ddcb0bccccb00dbbbbd00edccde0
 -- 145:cd2000009b600000d9d000000000000000000000000000000000000000000000
 -- 146:bdb000004c400000bdb000000000000000000000000000000000000000000000
--- 147:1ee1cbbd1dd1cbbd1ddecbbd1dddcbbd1eddcbeb11111bbb111111bb11111111
--- 148:d000000000b0000000000000d0000000ddddddddbbbbbbbbbbbbbbbb11111111
--- 149:0ddbbc1100dbbc1100dbbc110ddbbc11ddbebc11bbbbb111bbbb111111111111
+-- 147:1cdecbbb1cdfcbbd1ddecbbd1cddcbbb11cdcbeb11111cbb111111cc11111111
+-- 148:d000000000b0000000000000d0000000bdddddddbbbbbbbbcccccccc11111111
+-- 149:0dbbbc1100dbbc1100dbbc110dbbbc11dbbebc11bbbbc111cccc111111111111
 -- 150:0000000000c423320c43cdcc0ccccdcd0dc432330d4221220c31cccc0c21deee
 -- 151:00000d003000d0d03323edf0feedeef02332eff01221eef0eddceffddddceefd
 -- 154:1bbbbbbb1bbbbbbb1bbbbbbb1bbbbddd1bbbdcee1bbbdeee1bbbbddd1bbbbbbb
@@ -2270,8 +2292,8 @@ end
 -- 199:000000000bd00000bbbd00000bbbd00000bbbd00000bbbd00000bd0000000000
 -- 200:0666666734444466666664663444644466646666006444440066666600000000
 -- 201:0222222134444422222224223444244422242222002444440022222200000000
--- 202:1bbbbbbb1bbbbbbb1bbbbbbb1ebbbbbb1febbbbb11feebbb111ffeee11111fff
--- 203:bbbbbbb1bbbbbbb1bbbbbbb1bbbbbbe1bbbbbef1bbbeef11eeeff111fff11111
+-- 202:1bbbbbbb1bbbbbbb1bbbbbbb1ebbbbbb1febbbbb11feebbb111ffebb11111fee
+-- 203:bbbbbbb1bbbbbbb1bbbbbbb1bbbbbbe1bbbbbef1bbbeef11bbeff111eef11111
 -- 204:000cc000000ff0000002200000d32d000d3222d00c2232c00d2222d000dd3d00
 -- 205:000cc000000ff0000006700000d56d000d5666d00c6656c00d6666d000d77d00
 -- 206:000cc000000ff000000ee00000dffc000cf4ffc00dffefc00dffffe000ceec00
@@ -2286,14 +2308,17 @@ end
 -- 215:bb000000bbb000000bd000000000000000000000000000000000000000000000
 -- 216:0999999834444499999994993444944499949999009444440099999900000000
 -- 217:0ccccccd344444ccccccc4cc3444c444ccc4cccc00c4444400cccccc00000000
--- 218:111111ef1111110011111eee11111fff11110000111fff0f11fe0000111feeee
--- 219:fe11111100111111eee11111fff11111000011110f0f01110000ef11eeeef111
+-- 218:111111cd111111de11111ee011111f0011110000111feeee11fe0000111fefef
+-- 219:dc111111ed1111110ee1111100f1111100001111eeee01110000ef11efeef111
+-- 220:0000234300002324000002340000024300000223000020320000002300000002
+-- 221:4432000043220000242000004320000042340000322000002400000032000000
 -- 225:6066666600066666f0f666666666666666666666666666666666666666666666
 -- 226:6660666666000666660f066660e0006660000066600000666600066666666666
 -- 227:111111111bb11bb1ddddddddcccccccccedededccedededcceeeeeeccccccccc
 -- 228:dbe11111dee11111ccc111111111111111111111111111111111111111111111
 -- 232:66666cff66666cf06666fcf06666fcff666cfcee666cfeee664cffff664ce000
 -- 233:ff0666660ff666660f006666fff06666ee0fe666eee0e666ffffe266000fe266
+-- 237:2000000000000000000000000000000000000000000000000000000000000000
 -- 246:6e666666431666664f2666666666666666666666666666666666666666666666
 -- 247:666ff66666cffe6666cdde6664deed266433232644222222432ff212432ff212
 -- 248:644cedde644eddde444e1122443233ee443233e043222ee043233ec066233ec0

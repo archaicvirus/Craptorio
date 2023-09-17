@@ -2,6 +2,7 @@ ROCKET_SILO_ID = 368
 ROCKET_DOOR_ID = 370
 ROCKET_ID = 394
 ROCKET_CRAFT_TIME = 100
+ROCKET_FX_ID = 476
 
 local Silo = {
   x = 0,
@@ -19,6 +20,8 @@ local Silo = {
   wait = 0,
   delay = 200,
   requests = {},
+  rocket = {},
+  tickrate = 5,
 }
 
 function Silo:draw()
@@ -28,9 +31,12 @@ function Silo:draw()
   spr(ROCKET_SILO_ID, sx, sy, 1, 1, 0, 0, 2, 2)
   spr(ROCKET_SILO_ID, sx + 16, sy, 1, 1, 1, 0, 2, 2)
   
-  if self.state == 'raise' then
-    clip(sx + 8, (sy + 24) - 56, 16, 56)
+  if self.state == 'raise' or self.state == 'launch' then
+    clip(sx + 8, (sy + 24) - 72, 16, 72)
     spr(ROCKET_ID, sx + 8, sy + 16 - self.anim_frame, 1, 1, 0, 0, 2, 6)
+    if self.state == 'launch' then
+      rocket_fx(sx + 8, (sy + 16 - self.anim_frame) + 46)
+    end
     clip()
   end
 
@@ -45,7 +51,7 @@ function Silo:draw()
   
   clip(sx + 8, sy + 8, 16, 16)
   local offset = ((self.state == 'opening' or self.state == 'closing' or self.state == 'launch_ready') and self.anim_frame) or 0
-  if self.state == 'raise' then offset = 8 end
+  if self.state == 'raise' or self.state == 'launch' then offset = 8 end
   for y = 0, 1 do
     for x = 0, 1 do
       if x == 0 then
@@ -58,9 +64,18 @@ function Silo:draw()
   clip()
   if self.state == 'launch_ready' then
     clip(sx + 8, (sy + 24) - 56, 16, 56)
-    spr(ROCKET_ID, sx + 8, (sy + 16) - 32, 1, 1, 0, 0, 2, 6)
+    spr(ROCKET_ID, sx + 8, sy - 16, 1, 1, 0, 0, 2, 6)
     clip()
   end
+  if self.state == 'launch' and self.anim_frame < 56 then
+    local d = 4
+    poke(0x3FF9,math.random(-d,d))
+    poke(0x3FF9+1,math.random(-d,d))
+  end
+
+  -- if self.state == 'launch' then
+  --   spr(ROCKET_ID, sx + 8, sy - 16 - self.anim_frame, 1, 1, 0, 0, 2, 1)
+  -- end
 end
 
 function Silo:draw_hover_widget(x, y)
@@ -89,7 +104,7 @@ function Silo:open()
     x = 240 - 65,
     y = 1,
     w = 63,
-    h = 66,
+    h = 78,
     ent_key = self.x .. '-' .. self.y,
     close = function(self, sx, sy)
       local btn = {x = self.x + self.w - 9, y = self.y + 1, w = 5, h = 5}
@@ -104,11 +119,12 @@ function Silo:open()
       ui.draw_panel(self.x, self.y, self.w, self.h, UI_BG, UI_FG, 'Rocket Silo', UI_SH)
       ui.progress_bar(math.min(1.0, ent.progress/ROCKET_CRAFT_TIME), self.x + self.w/2 - 25, self.y + 12, 50, 6, UI_BG, UI_FG, 6, 0)
       sspr(CLOSE_ID, self.x + self.w - 9, self.y + 2, 15)
-      prints('Input', self.x + self.w/2 - 12, self.y + self.h - 24)
+      prints('Input', (self.x + self.w/2) - text_width('Input')/2, self.y + self.h - 36)
+      local start_x, start_y = self.x + self.w/2 - ((#ent.input*13)/2), self.y + self.h - 27
       for k, v in ipairs(ent.input) do
-        box(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, self.y + self.h - 15, 10, 10, 8, 9)
+        box(start_x + (k-1)*13, start_y, 10, 10, 8, 9)
         if v.id ~= 0 and v.count > 0 then
-          draw_item_stack(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13 + 1, self.y + self.h - 15 + 1, v)
+          draw_item_stack(start_x + (k-1)*13 + 1, start_y + 1, v)
         end
       end
       --draw output items
@@ -127,10 +143,18 @@ function Silo:open()
       end
       --input slots hover
       for k, v in ipairs(ent.input) do
-        if hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
-          ui.highlight(self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, self.y + self.h - 15, 8, 8, false, 3, 4)
+        if hovered(cursor, {x = start_x + (k-1)*13, y = start_y, w = 10, h = 10}) then
+          ui.highlight(start_x + (k-1)*13, start_y, 8, 8, false, 3, 4)
           if key(64) then draw_recipe_widget(cursor.x + 5, cursor.y + 5, v.id) end
         end
+      end
+      if ent.state == 'launch_ready' then
+        if ui.draw_text_button((floor(self.x + self.w/2) - (text_width(' Launch ')/2) - 2), self.y + self.h - 12, 113, 8, 8, 9, 0, 3, {text = ' Launch ', x = 1, y = 1, bg = 0, fg = 2, shadow = {x = 1, y = 0}}) then
+          --draw launch button
+          ent.state = 'launch'
+        end
+      else
+        ui.draw_text_button((floor(self.x + self.w/2) - (text_width(' Launch ')/2) - 2), self.y + self.h - 12, 113, 8, 8, 13, 14, 12, {text = ' Launch ', x = 1, y = 1, bg = 15, fg = 14, shadow = {x = 1, y = 0}}, true)
       end
     end,
     click = function(self, sx, sy)
@@ -139,13 +163,11 @@ function Silo:open()
         ui.active_window = nil
         return true
       end
+      local start_x, start_y = self.x + self.w/2 - ((#ent.input*13)/2), self.y + self.h - 27
       for k, v in ipairs(ent.input) do
-        if hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
+        if hovered(cursor, {x = start_x + (k-1)*13, y = start_y, w = 10, h = 10}) then
           -- ui.highlight(self.x + 13 + (i - 1)*13, self.y + 49, 10, 10, false, 3, 4)
           
-          trace('silo slot # ' .. k .. ' clicked')
-          trace('item slot is ' .. ITEMS[v.id].fancy_name)
-          trace('k = ' .. tostring(k))
           local stack_size = 100
           --item interaction
           if cursor.type == 'pointer' then
@@ -247,18 +269,22 @@ function Silo:update()
   elseif self.state == 'closing' then
     self.anim_frame = self.anim_frame - 1
     if self.anim_frame < 1 then
-      self.state = 'return'
+      self.anim_frame = 0
+      self.state = 'wait'
     end
   elseif self.state == 'wait' then
     for k, v in ipairs(self.input) do
       if v.count < 100 then return end
+    end
+    for k, v in ipairs(self.input) do
+      v.count = 0
     end
     self.state = 'opening'
   elseif self.state == 'return' then
     self.wait = self.wait + 5
     if time() > self.wait + self.delay then
       self.wait = 0
-      self.state = 'opening'
+      self.state = 'closing'
     end
 
   elseif self.state == 'raise' then
@@ -266,6 +292,22 @@ function Silo:update()
     if self.anim_frame > 32 then
       self.anim_frame = 32
       self.state = 'launch_ready'
+    end
+  elseif self.state == 'launch' then
+    if self.anim_frame < 56 then
+      self.anim_frame = self.anim_frame + 1
+      -- local sx, sy = world_to_screen(self.x, self.y)
+      -- spr(ROCKET_ID, sx + 8, sy - 16 - self.anim_frame, 1, 1, 0, 0, 2, 6)
+    else
+      memset(0x3FF9,0,2)
+      self.state = 'closing'
+      self.anim_frame = 16
+      if not launched then
+        first_launch()
+      end
+      new_rocket(self.x, self.y)
+      --remove rocket
+      --trigger end game sequence
     end
   end
 end
@@ -365,6 +407,39 @@ function Silo:return_all()
   end
 end
 
+function rocket_fx(x, y)
+  --spr(id, x, y, [colorkey=-1], [scale=1], [flip=0], [rotate=0], [w=1], [h=1]
+  spr(ROCKET_FX_ID, x, y, 0, 1, TICK%10 > 5 and 0 or 1, 0, 2, 1)
+end
+
+function new_rocket(wx, wy)
+  local rocket = {
+    wx = wx,
+    wy = wy,
+    parent = wx .. '-' .. wy,
+    anim_frame = 0,
+    update = function(self)
+      if self.anim_frame < 500 then
+        self.anim_frame = self.anim_frame + 1
+      else
+        memset(0x3FF9,0,2)
+        if rockets[self.parent] then
+          rockets[self.parent] = nil
+        end
+      end
+    end,
+    draw = function(self)
+      local sx, sy = world_to_screen(self.wx, self.wy)
+      spr(ROCKET_ID, floor(sx + 8), floor(sy - 40 - self.anim_frame), 1, 1, 0, 0, 2, 6)
+      rocket_fx(floor(sx + 8), floor(sy - 40 - self.anim_frame) + 46)
+      local d = 4
+      poke(0x3FF9,math.random(-d,d))
+      poke(0x3FF9+1,math.random(-d,d))
+    end,
+  }
+  rockets[wx .. '-' .. wy] = rocket
+end
+
 function new_silo(x, y)
   local newSilo = {
     x = x,
@@ -382,6 +457,7 @@ function new_silo(x, y)
     },
     output = {id = 44, count = 0},
     progress = 0,
+    rocket = {},
   }
   setmetatable(newSilo, {__index = Silo})
   return newSilo

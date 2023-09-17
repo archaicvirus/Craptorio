@@ -143,12 +143,12 @@ function Chest:open()
     end,
     click = function(self, x, y)
       local slot = self:get_hovered_slot(x, y)
-      if slot then
+      local ent = ENTS[self.ent_key]
+      if slot and ent.slots[slot.index].id > 0 then
         --trace('slot# ' .. slot.index .. ' clicked')
-        local ent = ENTS[self.ent_key]
         if key(64) then
           local result, stack = inv:add_item({id = ent.slots[slot.index].id, count = ent.slots[slot.index].count})
-          if stack.count < ent.slots[slot.index].count then
+          if result then
             sound('deposit')
             ui.new_alert(cursor.x, cursor.y, '+' .. ent.slots[slot.index].count - stack.count .. ' ' .. ITEMS[ent.slots[slot.index].id].fancy_name, 1500, 0, 4)
             ent.slots[slot.index].id = stack.id

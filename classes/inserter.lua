@@ -49,7 +49,8 @@ local Inserter = {
   is_hovered = false,
   type = 'inserter',
   item_id = 11,
-  filter = {item_id = 0}
+  filter = {item_id = 0},
+  tickrate = 5,
 }
 
 function Inserter.draw_hover_widget(self)

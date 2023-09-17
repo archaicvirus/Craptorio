@@ -17,6 +17,7 @@ local Refinery = {
   progress = 0,
   requests = {},
   dummy_keys = {},
+  tickrate = 5,
 }
 
 function Refinery:update()
@@ -271,8 +272,8 @@ function Refinery:open()
             end
           else
             if cursor.r and v.count > 1 then
-              set_cursor_item({id = v.id, count = math.ceil(v.count/2)}, false)
-              v.count = floor(v.count/2)
+              set_cursor_item({id = ent.output.id, count = math.ceil(ent.output.count/2)}, false)
+              v.count = floor(ent.output.count/2)
               return true
             else
               set_cursor_item({id = ent.output.id, count = ent.output.count})

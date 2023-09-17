@@ -20,6 +20,7 @@ local Crafter = {
   requests = false,
   recipe = false,
   progress = 0,
+  tickrate = 5,
 }
 
 function Crafter:draw_hover_widget(sx, sy)
@@ -94,41 +95,37 @@ end
 function Crafter:update()
   if self.recipe then
     self:update_requests()
-    if self.state ~= 'crafting' and self.state ~= 'idle' then
-      local has_enough = true
+    if self.state == 'ready' or self.state == 'idle' then
+      if self.output.count >= self.recipe.count * 5 then
+        self.state = 'ready'
+        return
+      end
       for i = 1, #self.recipe.ingredients do
         if self.input[i].count < self.recipe.ingredients[i].count then
-          has_enough = false
+          return
         end
-      end
-
-      if has_enough and self.output.count < 5 then
-        self.state = 'crafting'
       end
     end
+
+    self.state = 'crafting'
+
     --if crafting in progress, update it
-    if self.state == 'crafting' then
-      self.progress = self.progress + CRAFTER_TICKRATE
-      --we have reached full progress, so check for ingredients to make new item
-      if self.progress >= self.recipe.crafting_time then
-        self.progress = 0
+    self.progress = self.progress + CRAFTER_TICKRATE
+    for i = 1, #self.recipe.ingredients do
+      if self.input[i].count < self.recipe.ingredients[i].count then
         self.state = 'ready'
-        local has_enough = false
-        for i = 1, #self.recipe.ingredients do
-          if self.input[i].count >= self.recipe.ingredients[i].count then
-            has_enough = true
-          end
-        end
-        if has_enough and self.output.count < 5 then
-          for i = 1, #self.recipe.ingredients do
-            self.input[i].count = self.input[i].count - self.recipe.ingredients[i].count
-          end
-          self.output.count = self.output.count + self.recipe.count
-        end
-        if self.output.count >= self.recipe.count * 5 then
-          self.state = 'idle'
-        end
+        return
       end
+    end
+
+    if self.progress >= self.recipe.crafting_time then
+      --we have reached full progress, so check for ingredients to make new item
+      self.progress = 0
+      self.state = 'ready'
+      for i = 1, #self.recipe.ingredients do
+        self.input[i].count = self.input[i].count - self.recipe.ingredients[i].count
+      end
+      self.output.count = self.output.count + self.recipe.count
     end
   end
 end
@@ -226,15 +223,18 @@ function Crafter:open()
       --draw output items
         prints('Output', self.x + self.w/2 - 12, self.y + 19)
         box(self.x + self.w/2 - 6, self.y + 27, 10, 10, 8, 9)
+        --draw recipe icons
+        local total_width = (#ent.recipe.ingredients + 1) * 15
+        local start_x = (self.x + self.w/2) - (total_width/2)
         for k, v in ipairs(ent.recipe.ingredients) do
-          draw_item_stack(self.x + 10 + (k-1)*15 + 1, self.y + self.h - 35 + 1, v, true)
+          draw_item_stack(start_x + (k-1)*15 + 1, self.y + self.h - 35 + 1, v, true)
           if k < #ent.recipe.ingredients then
-            prints('+', self.x + 10 + (k-1)*15 + 1 + 10, self.y + self.h - 34 + 1)
+            prints('+', start_x + (k-1)*15 + 1 + 10, self.y + self.h - 34 + 1)
           else
-            prints('=', self.x + 10 + (k-1)*15 + 1 + 10, self.y + self.h - 34 + 1)
+            prints('=', start_x + (k-1)*15 + 1 + 10, self.y + self.h - 34 + 1)
           end
         end
-        draw_item_stack(self.x + 12 + #ent.recipe.ingredients*15, self.y + self.h - 35 + 1, {id = ent.recipe.id, count = ent.recipe.count}, true)
+        draw_item_stack(start_x + total_width - 12, self.y + self.h - 35 + 1, {id = ent.recipe.id, count = ent.recipe.count}, true)
         if ent.output.count > 0 then
           draw_item_stack(self.x + self.w/2 - 5, self.y + 28, {id = ent.output.id, count = ent.output.count})
         end
@@ -290,6 +290,7 @@ function Crafter:open()
               --try to combine stacks, leaving extra on cursor
               if key(64) then
                 if v.count > 0 then
+                  local old_count = v.count
                   local result, stack = inv:add_item({id = v.id, count = v.count})
                   if result then
                     v.count = stack.count

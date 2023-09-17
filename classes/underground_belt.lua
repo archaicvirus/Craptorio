@@ -22,6 +22,7 @@ local underground_belt = {
   exit_key = false,
   output_key = false,
   exit_output = false,
+  tickrate = 5,
 }
 
 UBELT_ROT_MAP = {
