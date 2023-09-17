@@ -18,7 +18,7 @@ ITEMS = {
       ingredients = {
         [1] = {id = 21, count = 4}, --copper_cable
         [2] = {id = 2, count = 2}, --green_circuit
-        [3] = {id = 5, count = 2}, --plastic_bar
+        [3] = {id = 36, count = 2}, --plastic_bar
       },
     }
   },
@@ -38,8 +38,8 @@ ITEMS = {
       crafting_time = 60*0.5,
       count = 1,
       ingredients = {
-        [1] = {id = 21, count = 2}, --copper_cable
-        [2] = {id = 15, count = 2}, --iron_plate
+        [1] = {id = 21, count = 3}, --copper_cable
+        [2] = {id = 15, count = 1}, --iron_plate
       }
     },
   },
@@ -174,7 +174,7 @@ ITEMS = {
       ingredients = {
         [1] = {id = 2, count = 5},
         [2] = {id = 15, count = 5},
-        [3] = {id = 9, count = 5},
+        [3] = {id = 9, count = 4},
       }
     },
   },
@@ -226,9 +226,9 @@ ITEMS = {
       crafting_time = 60*2,
       count = 2,
       ingredients = {
-        [1] = {id = 20, count = 3},
-        [2] = {id = 15, count = 3},
-        [3] = {id = 14, count = 1}
+        [1] = {id = 2, count = 3},
+        [2] = {id = 15, count = 10},
+        [3] = {id = 20, count = 5}
       },
     }
   },
@@ -332,7 +332,7 @@ ITEMS = {
       ingredients = {
         [1] = {id = 2, count = 3},
         [1] = {id = 20, count = 5},
-        [1] = {id = 15, count = 1},
+        [1] = {id = 15, count = 9},
       },
     }
   },
@@ -495,7 +495,7 @@ ITEMS = {
     type = 'intermediate',
     craftable = false,
     stack_size = 50,
-    smelting_time = 30,
+    smelting_time = 180,
     recipe = false,
   },
   [28] = {

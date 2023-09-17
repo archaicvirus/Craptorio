@@ -482,6 +482,32 @@ function Splitter:deposit(id, other_rot)
   -- return false
 end
 
+function Splitter:return_all()
+  local item_stacks = {}
+  for i = 1, 2 do
+    for j = 1, 8 do
+      if self.lanes.left[i][j] > 0 then
+        local id = self.lanes.left[i][j]
+        if not item_stacks[id] then item_stacks[id] = 0 end
+        item_stacks[id] = item_stacks[id] + 1
+        self.lanes.left[i][j] = 0
+      end
+      if self.lanes.right[i][j] > 0 then
+        local id = self.lanes.right[i][j]
+        if not item_stacks[id] then item_stacks[id] = 0 end
+        item_stacks[id] = item_stacks[id] + 1
+        self.lanes.right[i][j] = 0
+      end
+    end
+  end
+
+  local offset = 0
+  for k, v in pairs(item_stacks) do
+    inv:add_item({id = k, count = v})
+    ui.new_alert(cursor.x, cursor.y + offset, '+' .. v .. ' ' .. ITEMS[k].fancy_name, 1000, 0, 11)
+    offset = offset + 6
+  end
+end
 
 function new_splitter(x, y, rot)
   local new_splitter = {x = x, y = y, rot = rot}

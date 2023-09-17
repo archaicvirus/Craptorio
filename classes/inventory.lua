@@ -209,12 +209,8 @@ function inventory:remove_stack(stack)
 end
 
 function inventory:slot_clicked(index, button)
-  --trace('clicked slot: ' .. index)
-  --trace('cursor.item_stack.slot = ' .. tostring(cursor.item_stack.slot))
-  --trace('inv.active_slot = ' .. inv.active_slot)
   if index == cursor.item_stack.slot then return end
   if cursor.type == 'item' and cursor.item_stack.slot and index ~= cursor.item_stack.slot then
-    --trace('swapping active slot for CLICKED slot')
     local old_item = self.slots[index]
     self.slots[cursor.item_stack.slot].id = self.slots[index].id
     self.slots[cursor.item_stack.slot].count = self.slots[index].count
@@ -225,7 +221,6 @@ function inventory:slot_clicked(index, button)
   end
   if cursor.type == 'item' then
     if self.slots[index].id == 0 then
-      --trace('depositing to slot: ' .. index)
       --deposit
       self.slots[index].id = cursor.item_stack.id
 
@@ -307,7 +302,6 @@ function inventory:slot_clicked(index, button)
         end
         return true
       end
-      --trace('setting item stack from inv')
       cursor.item_stack.id = id
       cursor.item_stack.count = count
       cursor.item_stack.slot = false

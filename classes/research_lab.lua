@@ -12,6 +12,7 @@ local Lab = {
   dummy_keys = {},
   requests = {},
   progress = 0,
+  tickrate = 5,
 }
 
 function Lab:open()

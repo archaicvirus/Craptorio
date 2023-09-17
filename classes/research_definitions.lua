@@ -1,4 +1,4 @@
-AVAILABLE_TECH = {1,2,3,4,5,6,12,13}--,6,7,8,9,10,11,12,13}
+AVAILABLE_TECH = {1,2,5,6}--{1,2,3,4,5,6,12,13}--,6,7,8,9,10,11,12,13}
 FINISHED_TECH = {}
 UNLOCKED_TECH = {}
 UNLOCKED_ITEMS = {}
@@ -6,7 +6,7 @@ current_research = false
 selected_research = false
 current_page = 1
 current_tab = true --tab to show available or unlocked tech
-local starting_items = {9, 20, 22, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 12, 14, 13, 14, 33, 35}
+local starting_items = {9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 14, 33}
 for i = 1, #ITEMS do
   UNLOCKED_ITEMS[i] = false
 end
@@ -22,7 +22,7 @@ TECH = {
     time = 3,
     tier = 1,
     science_packs = {
-      {id = 23, count = 6},
+      {id = 23, count = 15},
     },
     required_tech = {},
     item_unlocks = {18, 10, 11},
@@ -39,10 +39,10 @@ TECH = {
     time = 5,
     tier = 1,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 23, count = 15}
     },
     required_tech = {},
-    item_unlocks = {19},
+    item_unlocks = {19, 22},
     tech_unlocks = {},
     sprite = {{id=312,tw=3,th=3,w=24,h=24,rot=0,ck=0,page=0,offset={x=0,y=0}}},
   },
@@ -52,7 +52,7 @@ TECH = {
     completed = false,
     time = 3,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 23, count = 30}
     },
     required_tech = {1},
     item_unlocks = {24},
@@ -69,9 +69,9 @@ TECH = {
     completed = false,
     time = 1,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 23, count = 35}
     },
-    required_tech = {},
+    required_tech = {3},
     item_unlocks = {27},
     tech_unlocks = {},
     sprite = {
@@ -89,11 +89,11 @@ TECH = {
     time = 5,
     tier = 1,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 23, count = 10}
     },
     required_tech = {},
     item_unlocks = {2},
-    tech_unlocks = {},    
+    tech_unlocks = {},
     sprite = {
       {id=309,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
     },
@@ -105,7 +105,7 @@ TECH = {
     time = 5,
     tier = 1,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 23, count = 35}
     },
     required_tech = {},
     item_unlocks = {34},
@@ -127,8 +127,8 @@ TECH = {
     time = 5,
     tier = 1,
     science_packs = {
-      {id = 23, count = 1},
-      {id = 24, count = 1},
+      {id = 23, count = 50},
+      {id = 24, count = 50},
     },
     required_tech = {6, 10},
     item_unlocks = {38},
@@ -150,9 +150,9 @@ TECH = {
     time = 5,
     tier = 1,
     science_packs = {
-      {id = 23, count = 1},
-      {id = 24, count = 1},
-      {id = 25, count = 1},
+      {id = 23, count = 100},
+      {id = 24, count = 100},
+      {id = 25, count = 100},
     },
     required_tech = {7, 15},
     item_unlocks = {38},
@@ -173,12 +173,12 @@ TECH = {
     completed = false,
     time = 5,
     science_packs = {
-      {id = 23, count = 1},
-      {id = 24, count = 1},
+      {id = 23, count = 50},
+      {id = 24, count = 50},
     },
     required_tech = {1, 3, 4},
     item_unlocks = {30},
-    tech_unlocks = {14},
+    tech_unlocks = {},
     sprite = {{id=371,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=0,offset={x=0,y=0}}},
   },
   [10] = {
@@ -188,7 +188,8 @@ TECH = {
     time = 30,
     tier = 2,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 23, count = 25},
+      {id = 24, count = 25},
     },
     required_tech = {5, 13},
     item_unlocks = {1},
@@ -204,9 +205,9 @@ TECH = {
     completed = false,
     time = 30,
     science_packs = {
-      {id = 23, count = 1},
-      {id = 24, count = 1},
-      {id = 25, count = 1},
+      {id = 23, count = 25},
+      {id = 24, count = 25},
+      {id = 25, count = 25},
     },
     required_tech = {12, 3, 9, 14},
     item_unlocks = {31, 35},
@@ -224,9 +225,9 @@ TECH = {
     completed = false,
     time = 5,
     science_packs = {
-      {id = 23, count = 1}
+      {id = 25, count = 10}
     },
-    required_tech = {},
+    required_tech = {14},
     item_unlocks = {32},
     tech_unlocks = {},
     sprite = {
@@ -241,9 +242,9 @@ TECH = {
     completed = false,
     time = 5,
     science_packs = {
-      {id = 23, count = 1},
-      {id = 24, count = 1},
-      {id = 25, count = 1},
+      {id = 23, count = 25},
+      {id = 24, count = 25},
+      {id = 25, count = 25},
     },
     required_tech = {9},
     item_unlocks = {36},
@@ -262,8 +263,8 @@ TECH = {
     completed = false,
     time = 3,
     science_packs = {
-      {id = 23, count = 1},
-      {id = 24, count = 1},
+      {id = 23, count = 25},
+      {id = 24, count = 25},
     },
     required_tech = {3, 9, 11, 12},
     item_unlocks = {25},
@@ -280,9 +281,9 @@ TECH = {
     completed = false,
     time = 3,
     science_packs = {
-      {id = 23, count = 1},
-      {id = 24, count = 1},
-      {id = 25, count = 1}
+      {id = 23, count = 100},
+      {id = 24, count = 100},
+      {id = 25, count = 100}
     },
     required_tech = {14},
     item_unlocks = {26},

@@ -134,7 +134,7 @@ callbacks = {
       local k = get_key(x, y)
       if not ENTS[k] then return end
       if ENTS[k].type == 'dummy_splitter' then k = ENTS[k].other_key end
-      if ENTS[k] and ENTS[k].type == 'splitter' then    
+      if ENTS[k] and ENTS[k].type == 'splitter' then
         local key_l, key_r = ENTS[k].output_key_l, ENTS[k].output_key_r
         local key2 = ENTS[k].other_key
         ENTS[k] = nil

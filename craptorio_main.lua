@@ -1533,15 +1533,16 @@ function TIC()
   --   sspr(346 + BELT_TICK, x - 4, y - 4, 0, 1)
   --   line(x, y, 119, 66 + player.anim_frame, 4 + BELT_TICK)
   -- end
-  
-  inv:draw()
-  --inv:draw_hotbar()
-  craft_menu:draw()
-  if ui.active_window then
-    if ENTS[ui.active_window.ent_key] then
-      ui.active_window:draw()
-    else
-      ui.active_window = nil
+  if not show_mini_map then
+    inv:draw()
+    --inv:draw_hotbar()
+    craft_menu:draw()
+    if ui.active_window then
+      if ENTS[ui.active_window.ent_key] then
+        ui.active_window:draw()
+      else
+        ui.active_window = nil
+      end
     end
   end
   local dc_time = lapse(draw_cursor)
