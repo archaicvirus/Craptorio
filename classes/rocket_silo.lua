@@ -67,10 +67,14 @@ function Silo:draw()
     spr(ROCKET_ID, sx + 8, sy - 16, 1, 1, 0, 0, 2, 6)
     clip()
   end
-  if self.state == 'launch' and self.anim_frame < 56 then
-    local d = 4
-    poke(0x3FF9,math.random(-d,d))
-    poke(0x3FF9+1,math.random(-d,d))
+  if self.state == 'launch' then
+    if self.anim_frame < 56 then
+      local d = 4
+      poke(0x3FF9,math.random(-d,d))
+      poke(0x3FF9+1,math.random(-d,d))
+    else
+      memset(0x3FF9,0,2)
+    end
   end
 
   -- if self.state == 'launch' then
@@ -296,18 +300,13 @@ function Silo:update()
   elseif self.state == 'launch' then
     if self.anim_frame < 56 then
       self.anim_frame = self.anim_frame + 1
-      -- local sx, sy = world_to_screen(self.x, self.y)
-      -- spr(ROCKET_ID, sx + 8, sy - 16 - self.anim_frame, 1, 1, 0, 0, 2, 6)
     else
-      memset(0x3FF9,0,2)
       self.state = 'closing'
-      self.anim_frame = 16
+      self.anim_frame = 8
       if not launched then
         first_launch()
       end
       new_rocket(self.x, self.y)
-      --remove rocket
-      --trigger end game sequence
     end
   end
 end
@@ -422,7 +421,9 @@ function new_rocket(wx, wy)
       if self.anim_frame < 500 then
         self.anim_frame = self.anim_frame + 1
       else
-        memset(0x3FF9,0,2)
+        if ENTS[self.parent] then
+          ENTS[self.parent].output.count = 1000
+        end
         if rockets[self.parent] then
           rockets[self.parent] = nil
         end
@@ -435,6 +436,9 @@ function new_rocket(wx, wy)
       local d = 4
       poke(0x3FF9,math.random(-d,d))
       poke(0x3FF9+1,math.random(-d,d))
+      if self.anim_frame >= 500 then
+        memset(0x3FF9,0,2)
+      end
     end,
   }
   rockets[wx .. '-' .. wy] = rocket

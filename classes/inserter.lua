@@ -54,9 +54,10 @@ local Inserter = {
 }
 
 function Inserter.draw_hover_widget(self)
-  -- local sx, sy = cursor.x, cursor.y
-  -- rectb(sx, sy, 50, 50, 13)
-  -- rect(sx + 1, sy + 1, 48, 48, 0)
+if TICK % 60 == 0 then
+  trace('state: ' .. self.state)
+  trace('id = ' .. self.held_item_id)
+end
 end
 
 function Inserter.get_info(self)
@@ -142,9 +143,13 @@ function Inserter.update(self)
     self.to_key = ENTS[to].other_key
     to = self.to_key
   end
-  if not ENTS[from] and not ENTS[to] then return end
+  if not ENTS[self.from_key] or not ENTS[self.to_key] then
+    self:set_output()
+    return
+  end
 
   if self.state == 'send' then
+    if not ENTS[to] then return end
     self.anim_frame = self.anim_frame - 1
     if self.anim_frame <= 1 then
       self.anim_frame = 1
@@ -238,7 +243,7 @@ function Inserter.update(self)
       self.state = 'wait'
     end
   elseif self.state == 'wait' then
-    if not ENTS[to] or not ENTS[from] then return end
+    trace('inserter waiting')
     local desired_item = ENTS[to]:request_deposit(self)
     --if desired_item then trace('inserter: desired item = ' .. tostring(ITEMS[desired_item].fancy_name)) end
     if not desired_item then return end

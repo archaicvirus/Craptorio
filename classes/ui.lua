@@ -519,7 +519,6 @@ function CraftPanel:click(x, y, side)
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
         --assembly machine crafting
         if ENTS[self.current_output] then
-          trace('clicked ' .. ENTS[self.current_output].type)
           local item = ITEMS[recipes[self.active_tab][row][col]]
           if item.craftable == false and item.type ~= 'oil' then sound('deny') return end
           if item.type == 'oil' and ENTS[self.current_output].type == 'bio_refinery' then
@@ -827,6 +826,7 @@ function draw_item_stack(x, y, stack, show_cnt)
   sspr(ITEMS[stack.id].sprite_id, x, y, ITEMS[stack.id].color_key)
   if show_cnt then
     local count = stack.count < 100 and stack.count or floor(stack.count/100) .. 'H'
+    --local count = stack.count
     local sx, sy = x + 9 - text_width(count), y + 4
     prints(count, sx, sy)
   end
@@ -889,12 +889,6 @@ function draw_recipe_widgetOLD(x, y, id)
       for k, v in ipairs(text) do
         prints(v, sx + 3, sy + 17 + ((k-1) * 7))
       end
-      --trace('found item info')
-      -- for i = 1, #item.info do
-      --   --local str_w = text_width(item.info[i])
-        
-      --   prints(item.info[i], sx + 3, sy + 10 + ((i-1) * 7))
-      -- end
     end
   end
 end

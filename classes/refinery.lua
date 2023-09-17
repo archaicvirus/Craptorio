@@ -104,7 +104,7 @@ function Refinery:deposit_stack(stack)
   if not self.recipe then return end
   for k, v in ipairs(self.input) do
     if v.id == stack.id then
-      local stack_size = self.recipe.ingredients[k].count * 5
+      local stack_size = ITEMS[self.recipe.ingredients[k].id].stack_size
       if v.count < stack_size then
         if v.count + stack.count <= stack_size then
           v.count = v.count + stack.count
@@ -196,10 +196,7 @@ function Refinery:open()
           if hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
             -- ui.highlight(self.x + 13 + (i - 1)*13, self.y + 49, 10, 10, false, 3, 4)
             
-            trace('refinery slot # ' .. k .. ' clicked')
-            trace('item slot is ' .. ITEMS[v.id].fancy_name)
-            trace('k = ' .. tostring(k))
-            local stack_size = ITEMS[ent.output.id].recipe.ingredients[k].count * 5
+            local stack_size = ITEMS[v.id].stack_size
             --item interaction
             if cursor.type == 'pointer' then
               if key(64) then

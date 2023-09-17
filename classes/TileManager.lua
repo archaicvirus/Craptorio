@@ -208,56 +208,58 @@ function  TileManager:draw_terrain(player, screenWidth, screenHeight)
       local worldX = startX + screenX
       local worldY = startY + screenY
       local tile = self.tiles[worldY][worldX]
-      local sx = (screenX - 1) * 8 - subTileX
-      local sy = (screenY - 1) * 8 - subTileY
+      if not show_mini_map then
+        local sx = (screenX - 1) * 8 - subTileX
+        local sy = (screenY - 1) * 8 - subTileY
 
-      --Here, AutoMap is called once per tile during draw
-      --AutoMap is what sets the 'border' or edge tiles
-      if not tile.visited and tile.is_land then AutoMap(worldX, worldY) end
-      
-      if tile.ore then
-        rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
-        sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, 0, tile.rot)
-      elseif not tile.is_border then
-        local id, rot, flip = tile.sprite_id, tile.rot, tile.flip
-        if not tile.is_land then
-          --for water tiles only
-          if worldX % 2 == 1 and worldY % 2 == 1 then
-            flip = 3 -- Both horizontal and vertical flip
-          elseif worldX % 2 == 1 then
-            flip = 1 -- Horizontal flip
-          elseif worldY % 2 == 1 then
-            flip = 2 -- Vertical flip
-          end
-          --procedural water sprite id = 224
-          sspr(224, sx, sy, 0, 1, flip, rot)
-        else
-          --else is land
+        --Here, AutoMap is called once per tile during draw
+        --AutoMap is what sets the 'border' or edge tiles
+        if not tile.visited and tile.is_land then AutoMap(worldX, worldY) end
+        
+        if tile.ore then
           rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
-          sspr(biomes[tile.biome].tile_id_offset, sx, sy, biomes[tile.biome].map_col, 1, 0, tile.rot)
-          if id ~= biomes[tile.biome].tile_id_offset then
-            sspr(id, sx, sy, biomes[tile.biome].map_col, 1, flip)
+          sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, 0, tile.rot)
+        elseif not tile.is_border then
+          local id, rot, flip = tile.sprite_id, tile.rot, tile.flip
+          if not tile.is_land then
+            --for water tiles only
+            if worldX % 2 == 1 and worldY % 2 == 1 then
+              flip = 3 -- Both horizontal and vertical flip
+            elseif worldX % 2 == 1 then
+              flip = 1 -- Horizontal flip
+            elseif worldY % 2 == 1 then
+              flip = 2 -- Vertical flip
+            end
+            --procedural water sprite id = 224
+            sspr(224, sx, sy, 0, 1, flip, rot)
+          else
+            --else is land
+            rect(sx, sy, 8, 8, biomes[tile.biome].map_col)
+            sspr(biomes[tile.biome].tile_id_offset, sx, sy, biomes[tile.biome].map_col, 1, 0, tile.rot)
+            if id ~= biomes[tile.biome].tile_id_offset then
+              sspr(id, sx, sy, biomes[tile.biome].map_col, 1, flip)
+            end
           end
-        end
-      else
-        if tile.biome == 1 then
-          local flip = 0
-          if worldX % 2 == 1 and worldY % 2 == 1 then
-            flip = 3 -- Both horizontal and vertical flip
-          elseif worldX % 2 == 1 then
-            flip = 1 -- Horizontal flip
-          elseif worldY % 2 == 1 then
-            flip = 2 -- Vertical flip
-          end
-          sspr(224, sx, sy, -1, 1, flip)
-          sspr(tile.sprite_id, sx, sy, 0, 1, 0, tile.rot)
         else
-          sspr(tile.sprite_id, sx, sy, -1, 1, 0, tile.rot)
+          if tile.biome == 1 then
+            local flip = 0
+            if worldX % 2 == 1 and worldY % 2 == 1 then
+              flip = 3 -- Both horizontal and vertical flip
+            elseif worldX % 2 == 1 then
+              flip = 1 -- Horizontal flip
+            elseif worldY % 2 == 1 then
+              flip = 2 -- Vertical flip
+            end
+            sspr(224, sx, sy, -1, 1, flip)
+            sspr(tile.sprite_id, sx, sy, 0, 1, 0, tile.rot)
+          else
+            sspr(tile.sprite_id, sx, sy, -1, 1, 0, tile.rot)
+          end
+          --if tile.ore then sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, tile.flip, tile.rot) end
         end
-        --if tile.ore then sspr(ores[tile.ore].tile_id, sx, sy, ores[tile.ore].color_keys, 1, tile.flip, tile.rot) end
+        --rectb(sx, sy, 8, 8, 4)
+        --sspr(340, sx, sy, -1)
       end
-      --rectb(sx, sy, 8, 8, 4)
-      --sspr(340, sx, sy, -1)
     end
   end
 end
@@ -308,26 +310,26 @@ function  TileManager:draw_worldmap(player, x, y, width, height, center)
   end
   local map_x, map_y = x or 120 - (width/2) + 1, y or 68 - (height/2) + 2
   local startX, startY = floor(player.x/8 - (width/2) + 1), floor(player.y/8 - (height/2) + 2)
-  local biome_col = biomes[self.tiles[startY][startX].biome].map_col
+  --local biome_col = biomes[self.tiles[startY][startX].biome].map_col
   local skipped = 0
-  rect(map_x - 1, map_y - 1, width + 2, height + 2, biome_col)
+  rect(map_x - 1, map_y - 1, width + 2, height + 2, 0)
   --rect(map_x, map_y, width, height, biome_col)
   for y = 0, height - 1 do
-    if y == 0 then
-      local biome = self.tiles[startY + y - 1][startX + x - 1].biome
-      start_col = biomes[biome].map_col
-    end
+    -- if y == 0 then
+    --   local biome = self.tiles[startY + y - 1][startX + x - 1].biome
+    --   start_col = biomes[biome].map_col
+    -- end
     for x = 0, width - 1 do
-      local tile = self.tiles[startY + y - 1][startX + x - 1]
-      --trace('biome color = ' .. biomes[tile.biome].map_col)
-      if tile.color ~= start_col or tile.ore or tile.is_tree or not tile.is_land or not tile.biome == biome then
-        --if rawget(self.tiles, startY + y - 1) and rawget(self.tiles[startY + y - 1], startX + x - 1) then
-          --local tile = self.tiles[startY + y - 1][startX + x - 1]
-          --if self.tiles[startY + y - 1][startX + x - 1].ore then
-        pix(x + map_x, y + map_y, tile.is_tree and 6 or tile.color)
-          --end
-      --else
-        --skipped = skipped + 1
+      if rawget(self.tiles, startY + y - 1) and rawget(self.tiles[startY + y - 1], startX + x - 1) then
+        local tile = self.tiles[startY + y - 1][startX + x - 1]
+        --trace('biome color = ' .. biomes[tile.biome].map_col)
+        local color = biomes[tile.biome].map_col
+        if tile.is_tree then
+          color = 6
+        elseif tile.ore or not tile.is_land then
+          color = tile.color
+        end
+        pix(x + map_x, y + map_y, color)
       end
     end
   end

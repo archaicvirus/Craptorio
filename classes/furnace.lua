@@ -123,7 +123,7 @@ function Furnace:open()
             local stack_size = ITEMS[cursor.item_stack.id].stack_size
             --try to combine stacks, leaving extra on cursor
             if key(64) then
-              if ent.input_buffer.count > 0 then
+              if ent.input_buffer.count > 0 and ent.input_buffer.id > 0 then
                 local id = ent.input_buffer.id
                 local result, stack = inv:add_item({id = ent.input_buffer.id, count = ent.input_buffer.count})
                 if result then
@@ -134,6 +134,7 @@ function Furnace:open()
               end
               return true
             end
+            ent.input_buffer.id = cursor.item_stack.id
             if cursor.r then
               if ent.input_buffer.count + 1 < stack_size then
                 ent.input_buffer.count = ent.input_buffer.count + 1
@@ -235,6 +236,7 @@ function Furnace:open()
               end
               return true
             end
+            ent.fuel_buffer.id = cursor.item_stack.id
             if cursor.r then
               if ent.fuel_buffer.count + 1 < stack_size then
                 ent.fuel_buffer.count = ent.fuel_buffer.count + 1

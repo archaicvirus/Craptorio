@@ -344,7 +344,6 @@ end
 function new_drill(pos, rot, tiles)
   local out_pos = DRILL_OUTPUT_MAP[rot]
   local output_key = pos.x + out_pos.x .. '-' .. pos.y + out_pos.y
-  trace(output_key)
   local newdrill = {pos = pos, rot = rot, field_keys = tiles, output_key = output_key, output = {id = 0, count = 0}}
   setmetatable(newdrill, {__index = Drill})
   return newdrill

@@ -262,7 +262,7 @@ function Crafter:open()
         end
         for k, v in ipairs(ent.input) do
           if v.id ~= 0 and hovered(cursor, {x = self.x + self.w/2 - ((#ent.input*13)/2) + (k-1)*13, y = self.y + self.h - 15, w = 10, h = 10}) then
-            local stack_size = ITEMS[ent.output.id].recipe.ingredients[k].count * 5
+            local stack_size = ITEMS[ent.output.id].stack_size
             --item interaction
             -----------------------------------------------------------------------------------------------------
             if cursor.type == 'pointer' then
@@ -435,7 +435,7 @@ end
 function Crafter:deposit_stack(stack)
   if self.recipe then
     for i = 1, #self.recipe.ingredients do
-      local max_stack_per_slot = self.recipe.ingredients[i].count*5
+      local max_stack_per_slot = ITEMS[self.recipe.ingredients[i].id].stack_size
       if self.recipe.ingredients[i].id == stack.id then
         if self.input[i].count + stack.count <= max_stack_per_slot then
           self.input[i].count = self.input[i].count + stack.count
