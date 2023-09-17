@@ -521,13 +521,13 @@ function CraftPanel:click(x, y, side)
         if ENTS[self.current_output] then
           local item = ITEMS[recipes[self.active_tab][row][col]]
           if item.craftable == false and item.type ~= 'oil' then sound('deny') return end
-          if item.type == 'oil' and ENTS[self.current_output].type == 'bio_refinery' then
+          if item.type == 'oil' and ENTS[self.current_output].type == 'bio_refinery' and UNLOCKED_ITEMS[item.id] then
             ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
             toggle_crafting()
             ui.active_window = ENTS[self.current_output]:open()
             self.current_output = 'player'
             return true
-          elseif item.type ~= 'oil' and ENTS[self.current_output].type ~= 'bio_refinery' then
+          elseif item.type ~= 'oil' and ENTS[self.current_output].type ~= 'bio_refinery' and UNLOCKED_ITEMS[item.id] then
             ENTS[self.current_output]:set_recipe(ITEMS[recipes[self.active_tab][row][col]])
             toggle_crafting()
             ui.active_window = ENTS[self.current_output]:open()
@@ -544,7 +544,7 @@ function CraftPanel:click(x, y, side)
       if row <= #recipes[self.active_tab] and col <= #recipes[self.active_tab][row] then
         --player crafting
         local item = ITEMS[recipes[self.active_tab][row][col]]
-        if item and item.craftable then
+        if item and item.craftable and UNLOCKED_ITEMS[item.id] then
           local can_craft = true
           for k, v in ipairs(item.recipe.ingredients) do
             if not inv:has_stack(v) then can_craft = false end

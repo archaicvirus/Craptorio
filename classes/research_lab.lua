@@ -181,14 +181,13 @@ function Lab:update()
     if self.progress >= TECH[AVAILABLE_TECH[current_research]].time * 60 then
       self.progress = 0
       local science_packs = TECH[AVAILABLE_TECH[current_research]].science_packs
+      for i = 1, #science_packs do
+        local k = self.slot_keys[tostring(science_packs[i].id)]
+        --trace('k = ' .. k)
+        if self.input[k].count < 1 then return end
+        self.input[k].count = self.input[k].count - 1
+      end
       if update_research_progress() then
-        --trace('updating science packs')
-        for i = 1, #science_packs do
-          local k = self.slot_keys[tostring(science_packs[i].id)]
-          --trace('k = ' .. k)
-          if self.input[k].count < 1 then return end
-          self.input[k].count = self.input[k].count - 1
-        end
         current_research = false
         selected_research = false
       end
