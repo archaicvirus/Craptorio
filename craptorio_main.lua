@@ -33,7 +33,7 @@ require('classes/storage_chest')
 require('classes/refinery')
 require('classes/rocket_silo')
 
---local seed = tstamp() * time()
+local seed = tstamp() * time()
 local seed = 172046262608.13
 --seed = math.random(-1000000000, 1000000000)
 --local seed = 902404786
@@ -171,10 +171,10 @@ local starting_items = {
   {id = 19, slot = 63},
   {id = 30, slot = 64},
 }
-for k,v in ipairs(starting_items) do
-  inv.slots[v.slot].id = v.id
-  inv.slots[v.slot].count = ITEMS[v.id].stack_size
-end
+-- for k,v in ipairs(starting_items) do
+--   inv.slots[v.slot].id = v.id
+--   inv.slots[v.slot].count = ITEMS[v.id].stack_size
+-- end
 
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
@@ -933,6 +933,10 @@ end
 
 function set_cursor_item(stack, slot)
   if not stack then
+    if cursor.item_stack.slot then
+      inv.slots[cursor.item_stack.slot].id = 0
+      inv.slots[cursor.item_stack.slot].count = 0
+    end
     cursor.item = false
     cursor.item_stack.id = 0
     cursor.item_stack.count = 0
@@ -1164,6 +1168,13 @@ function dispatch_input()
         local result, stack = ENTS[k]:deposit_stack({id = cursor.item_stack.id, count = 1})
         if result then
           cursor.item_stack.count = cursor.item_stack.count - 1
+          if cursor.item_stack.slot then
+            inv.slots[cursor.item_stack.slot].count = inv.slots[cursor.item_stack.slot].count - 1
+            if inv.slots[cursor.item_stack.slot].count < 1 then
+              inv.slots[cursor.item_stack.slot].count = 0
+              inv.slots[cursor.item_stack.slot].id = 0
+            end
+          end
           ui.new_alert(cursor.x, cursor.y, '-1 ' .. ITEMS[cursor.item_stack.id].fancy_name, 1000, 0, 6)
           sound('deposit')
           if cursor.item_stack.count < 1 then
@@ -1383,7 +1394,9 @@ function update_rockets()
   end
 end
 
-function first_launch()
+function first_launch(rocket)
+  STATE = 'first_launch'
+
   trace('You won!')
 end
 
@@ -1454,10 +1467,16 @@ function TIC()
   poke(0x3FFB, 286)
 
   --draw main menu
-  if STATE ~= "game" then
-
+  if STATE == "start" or STATE == 'help' then
     update_cursor_state()
     ui.draw_menu()
+    TICK = TICK + 1
+    return
+  end
+
+  if STATE == 'first_launch' then
+    update_cursor_state()
+    ui:draw_endgame_window()
     TICK = TICK + 1
     return
   end
@@ -1600,7 +1619,7 @@ function TIC()
     if v.type == 'transport_belt' then v.belt_drawn = false; v.curve_checked = false; end
   end
   if show_tech then draw_research_screen() end
-  if debug then ui.draw_text_window(info, 2, 2, _, 0, 2, 0, 4) end
+  if debug then ui.draw_text_window(info, 2, 2, 'Debug - Y to toggle', 0, 2, 0, 4) end
   if show_tile_widget and not ENTS[k] then draw_tile_widget() end
   if current_recipe.id > 0 then
     show_recipe_widget()
@@ -2180,6 +2199,7 @@ end
 -- 068:0002300000032000000cd000000dc000000ce000000cd0000000000000000000
 -- 069:100000001100000b1110000011110000111110001111110c1111111d11111111
 -- 070:b0001d11000c1111001d11110c1111111d111111111111111111111111111111
+-- 071:11111111141414111414141114141411111111111111111313111132111d1321
 -- 072:0bcdedee0bdcedff0bccedee0bdcedff0bcdedee0bdce9dd0bcde9990bdcebcd
 -- 073:eeeeeed9ffffffd9eeeeeed9ffffffd9eeeeeed9dddddd9999999999cdccdcdf
 -- 074:cc9ecdb0dd9eccb0cc9ecdb0dd9eccb0cc9ecdb0dd9eccb0ff9ecdb0bcfeccb0
@@ -2194,6 +2214,7 @@ end
 -- 084:1ddd7771dddd7777dddd7777dddd7777bbbb9999bbbb9999bbbb99991bbb9991
 -- 085:11111111141f1f11141f1f11141f1f11111111111111111313111132111d1321
 -- 086:111fddf111f2eecf112b2eed1332eeed32dcccdc21fdee31111fdd1311111211
+-- 087:1111111114141f1114141f1114141f11111111111111111313111132111d1321
 -- 088:0bcdebcd0bdce9990bceceee0becccdc0beccdcd00bccccc000bbbbb00000000
 -- 089:cdccdcdf99999999eeeeeeeedcdcdcdccdcdcdcdcccdcccdbbbbbcbb00000000
 -- 090:cdfecdb0ff9eccb0eeececb0dcdcceb0cdcdceb0cdcdcb00bcbbb00000000000

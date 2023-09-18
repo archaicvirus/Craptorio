@@ -6,7 +6,7 @@ current_research = false
 selected_research = false
 current_page = 1
 current_tab = true --tab to show available or unlocked tech
-local starting_items = {9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 14, 33}
+local starting_items = {9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 14, 33, 22, 2}
 for i = 1, #ITEMS do
   UNLOCKED_ITEMS[i] = false
 end
@@ -42,7 +42,7 @@ TECH = {
       {id = 23, count = 15}
     },
     required_tech = {},
-    item_unlocks = {19, 22},
+    item_unlocks = {19, 13},
     tech_unlocks = {},
     sprite = {{id=312,tw=3,th=3,w=24,h=24,rot=0,ck=0,page=0,offset={x=0,y=0}}},
   },
@@ -92,7 +92,7 @@ TECH = {
       {id = 23, count = 10}
     },
     required_tech = {},
-    item_unlocks = {2},
+    item_unlocks = {1},
     tech_unlocks = {},
     sprite = {
       {id=309,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
@@ -112,7 +112,10 @@ TECH = {
     info = {'Increases mining speed', 'by 150%'},
     tech_unlocks = {},
     sprite = {
-      {id=341,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
+      {id=341,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=4,y=4}},
+      {id=342,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=4}},
+      {id=357,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=4,y=12}},
+      {id=358,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=12}},
     },
     callback = function(self)
       trace(self.name .. ' - callback triggered after research was completed')
@@ -135,7 +138,10 @@ TECH = {
     info = {'Increases mining speed', 'by 150%'},
     tech_unlocks = {},
     sprite = {
-      {id=341,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
+      {id=343,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=4,y=4}},
+      {id=342,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=4}},
+      {id=357,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=4,y=12}},
+      {id=359,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=12}},
     },
     callback = function(self)
       trace(self.name .. ' - callback triggered after research was completed')
@@ -155,11 +161,14 @@ TECH = {
       {id = 25, count = 100},
     },
     required_tech = {7, 15},
-    item_unlocks = {38},
+    item_unlocks = {39},
     info = {'Increases mining speed', 'by 150%'},
     tech_unlocks = {},
     sprite = {
-      {id=341,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=4,y=4}},
+      {id=327,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=4,y=4}},
+      {id=342,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=4}},
+      {id=357,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=4,y=12}},
+      {id=360,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=12}},
     },
     callback = function(self)
       trace(self.name .. ' - callback triggered after research was completed')
@@ -192,7 +201,7 @@ TECH = {
       {id = 24, count = 25},
     },
     required_tech = {5, 13},
-    item_unlocks = {1},
+    item_unlocks = {37},
     tech_unlocks = {},
     sprite = {
       {id=309,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=0,offset={x=0,y=0}},

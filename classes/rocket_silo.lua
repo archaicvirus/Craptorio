@@ -135,7 +135,7 @@ function Silo:open()
       prints('Output', self.x + self.w/2 - 12, self.y + 19)
       box(self.x + self.w/2 - 6, self.y + 27, 10, 10, 8, 9)
       if ent.output.count > 0 then
-        draw_item_stack(self.x + self.w/2 - 4, self.y + 28, {id = ent.output.id, count = ent.output.count})
+        draw_item_stack(self.x + self.w/2 - 5, self.y + 28, {id = ent.output.id, count = ent.output.count})
       end
       if hovered(cursor, {x = self.x + self.w/2 - 6, y = self.y + 27, w = 10, h = 10}) then
         ui.highlight(self.x + self.w/2 - 6, self.y + 27, 8, 8, false, 3, 4)
@@ -303,10 +303,10 @@ function Silo:update()
     else
       self.state = 'closing'
       self.anim_frame = 8
+      new_rocket(self.x, self.y)
       if not launched then
         first_launch()
       end
-      new_rocket(self.x, self.y)
     end
   end
 end
@@ -427,6 +427,9 @@ function new_rocket(wx, wy)
         if rockets[self.parent] then
           rockets[self.parent] = nil
         end
+        -- if not launched then
+        --   first_launch()
+        -- end
       end
     end,
     draw = function(self)

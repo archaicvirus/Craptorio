@@ -552,7 +552,9 @@ function CraftPanel:click(x, y, side)
           if can_craft then
             for k, v in ipairs(item.recipe.ingredients) do
               inv:remove_stack(v)
+              ui.new_alert(cursor.x, cursor.y - 5, '-' .. v.count .. ' ' .. ITEMS[v.id].fancy_name, 1500, 0, 2)
             end
+            ui.new_alert(cursor.x, cursor.y, '+' .. item.recipe.count .. ' ' .. item.fancy_name, 1500, 0, 4)
             inv:add_item({id = item.id, count = item.recipe.count})
           end
         end
@@ -1250,7 +1252,7 @@ function draw_research_icon(id, x, y)
   end
 end
 
-function draw_research_screen()
+function draw_research_screenOLD()
   cls(UI_FG)
   local AVAILABLE_TECH = AVAILABLE_TECH
   local F_TECH = {}
@@ -1396,6 +1398,153 @@ function draw_research_screen()
   end
 end
 
+function draw_research_screen()
+  --cls(UI_FG)
+  local AVAILABLE_TECH = AVAILABLE_TECH
+  local F_TECH = {}
+  for k, v in ipairs(FINISHED_TECH) do
+    if v then table.insert(F_TECH, k) end
+  end
+  local sw = print('Technology Tree',0,-10,0,false,1,true)
+  local name = (current_tab and TECH[AVAILABLE_TECH[selected_research]] and TECH[AVAILABLE_TECH[selected_research]].name) or (not current_tab and TECH[F_TECH[selected_research]] and TECH[F_TECH[selected_research]].name or 'Select-a-Tech')
+  local rw = print(name,0,-10,0,false,1,true)
+  local rsw = print('Research', 0, -10, 0, false, 1, false)/2
+  local lpw = 101
+  local lph = 57
+  local start_x = 69
+  -----------MAIN PANEL-------------------
+  ui.draw_panel(start_x, 0, 103, 136, UI_FG, UI_FG)
+  -------SELECTED TECH HEADER-------------------
+  prints(name, start_x + 4 + lpw/2 - rw/2, 1)
+  rectr(start_x + 2, 8, lpw - 3, lph - 14, UI_BG, UI_FG, false)
+  if ui.draw_button(start_x + 2, lph - 6, current_tab and 0 or 1, UI_BUTTON, 2, 0, 3) then
+    current_tab = not current_tab
+  end
+  if current_tab then
+    prints('Available Tech', start_x + 12, lph - 4)
+  else
+    prints('Known Tech', start_x + 12, lph - 4)
+  end
+  ----------CURRENT PAGE--------------------------------------------
+  local total_current_pages = clamp(math.ceil((current_tab and #AVAILABLE_TECH/12) or #F_TECH/12), 1, 100)
+  if ui.draw_button(start_x + (lpw/2) - (rsw/2) + 29, lph - 5, 1, UI_ARROW, 12, 0, 4) then
+    current_page = clamp(current_page - 1, 1, total_current_pages)
+  end
+  if ui.draw_button(start_x + (lpw/2) - (rsw/2) + 56, lph - 5, 0, UI_ARROW, 12, 0, 4) then
+    current_page = clamp(current_page + 1, 1, total_current_pages)
+  end
+  prints(current_page .. '/' .. total_current_pages, start_x + (lpw/2) - (rsw/2) + 41, lph - 4, 0)  
+  ----------RESEARCH QUEUE------------------------------
+  --prints('Research Queue', (240 - lpw)/2 + lpw - sw/2, 1)
+  --research queue grid
+  --ui.draw_grid(lpw + 6, 8, 1, 7, UI_BG, UI_FG, 17, false)
+  --queue item icons
+
+  --------------TECH TREE------------------------------
+  --rectr(lpw + 2, 36, 135, 98, UI_BG, UI_FG, false)
+  --prints('Technology Tree', (240 - lpw)/2 + lpw - sw/2, 29)
+  ----------------SELECTED TECH PANEL--------------------------
+  if current_tab and selected_research then
+    --research progress bar
+    if not TECH[AVAILABLE_TECH[selected_research]].completed then
+      local progress = TECH[AVAILABLE_TECH[selected_research]].progress
+      ui.progress_bar(progress, start_x + 29, 10, 69, 5, 0, UI_FG, 6, 2)
+    else
+      prints('Finished', start_x + 29, 10)
+    end    
+    --start/pause research button
+    if current_research == selected_research then
+      if ui.draw_button(start_x + lpw - 11, lph - 15, 0, UI_PAUSE, 12, 0, 4) then
+        current_research = false
+      end
+    elseif current_research ~= selected_research then
+      if ui.draw_button(start_x + lpw - 11, lph - 15, 0, UI_ARROW, 12, 0, 4) then
+        current_research = selected_research
+      end
+    end
+    local cost_w = print(TECH[AVAILABLE_TECH[selected_research]].science_packs[1].count .. 'x - ', 0, -10, 1, false, 1, true)
+    prints(TECH[AVAILABLE_TECH[selected_research]].science_packs[1].count .. 'x -', start_x + 30, 19)
+    --available research icons
+    --timer sprite & text
+    sspr(CRAFTER_TIME_ID, start_x + 30 + cost_w, 18, 1)
+    prints(TECH[AVAILABLE_TECH[selected_research]].time .. 's', start_x + 30 + cost_w + 8, 19, 0, 6)
+    --item unlocks
+    prints('Unlocks:', start_x + 4, 42)
+    for k, v in ipairs(TECH[AVAILABLE_TECH[selected_research]].item_unlocks) do
+      sspr(ITEMS[v].sprite_id, start_x + 35 + ((k-1)*9), 40, ITEMS[v].color_key)
+    end
+    --current research icon
+    draw_research_icon(AVAILABLE_TECH[selected_research], start_x + 3, 8)
+    for k, v in ipairs(TECH[AVAILABLE_TECH[selected_research]].science_packs) do
+      sspr(ITEMS[v.id].sprite_id, start_x + 30 + (k-1)*8, 28, ITEMS[v.id].ck)
+    end
+  end
+  
+  --------------AVAILABLE or FINISHED TECH GRID PANEL----------------------
+  ui.draw_grid(start_x + 1, lph + 2, 3, 4, UI_BG, UI_FG, 25, false)
+  local i = 1
+  for y = 0, 2 do
+    for x = 0, 3 do
+      local index = i + ((current_page - 1) * 12)
+      local final_index = current_tab and AVAILABLE_TECH[index] or not current_tab and F_TECH[index]
+      if final_index then
+        draw_research_icon(final_index, start_x + 2+x*25, lph+3+y*25)
+        if current_tab and AVAILABLE_TECH[final_index] and final_index == current_research then
+          ui.highlight(start_x + x*25, lph + y*25 + 2, 24, 24, true, 3, 4)
+        end
+      end
+      i = i + 1
+    end
+  end
+  --check available research hover
+  local slot = get_hovered_slot(cursor.x, cursor.y, start_x + 1, 59, 25, 3, 4)
+  if slot then
+    local index = false
+    if current_tab then
+      index = AVAILABLE_TECH[slot.index + ((current_page-1)*12)] or false
+    else
+      index = F_TECH[slot.index + ((current_page-1)*12)] or false
+    end
+    ui.highlight(slot.x, slot.y, 24, 24, false, 3, 4)
+    if not index then return end
+    draw_tech_widget(cursor.x + 5, cursor.y + 5, index)
+    if current_tab and cursor.l and not cursor.ll then
+      if index then
+        selected_research = slot.index + ((current_page-1)*12)
+      else
+        selected_research = false
+      end
+      if not current_research then
+
+      elseif current_research ~= slot.index then
+        --todo: add to queue
+      end
+    end
+    --todo: draw hover widget
+  end
+
+  --------MOUSE HOVER/CLICK EVENTS---------------------------
+  -- slot = get_hovered_slot(cursor.x, cursor.y, 107, 8, 17, 1, 7)
+  -- if slot then
+  --   ui.highlight(slot.x, slot.y, 16, 16, false, 3, 4)
+  -- end
+  if selected_research then
+    slot = get_hovered_slot(cursor.x, cursor.y, start_x + 34, 39, 9, 1, #TECH[AVAILABLE_TECH[selected_research]].item_unlocks)
+    if slot then
+      ui.highlight(slot.x, slot.y, 8, 8, false, 3, 4)
+      draw_recipe_widget(cursor.x + 5, cursor.y + 5, TECH[AVAILABLE_TECH[selected_research]].item_unlocks[slot.index])
+    end
+    for k, v in ipairs(TECH[AVAILABLE_TECH[selected_research]].science_packs) do
+      if hovered(cursor, {x = start_x + 30 + (k-1)*8, y = 28, w = 8, h = 8}) then
+        ui.highlight(start_x + 29 + (k-1)*8, 27, 8, 8, false, 3, 4)
+        draw_recipe_widget(cursor.x + 5, cursor.y + 5, v.id)
+      end
+    end
+    --draw tech tree
+    --prints('tech tree', 120, 50, 0, 4)
+  end
+end
+
 function update_research_progress()
   if not current_research then return false end
   local tech = TECH[AVAILABLE_TECH[current_research]]
@@ -1483,13 +1632,13 @@ function ui.draw_menu()
     if ui.draw_text_button(120 - ((text_width('  Controls  ') + 2) /2), 110, UI_BUTTON2, _, 8, 9, 15, 10, {text = '  Controls  ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
       STATE = 'help'
     end
-  elseif STATE == 'settings' then
+  -- elseif STATE == 'settings' then
     
-    ui.draw_panel(0, 0, 240, 136, 8, 9, {text = 'Settings', bg = 15, fg = 4})
-    if ui.draw_text_button(239 - ((text_width(' < ') + 4)), 1, UI_BUTTON2, _, 8, 2, 15, 3, {text = ' < ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
-      cls(0)
-      STATE = 'start'
-    end
+  --   ui.draw_panel(0, 0, 240, 136, 8, 9, {text = 'Settings', bg = 15, fg = 4})
+  --   if ui.draw_text_button(239 - ((text_width(' < ') + 4)), 1, UI_BUTTON2, _, 8, 2, 15, 3, {text = ' < ', x = 1, y = 1, bg = 15, fg = 4, shadow = {x = 1, y = 0}}) then
+  --     cls(0)
+  --     STATE = 'start'
+  --   end
   elseif STATE == 'help' then
     --vbank(0)
     --cls(0)
@@ -1524,6 +1673,25 @@ function ui.draw_menu()
     -- end
     --ui.draw_panel(0, 0, 240, 136, 8, 9)
     
+  end
+end
+
+function ui.draw_endgame_window()
+  cls(0)
+  if TICK % 60 > 30 then
+    print('Congratulations!', 31, 44, 15, false, 2, false)
+    print('Congratulations!', 30, 44, 4, false, 2, false)
+    print('You\'ve won the game!', 11, 64, 15, false, 2, false)
+    print('You\'ve won the game!', 10, 64, 4, false, 2, false)
+  end
+  --(x, y, id, width, height, main_color, shadow_color, hover_color, label, locked)
+  if ui.draw_text_button(120 - text_width(' Continue ')/2 - 2, 84, 113, 8, 8, 8, 15, 9, {text = ' Continue ', x = 1, y = 1, bg = 0, fg = 4, shadow = {x = 1, y = 0}}) then
+    trace('Returning to game')
+    STATE = 'game'
+  end
+  if ui.draw_text_button(120 - text_width(' Quit ')/2 - 2, 94, 113, 8, 8, 8, 15, 9, {text = ' Quit ', x = 1, y = 1, bg = 0, fg = 2, shadow = {x = 1, y = 0}}) then
+    trace('pressed QUIT button')
+    -- STATE = 'game'
   end
 end
 
