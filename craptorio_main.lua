@@ -675,11 +675,11 @@ function cycle_hotbar(dir)
     if cursor.item_stack.slot then
       inv.slots[cursor.item_stack.slot].id = cursor.item_stack.id
       inv.slots[cursor.item_stack.slot].count = cursor.item_stack.count
+      --set_cursor_item()
     else
       inv:add_item({id = cursor.item_stack.id, count = cursor.item_stack.count})
-      set_cursor_item()
+      --set_cursor_item()
     end
-    --set_cursor_item()
   end
   inv.active_slot = inv.active_slot + dir
   if inv.active_slot < 1 then inv.active_slot = INVENTORY_COLS end
@@ -691,7 +691,6 @@ function set_active_slot(slot)
   inv.active_slot = slot
   local id = inv.slots[slot + INV_HOTBAR_OFFSET].id
   if id ~= 0 then
-    --trace('setting item to: ' .. ITEMS[id].name)
     cursor.item = ITEMS[id].name
     cursor.item_stack = {id = id, count = inv.slots[slot + INV_HOTBAR_OFFSET].count, slot = slot + INV_HOTBAR_OFFSET}
     cursor.type = 'item'
@@ -933,14 +932,10 @@ end
 
 function set_cursor_item(stack, slot)
   if not stack then
-    if cursor.item_stack.slot then
-      inv.slots[cursor.item_stack.slot].id = 0
-      inv.slots[cursor.item_stack.slot].count = 0
-    end
     cursor.item = false
     cursor.item_stack.id = 0
     cursor.item_stack.count = 0
-    cursor.item_stack.slot = false
+    cursor.item_stack.slot = cursor.item_stack.slot or false
     cursor.type = 'pointer'
   else
     cursor.type = 'item'
