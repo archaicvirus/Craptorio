@@ -8516,25 +8516,24 @@ TECH = {
       {id=399,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=15,y=1}},
     },
   },
-  -- [16] = {
-  --   name = 'Iron Chest',
-  --   progress = 0,
-  --   completed = false,
-  --   time = 3,
-  --   science_packs = {
-  --     {id = 23, count = 1},
-  --     {id = 24, count = 1},
-  --     {id = 25, count = 1}
-  --   },
-  --   required_tech = {14},
-  --   item_unlocks = {26},
-  --   tech_unlocks = {},
-  --   sprite = {
-  --     {id=333,tw=2,th=2,w=16,h=16,rot=0,ck=1,page=1,offset={x=4,y=4}},
-  --     {id=463,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=1,y=1}},
-  --     {id=399,tw=1,th=1,w=8,h=8,rot=0,ck=0,page=0,offset={x=15,y=1}},
-  --   },
-  -- },
+  [16] = {
+    name = 'Rocket Silo',
+    progress = 0,
+    completed = false,
+    time = 3,
+    science_packs = {
+      {id = 23, count = 100},
+      {id = 24, count = 100},
+      {id = 25, count = 100},
+      {id = 26, count = 100},
+    },
+    required_tech = {15},
+    item_unlocks = {40},
+    tech_unlocks = {},
+    sprite = {
+      {id=386,tw=1,th=1,w=8,h=8,rot=0,ck=-1,page=0,offset={x=4,y=4}},
+    },
+  },
 }
 
 for k, v in ipairs(TECH) do
@@ -11229,7 +11228,7 @@ function TIC()
   info[12] = 'hold time: ' .. cursor.hold_time
   local _, wx, wy  = get_world_cell(cursor.tx, cursor.ty)
   local k = wx .. '-' .. wy
-  if key(64) and ENTS[k] then
+  if key(64) and ENTS[k] and not inv:is_hovered(cursor.x, cursor.y) then
     if ENTS[k].type == 'underground_belt_exit' then
       ENTS[ENTS[k].other_key]:draw_hover_widget(k)
     else
