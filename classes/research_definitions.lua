@@ -186,7 +186,7 @@ TECH = {
       {id = 24, count = 50},
     },
     required_tech = {1, 3, 4},
-    item_unlocks = {30},
+    item_unlocks = {30, 45},
     tech_unlocks = {},
     sprite = {{id=371,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=0,offset={x=0,y=0}}},
   },

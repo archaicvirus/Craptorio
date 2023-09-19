@@ -812,24 +812,14 @@ ITEMS = {
   [44] = {
     name = 'rocket_science_pack',
     fancy_name = 'Rocket Science Pack',
-    info = 'Obtained from a Rocket Silo after launching a rocket into space',
+    info = '1k Obtained from a Rocket Silo after launching a rocket into space',
     id = 44,
     sprite_id = 495,
     belt_id = 479,
     color_key = 0,
-    type = 'intermediate',
+    type = 'none',
     craftable = false,
     stack_size = 100,
-    recipe = {
-      id = 44,
-      crafting_time = 60*1.5,
-      count = 1000,
-      ingredients = {
-        [1] = {id = 41, count = 100},
-        [2] = {id = 42, count = 100},
-        [3] = {id = 43, count = 100},
-      },
-    },
   },
   [45] = {
     name = 'refined_oil_chunk',

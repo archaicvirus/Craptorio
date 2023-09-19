@@ -8187,28 +8187,22 @@ recipes = {
   },
   --biology/chemistry
   [2] = {
-    [1] = { },
+    [1] = { 2, 1, 37},
     [2] = { 15, 16, 17, 27, 29, 28},
-    [3] = { 20, 21, 2, 1},
+    [3] = { 20, 21, 36},
     [4] = { 13, 14, 19, 31, 32},
     [5] = { 22, 30},
-    [6] = { 40}
+    [6] = { 40, 41, 42, 43, 44}
   },
   --intermediate/science
   [3] = {
-    [1] = { 3, 4, 5, },
-    [2] = { 32, 35, },
+    [1] = { 3, 4, 5, 6, 7, 8},
+    [2] = { 32, 35, 45},
     [3] = { },
     [4] = { },
     [5] = { 23, 24, 25, 26},
     [6] = { },
-  },
-  --combat
-  -- [3] = {
-  --   [1] = { },
-  --   [2] = { },
-  --   [3] = { },
-  -- },
+  }
 }
 
 AVAILABLE_TECH = {1,2,5,6}--{1,2,3,4,5,6,12,13}--,6,7,8,9,10,11,12,13}
@@ -8219,11 +8213,11 @@ current_research = false
 selected_research = false
 current_page = 1
 current_tab = true --tab to show available or unlocked tech
-local starting_items = {9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 14, 33, 22, 2}
+starting_unlocked_items = {9, 20, 17, 21, 23, 15, 16, 3, 4, 5, 6, 7, 8, 14, 33, 22, 2, 28}
 for i = 1, #ITEMS do
   UNLOCKED_ITEMS[i] = false
 end
-for k, v in ipairs(starting_items) do
+for k, v in ipairs(starting_unlocked_items) do
   UNLOCKED_ITEMS[v] = true
 end
 
@@ -8399,7 +8393,7 @@ TECH = {
       {id = 24, count = 50},
     },
     required_tech = {1, 3, 4},
-    item_unlocks = {30},
+    item_unlocks = {30, 45},
     tech_unlocks = {},
     sprite = {{id=371,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=0,offset={x=0,y=0}}},
   },
@@ -8528,7 +8522,7 @@ TECH = {
       {id = 26, count = 100},
     },
     required_tech = {15},
-    item_unlocks = {40},
+    item_unlocks = {40, 41, 42, 43, 44},
     tech_unlocks = {},
     sprite = {
       {id=386,tw=1,th=1,w=8,h=8,rot=0,ck=-1,page=0,offset={x=4,y=4}},
@@ -11094,6 +11088,28 @@ function lapse(fn, ...)
 	fn(...)
 	return floor((time() - t))
 end
+
+local nums = {}
+for i = 1, 45 do
+  nums[i] = false
+end
+local missing = {}
+for k, v in ipairs(starting_unlocked_items) do
+  nums[v] = true
+end
+for k, v in ipairs(TECH) do
+  for a, item in ipairs(v.item_unlocks) do
+    nums[item] = true
+  end
+end
+
+for i = 1, 45 do
+  if nums[i] == false then
+    table.insert(missing, i)
+  end
+end
+
+trace('missing items from crafting tabs: {' .. table.concat(missing, ',') .. '}')
 
 function TIC()
   if not loaded then
