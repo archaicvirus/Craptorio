@@ -1508,7 +1508,6 @@ callbacks = {
               return ENTS[self.other_key]:deposit(id, other_rot, true)
             end,
           }
-          trace(#cells - 1)
           ENTS[other_key]:connect(wx, wy, #cells - 1)
           ENTS[other_key]:update_neighbors_exit()
           sound('place_belt')
@@ -3213,11 +3212,9 @@ function ui.draw_endgame_window()
   end
   --(x, y, id, width, height, main_color, shadow_color, hover_color, label, locked)
   if ui.draw_text_button(120 - text_width(' Continue ')/2 - 2, 84, 113, 8, 8, 8, 15, 9, {text = ' Continue ', x = 1, y = 1, bg = 0, fg = 4, shadow = {x = 1, y = 0}}) then
-    trace('Returning to game')
     STATE = 'game'
   end
   if ui.draw_text_button(120 - text_width(' Quit ')/2 - 2, 94, 113, 8, 8, 8, 15, 9, {text = ' Quit ', x = 1, y = 1, bg = 0, fg = 2, shadow = {x = 1, y = 0}}) then
-    trace('pressed QUIT button')
     exit()
     -- STATE = 'game'
   end
@@ -3376,6 +3373,101 @@ function inventory:update()
 end
 
 function inventory:add_item(stack, area)
+  --self.slots[57 - 64] are hotbar slots 1-8
+  area = area or 2
+  -- 1st hotbar pass for existing partial stacks, if flag
+  if area == 1 or area == 3 then
+    for i = 57, #self.slots do
+      if stack.id == self.slots[i].id and self.slots[i].count < ITEMS[self.slots[i].id].stack_size then
+        local old_count = self.slots[i].count
+        self.slots[i].count = self.slots[i].count + stack.count
+        if self.slots[i].count > ITEMS[self.slots[i].id].stack_size then
+          stack.count = stack.count - (ITEMS[self.slots[i].id].stack_size - old_count)
+          self.slots[i].count = ITEMS[self.slots[i].id].stack_size
+          -- return self:add_item({id = stack.id, count = stack.count}, 1)
+        else
+          return true, {id = 0, count = 0}
+        end
+      end
+    end
+    --2nd hotbar pass for empty slot
+    for i = 57, #self.slots do
+      if self.slots[i].id == 0 then
+        self.slots[i].id = stack.id
+        self.slots[i].count = stack.count
+        return true, {id = 0, count = 0}
+      end
+    end
+  end
+
+  --1st pass for existing partial stacks
+  for k, v in ipairs(self.slots) do
+    if stack.id == v.id and v.count < ITEMS[v.id].stack_size then
+      local old_count = v.count
+      v.count = v.count + stack.count
+      --stack.count = stack.count - (ITEMS[v.id].stack_size - old_count)
+      if v.count > ITEMS[v.id].stack_size then
+        stack.count = v.count - ITEMS[v.id].stack_size
+        v.count = ITEMS[v.id].stack_size
+      else
+        return true, {id = 0, count = 0}
+      end
+    end
+  end
+
+  --2nd pass for an empty slot
+  for k, v in ipairs(self.slots) do
+    if v.id == 0 then
+      v.id = stack.id
+      v.count = stack.count
+      return true, {id = 0, count = 0}
+    end
+  end
+  return false, stack
+end
+
+function inventory:add_itemNEW(stack, area)
+  area = area or 3
+  if area == 1 or area == 3 then
+    for i = 57, #self.slots do
+      if self.slots[i].id == stack.id and self.slots[i].count < ITEMS[self.slots[i].id].stack_size then
+        local old_count = self.slots[i].count
+        self.slots[i].count = self.slots[i].count + stack.count
+        if self.slots[i].count > ITEMS[self.slots[i].id].stack_size then
+          self.slots[i].count = ITEMS[self.slots[i].id].stack_size
+          stack.count = stack.count - (ITEMS[self.slots[i].id].stack_size - old_count)
+          -- return self:add_item({id = stack.id, count = stack.count}, 1)
+        end
+        return true, {id = 0, count = 0}
+      end
+      if self.slots[i].id == 0 then
+        self.slots[i].id = stack.id
+        self.slots[i].count = stack.count
+        return true, {id = 0, count = 0}
+      end
+    end
+  end
+  for k, v in ipairs(self.slots) do
+    if v.id == stack.id and v.count < ITEMS[v.id].stack_size then
+      local old_count = v.count
+      v.count = v.count + stack.count
+      if v.count > ITEMS[v.id].stack_size then
+        v.count = ITEMS[v.id].stack_size
+        stack.count = stack.count - (ITEMS[v.id].stack_size - old_count)
+        return self:add_item(stack)
+      end
+      return true, {id = 0, count = 0}
+    end
+    if v.id == 0 then
+      v.id = stack.id
+      v.count = stack.count
+      return true, {id = 0, count = 0}
+    end
+  end
+  return false, stack
+end
+
+function inventory:add_itemOLD(stack, area)
   local area = area or 3
   --1st pass, check for same-item
   --check hotbar slots first
@@ -3447,16 +3539,32 @@ end
 
 function inventory:remove_stack(stack)
   for k, v in ipairs(self.slots) do
-    if v.id == stack.id and v.count >= stack.count then
-      v.count = v.count - stack.count
-      if v.count <= 0 then
+    if v.id == stack.id then
+      if v.count >= stack.count then
+        v.count = v.count - stack.count
+        if v.count < 1 then v.id = 0 end
+        return true
+      else
+        stack.count = stack.count - v.count
         v.count = 0
         v.id = 0
       end
-      return true
     end
   end
   return false
+
+
+  -- for k, v in ipairs(self.slots) do
+  --   if v.id == stack.id and v.count >= stack.count then
+  --     v.count = v.count - stack.count
+  --     if v.count <= 0 then
+  --       v.count = 0
+  --       v.id = 0
+  --     end
+  --     return true
+  --   end
+  -- end
+  -- return false
 end
 
 function inventory:slot_clicked(index, button)
@@ -3544,7 +3652,7 @@ function inventory:slot_clicked(index, button)
         local stack = {id = id, count = count}
         self.slots[index].id = 0
         self.slots[index].count = 0
-        local res, stk = self:add_item(stack)
+        local res, stk = self:add_item(stack, 2)
         if res then
           return true
         else
@@ -3632,12 +3740,23 @@ function inventory:get_hovered_slot(x, y)
 end
 
 function inventory:has_stack(stack)
+  local total_items = 0
   for k, v in ipairs(self.slots) do
-    if v.id == stack.id and v.count >= stack.count then
+    if v.id == stack.id then
+     total_items = total_items + v.count
+     if total_items >= stack.count then
       return true
+     end
     end
   end
   return false
+
+  -- for k, v in ipairs(self.slots) do
+  --   if v.id == stack.id and v.count >= stack.count then
+  --     return true
+  --   end
+  -- end
+  -- return false
 end
 
 function new_slot(index)
@@ -4967,7 +5086,6 @@ function Splitter.set_output(self)
       local rot_key = self.rot .. l.rot
       self.output_l = SPLITTER_BELT_OUTPUT_MAP[rot_key]
     elseif l.type == 'underground_belt' then
-      trace('UB detected LEFT')
       local rot_key = self.rot .. l.rot
       self.output_l = SPLITTER_BELT_OUTPUT_MAP[rot_key]
     elseif l.type == 'underground_belt_exit' then
@@ -4991,7 +5109,6 @@ function Splitter.set_output(self)
       local rot_key = self.rot .. r.rot
       self.output_r = SPLITTER_BELT_OUTPUT_MAP[rot_key]
     elseif r.type == 'underground_belt' then
-      trace('UB detected RIGHT')
       local rot_key = self.rot .. r.rot
       self.output_r = SPLITTER_BELT_OUTPUT_MAP[rot_key]
     elseif r.type == 'underground_belt_exit' then
@@ -5353,14 +5470,14 @@ local Inserter = {
   tickrate = 5,
 }
 
-function Inserter.draw_hover_widget(self)
-if TICK % 60 == 0 then
-  trace('state: ' .. self.state)
-  trace('id = ' .. self.held_item_id)
-end
+function Inserter:draw_hover_widget()
+  if TICK % 60 == 0 then
+    trace('state: ' .. self.state)
+    trace('id = ' .. self.held_item_id)
+  end
 end
 
-function Inserter.get_info(self)
+function Inserter:get_info()
   local info = {
     [1] = 'POS: ' .. get_key(self.pos.x, self.pos.y),
     [2] = 'ROT: ' .. self.rot,
@@ -5370,7 +5487,7 @@ function Inserter.get_info(self)
   return info
 end
 
-function Inserter.draw(self)
+function Inserter:draw()
   local config = INSERTER_ARM_OFFSETS[INSERTER_ANIM_KEYS[self.rot][self.anim_frame]]
   local sx, sy = world_to_screen(self.pos.x, self.pos.y)
   local screen_pos = {x = sx, y = sy}
@@ -5384,7 +5501,7 @@ function Inserter.draw(self)
   end
 end
 
-function Inserter.can_deposit(self, other, item_id)
+function Inserter:can_deposit(other, item_id)
   if ENTS[other] then
     if ENTS[other].type == 'transport_belt' then
       return true
@@ -5420,20 +5537,20 @@ function Inserter:item_request(id)
   return false
 end
 
-function Inserter.set_output(self)
+function Inserter:set_output()
   local from, to = INSERTER_GRAB_OFFSETS[self.rot].from, INSERTER_GRAB_OFFSETS[self.rot].to
   self.from_key = self.pos.x + from.x .. '-' .. self.pos.y + from.y
   self.to_key = self.pos.x  + to.x .. '-' .. self.pos.y + to.y
 end
 
-function Inserter.rotate(self, rotation)
+function Inserter:rotate(rotation)
   rotation = rotation or self.rot + 1
   self.rot = rotation
   if self.rot > 3 then self.rot = 0 end
   self:set_output()
 end
 
-function Inserter.update(self)
+function Inserter:update()
   local from, to = self.from_key, self.to_key
   if ENTS[from] and dummies[ENTS[from].type] then
     self.from_key = ENTS[from].other_key
@@ -5454,7 +5571,6 @@ function Inserter.update(self)
     if self.anim_frame <= 1 then
       self.anim_frame = 1
       --try to deposit item
-      --trace('looking for output')
       if ENTS[to] then
         if ENTS[to]:deposit(self.held_item_id, self.rot) then
           self.state = 'return'
@@ -5473,7 +5589,6 @@ function Inserter.update(self)
       self.state = 'wait'
     end
   elseif self.state == 'wait' then
-    trace('inserter waiting')
     local desired_item = ENTS[to]:request_deposit(self)
     --if desired_item then trace('inserter: desired item = ' .. tostring(ITEMS[desired_item].fancy_name)) end
     if not desired_item then return end
@@ -5502,6 +5617,8 @@ function new_inserter(position, rotation)
     filter = {item_id = 0}
   }
   setmetatable(new_inserter, {__index = Inserter})
+  --new_Inserter.pos = position
+  --new_Inserter.rot = rotation
   new_inserter:set_output()
   return new_inserter
 end
@@ -5821,7 +5938,7 @@ function Drill:request_deposit()
 end
 
 function Drill:item_request(id)
-  trace('DRILL: requested item id = ' .. tostring(id))
+  --trace('DRILL: requested item id = ' .. tostring(id))
   if self.output.count < 1 then return false end
   if self.output.id == id or id == 'any' or
   (id == 'ore' and ITEMS[self.output.id].type == 'ore') or
@@ -8235,9 +8352,6 @@ TECH = {
     item_unlocks = {18, 10, 11},
     tech_unlocks = {},
     sprite = {{id=12,tw=3,th=3,w=24,h=24,rot=0,ck=1,page=1,offset={x=0,y=0}}},
-    callback = function(self)
-      trace(self.name .. ' - callback triggered after research was completed')
-    end,
   },
   [2] = {
     name = 'Automation',
@@ -8325,9 +8439,7 @@ TECH = {
       {id=358,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=12}},
     },
     callback = function(self)
-      trace(self.name .. ' - callback triggered after research was completed')
       CURSOR_MINING_SPEED = floor(CURSOR_MINING_SPEED - (CURSOR_MINING_SPEED*0.5))
-      trace('set CURSOR_MINING_SPEED to ' .. CURSOR_MINING_SPEED)
     end,
   },
   [7] = {
@@ -8351,9 +8463,7 @@ TECH = {
       {id=359,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=12}},
     },
     callback = function(self)
-      trace(self.name .. ' - callback triggered after research was completed')
       CURSOR_MINING_SPEED = floor(CURSOR_MINING_SPEED - (CURSOR_MINING_SPEED*0.5))
-      trace('set CURSOR_MINING_SPEED to ' .. CURSOR_MINING_SPEED)
     end,
   },
   [8] = {
@@ -8378,9 +8488,7 @@ TECH = {
       {id=360,tw=1,th=1,w=8,h=8,rot=0,ck=1,page=0,offset={x=12,y=12}},
     },
     callback = function(self)
-      trace(self.name .. ' - callback triggered after research was completed')
       CURSOR_MINING_SPEED = floor(CURSOR_MINING_SPEED - (CURSOR_MINING_SPEED*0.5))
-      trace('set CURSOR_MINING_SPEED to ' .. CURSOR_MINING_SPEED)
     end,
   },
   [9] = {
@@ -8645,7 +8753,6 @@ function Chest:can_deposit(stack)
 end
 
 function Chest:open()
-  trace('opening chest')
   return {
     ent_key = self.x .. '-' .. self.y,
     x = 240/2 - (((self.cols * 9) + 4)/2),
@@ -8732,7 +8839,6 @@ function Chest:open()
             end
           elseif cursor.l then
             --try deposit whole stack
-            trace('left-click detected on storage chest')
             local stack_size = ITEMS[ent.slots[slot.index].id].stack_size
             if ent.slots[slot.index].id == 0 then
               ents.slots[slot.index].id = cursor.item_stack.id
@@ -9860,35 +9966,35 @@ opensies = {
 
 inv = make_inventory()
 local starting_items = {
-  {id = 33, slot =  1},
-  {id = 10, slot =  2},
-  {id = 23, slot =  3},
-  {id = 24, slot =  4},
-  {id = 25, slot =  5},
-  {id = 26, slot =  6},
-  {id =  6, slot =  7},
-  {id =  8, slot =  8},
-  {id = 32, slot =  9},
-  {id = 20, slot = 10},
-  {id = 15, slot = 11},
-  {id = 14, slot = 12},
-  {id = 40, slot = 13},
-  {id = 41, slot = 14},
-  {id = 42, slot = 15},
-  {id = 43, slot = 16},
-  {id =  9, slot = 57},
-  {id = 18, slot = 58},
-  {id = 11, slot = 59},
-  {id = 13, slot = 60},
-  {id = 14, slot = 61},
-  {id = 22, slot = 62},
-  {id = 19, slot = 63},
-  {id = 30, slot = 64},
+  {id = 32, slot =  1},
+  {id = 32, slot =  2},
+  {id = 32, slot =  3},
+  {id = 32, slot =  4},
+  {id = 32, slot =  5},
+  -- {id = 26, slot =  6},
+  -- {id =  6, slot =  7},
+  -- {id =  8, slot =  8},
+  -- {id = 32, slot =  9},
+  -- {id = 20, slot = 10},
+  -- {id = 15, slot = 11},
+  -- {id = 14, slot = 12},
+  -- {id = 40, slot = 13},
+  -- {id = 41, slot = 14},
+  -- {id = 42, slot = 15},
+  -- {id = 43, slot = 16},
+  -- {id =  9, slot = 57},
+  -- {id = 18, slot = 58},
+  -- {id = 11, slot = 59},
+  -- {id = 13, slot = 60},
+  -- {id = 14, slot = 61},
+  -- {id = 22, slot = 62},
+  -- {id = 19, slot = 63},
+  -- {id = 30, slot = 64},
 }
--- for k,v in ipairs(starting_items) do
---   inv.slots[v.slot].id = v.id
---   inv.slots[v.slot].count = ITEMS[v.id].stack_size
--- end
+for k,v in ipairs(starting_items) do
+  inv.slots[v.slot].id = v.id
+  inv.slots[v.slot].count = ITEMS[v.id].stack_size - 1
+end
 
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
@@ -11089,27 +11195,31 @@ function lapse(fn, ...)
 	return floor((time() - t))
 end
 
-local nums = {}
-for i = 1, 45 do
-  nums[i] = false
-end
-local missing = {}
-for k, v in ipairs(starting_unlocked_items) do
-  nums[v] = true
-end
-for k, v in ipairs(TECH) do
-  for a, item in ipairs(v.item_unlocks) do
-    nums[item] = true
-  end
-end
+-- local nums = {}
+-- for i = 1, 45 do
+--   nums[i] = false
+-- end
+-- local missing = {}
+-- for k, v in ipairs(starting_unlocked_items) do
+--   nums[v] = true
+-- end
+-- for k, v in ipairs(TECH) do
+--   for a, item in ipairs(v.item_unlocks) do
+--     nums[item] = true
+--   end
+-- end
 
-for i = 1, 45 do
-  if nums[i] == false then
-    table.insert(missing, i)
-  end
-end
+-- for i = 1, 45 do
+--   if nums[i] == false then
+--     table.insert(missing, i)
+--   end
+-- end
 
-trace('missing items from crafting tabs: {' .. table.concat(missing, ',') .. '}')
+-- trace('missing items from crafting tabs: {' .. table.concat(missing, ',') .. '}')
+
+-- for i = 1, 5 do
+--   inv:add_item({id = 32, count = 199}, 2)
+-- end
 
 function TIC()
   if not loaded then

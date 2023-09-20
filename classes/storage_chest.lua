@@ -252,7 +252,7 @@ function Chest:item_request(id)
       return v.id
     end
   end
-  return false
+  return nil
 end
 
 function Chest:request_deposit()
