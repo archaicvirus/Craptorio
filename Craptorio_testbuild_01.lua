@@ -2540,7 +2540,7 @@ function draw_recipe_widget(x, y, id)
 end
 
 function draw_item_stack(x, y, stack, show_cnt)
-  show_cnt = show_cnt or show_count
+  show_cnt = show_tile_widget or show_cnt or show_count
   sspr(ITEMS[stack.id].sprite_id, x, y, ITEMS[stack.id].color_key)
   if show_cnt then
     local count = stack.count < 100 and stack.count or floor(stack.count/100) .. 'H'
