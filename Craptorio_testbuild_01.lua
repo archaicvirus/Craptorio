@@ -3374,7 +3374,7 @@ end
 
 function inventory:add_item(stack, area)
   --self.slots[57 - 64] are hotbar slots 1-8
-  area = area or 2
+  area = area or 1
   -- 1st hotbar pass for existing partial stacks, if flag
   if area == 1 or area == 3 then
     for i = 57, #self.slots do
@@ -10634,7 +10634,7 @@ function remove_tile(x, y)
     callbacks[ENTS[k].type].remove_item(x, y)
     --trace('adding item_id: ' .. tostring(stack.id) .. ' to inventory')
     ui.new_alert(cursor.x, cursor.y, '+ ' .. stack.count .. ' ' .. ITEMS[stack.id].fancy_name, 1500, 0, 4)
-    inv:add_item(stack)
+    inv:add_item(stack, 1)
     return
   end
   if cursor.held_right and cursor.tx == cursor.ltx and cursor.ty == cursor.lty then
@@ -10642,7 +10642,7 @@ function remove_tile(x, y)
     if result then
       local deposit = {id = result.id, count = floor(math.random(result.min, result.max))}
       ui.new_alert(cursor.x, cursor.y, '+ ' .. deposit.count .. ' ' .. ITEMS[deposit.id].fancy_name, 1000, 0, 6)
-      inv:add_item(deposit)
+      inv:add_item(deposit, 1)
       --trace('adding mined resource to inventory')
       TileMan:set_tile(wx, wy)
       sound('delete')
@@ -10652,7 +10652,7 @@ function remove_tile(x, y)
     if tile.is_tree then
       --deposit wood to inventory
       local count = floor(math.random(3, 10))
-      local result, stack = inv:add_item({id = 28, count = count})
+      local result, stack = inv:add_item({id = 28, count = count}, 1)
       if result then 
         ui.new_alert(cursor.x, cursor.y, '+ ' .. count .. ' ' .. ITEMS[28].fancy_name, 1000, 0, 6)
       end
@@ -10679,7 +10679,7 @@ function remove_tile(x, y)
       if ORES[k].ore_remaining > 0 then
         ORES[k].ore_remaining = ORES[k].ore_remaining - 1
         ui.new_alert(cursor.x, cursor.y, '+ 1 ' .. ITEMS[ORES[k].id].fancy_name, 1000, 0, 6)
-        inv:add_item({id = ORES[k].id, count = 1})
+        inv:add_item({id = ORES[k].id, count = 1}, 1)
         sound('delete')
       end
       if ORES[k].ore_remaining < 1 then
@@ -10952,6 +10952,10 @@ function dispatch_input()
         local result, stack = ENTS[k]:deposit_stack(cursor.item_stack)
         local old_stack = {id = cursor.item_stack.id, count = cursor.item_stack.count}
         if stack.count == 0 then
+          if cursor.item_stack.slot then
+            inv.slots[cursor.item_stack.slot].count = 0
+            inv.slots[cursor.item_stack.slot].id = 0
+          end
           ui.new_alert(cursor.x, cursor.y, -old_stack.count .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 6)
           sound('deposit')
           set_cursor_item()
@@ -10959,6 +10963,9 @@ function dispatch_input()
           ui.new_alert(cursor.x, cursor.y, '- ' .. (old_stack.count - stack.count) .. ' ' .. ITEMS[old_stack.id].fancy_name, 1000, 0, 6)
           sound('deposit')
           cursor.item_stack.count = stack.count
+          if cursor.item_stack.slot then
+            inv.slots[cursor.item_stack.slot].count = stack.count
+          end
         end
       end
       return
