@@ -3690,7 +3690,7 @@ function inventory:clicked(x, y)
           end
         end
 
-        if result.index >= 57 then
+        if result.index >= 57 and self.slots[result.index].id > 0 then
           local stack = {id = self.slots[result.index].id, count = self.slots[result.index].count}
           self.slots[result.index].id = 0
           self.slots[result.index].count = 0
