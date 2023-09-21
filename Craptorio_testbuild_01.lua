@@ -3652,7 +3652,7 @@ function inventory:slot_clicked(index, button)
         local stack = {id = id, count = count}
         self.slots[index].id = 0
         self.slots[index].count = 0
-        local res, stk = self:add_item(stack, 2)
+        local res, stk = self:add_item(stack, 1)
         if res then
           return true
         else
@@ -9966,11 +9966,11 @@ opensies = {
 
 inv = make_inventory()
 local starting_items = {
-  {id = 32, slot =  1},
-  {id = 32, slot =  2},
-  {id = 32, slot =  3},
-  {id = 32, slot =  4},
-  {id = 32, slot =  5},
+  -- {id = 32, slot =  1},
+  -- {id = 32, slot =  2},
+  -- {id = 32, slot =  3},
+  -- {id = 32, slot =  4},
+  -- {id = 32, slot =  5},
   -- {id = 26, slot =  6},
   -- {id =  6, slot =  7},
   -- {id =  8, slot =  8},
@@ -9991,10 +9991,10 @@ local starting_items = {
   -- {id = 19, slot = 63},
   -- {id = 30, slot = 64},
 }
-for k,v in ipairs(starting_items) do
-  inv.slots[v.slot].id = v.id
-  inv.slots[v.slot].count = ITEMS[v.id].stack_size - 1
-end
+-- for k,v in ipairs(starting_items) do
+--   inv.slots[v.slot].id = v.id
+--   inv.slots[v.slot].count = ITEMS[v.id].stack_size - 1
+-- end
 
 craft_menu = ui.NewCraftPanel(135, 1)
 vis_ents = {}
