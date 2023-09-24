@@ -33,7 +33,7 @@ require('classes/storage_chest')
 require('classes/refinery')
 require('classes/rocket_silo')
 
-local seed = tstamp() * time()
+--local seed = tstamp() * time()
 local seed = 172046262608.13
 --seed = math.random(-1000000000, 1000000000)
 --local seed = 902404786
