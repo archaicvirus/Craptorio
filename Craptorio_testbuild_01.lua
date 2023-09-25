@@ -9960,6 +9960,25 @@ help = {
       [4] = 'To get there, you will need all 4 science packs unlocked, as well as their required technologies',
     }
   },
+  [5] = {
+    name = 'Credits 1/2',
+    info = {
+      [1] = 'This game is dedicated to Joshua Ryen Hall, March 31, 1986 - May 1, 2022. My dear brother, may you rest in peace. You will alawys be in my heart.',
+      [2] = '@Vebrun - Thank you for helping with sprites, and many discussions about direction and gameplay',
+      [3] = '@Ban this ^ guy - For gameplay discussions and ideas',
+      [4] = '@Vand - Particle system for F4R3TR',
+      [5] = 'Factorio & Wube Software, for making an incredible cult hit',
+      [6] = '@Nesbox - For creating the Tic80 platform making this de-make possible'
+    }
+  },
+  [6] = {
+    name = 'Credits 2/2',
+    info = {
+      [1] = '@Skeptim - Playtesting and feedback',
+      [2] = '@Breck - Playtesting and feedback',
+      [3] = '@Astropulse - For creating the RetroDiffusion Aseprite plugin, used to create trees, clutter, and ores. https://astropulse.co/#retrodiffusion',
+    }
+  },
 }
 
 cursor = {
