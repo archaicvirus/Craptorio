@@ -6081,7 +6081,7 @@ function Furnace:open()
 
         if hovered(cursor, {x = self.input.x + self.x, y = self.input.y + self.y, w = self.input.w, h = self.input.h}) then
           --item interaction
-          if key(64) then
+          if key(64) and ent.input_buffer.count > 0 then
             local old_count = ent.input_buffer.count
             local result, stack = inv:add_item({id = ent.input_buffer.id, count = ent.input_buffer.count})
             if result then
@@ -6149,7 +6149,7 @@ function Furnace:open()
 
           --item interaction
           if cursor.type == 'pointer' then
-            if key(64) then
+            if key(64) and ent.output_buffer.count > 0 then
               local old_count = ent.output_buffer.count
               local result, stack = inv:add_item({id = ent.output_buffer.id, count = ent.output_buffer.count})
               if result then
@@ -6187,7 +6187,7 @@ function Furnace:open()
         elseif hovered(cursor, {x = self.fuel.x + self.x, y = self.fuel.y + self.y, w = self.fuel.w, h = self.fuel.h}) then
           --item interaction
           if cursor.type == 'pointer' then
-            if key(64) then
+            if key(64) and ent.fuel_buffer.count > 0 then
               local old_count = ent.fuel_buffer.count
               local result, stack = inv:add_item({id = ent.fuel_buffer.id, count = ent.fuel_buffer.count})
               if result then
@@ -10021,8 +10021,8 @@ player = {
   spr = 362,
   lx = 0, ly = 0,
   shadow = 382,
-  anim_frame = 0, anim_speed = 8, anim_dir = 0, anim_max = 4,
-  last_dir = '0,0', move_speed = 0.15,
+  anim_frame = 0, anim_speed = 8, anim_dir = 0, anim_max = 4, anim_tickrate = 17*10, last_anim_time = time(),
+  last_dir = '0,0', move_speed = 0.125,
   directions = {
     ['0,0'] =   {id = 362, flip = 0, rot = 0, dust = vec2(4, 11)},  --straight
     ['0,-1'] =  {id = 365, flip = 0, rot = 0, dust = vec2(4, 11)},  --up
@@ -10492,9 +10492,9 @@ function move_player(x, y)
   player.x, player.y = player.x + x, player.y + y
 end
 
-function update_player()
-  local dt = time() - last_frame_time
-  if TICK % player.anim_speed == 0 then
+function update_player(dt)
+  if time() - player.last_anim_time >= player.anim_tickrate then
+    player.last_anim_time = time()
     if player.anim_dir == 0 then
       player.anim_frame = player.anim_frame + 1
       if player.anim_frame > player.anim_max then
@@ -11323,6 +11323,8 @@ end
 -- end
 
 function TIC()
+  local dt = time() - last_frame_time
+  last_frame_time = time()
   if not loaded then
     load_sprites()
     return
@@ -11354,8 +11356,8 @@ function TIC()
   local gv_time = lapse(get_visible_ents)
   local m_time = lapse(draw_terrain)
 
-  local up_time = lapse(update_player)
-  local hi_time = lapse(dispatch_input)
+  local up_time = lapse(update_player, dt)
+  local hi_time = lapse(dispatch_input, dt)
 
   if TICK % BELT_TICKRATE == 0 then
     BELT_TICK = BELT_TICK + 1
@@ -11477,7 +11479,7 @@ function TIC()
   end
   render_cursor_progress()
   ui.update_alerts()
-  last_frame_time = time()
+  
   update_rockets()
   if show_help then ui:draw_help_screen() end
   TICK = TICK + 1
