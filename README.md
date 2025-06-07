@@ -5,8 +5,10 @@ A de-make of Factorio for the [TIC-80](https://tic80.com/) fantasy console.
 
 ![furnace_stack_demo_4](https://github.com/archaicvirus/Craptorio/assets/25288625/7d1ec8f1-e66a-4146-bb75-e83adba0bdc6)
 
-**Note, this project is a WIP.
-- If you have found this page and would like to contribute to the project, please open a discussion and we can talk about the details.
+**Note, this project is no longer being maintained as I am putting all my spare time into Starjumper.
+
+- If you have found this page and would like to contribute to the project, just request contributor role and I will approve it.
+
 # Core idea for de-make
 - To cover the main factorio game loop, which is mining resources and using belts, 
 inserters, and machines to craft science-packs which are used to research new technologies.
